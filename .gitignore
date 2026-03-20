@@ -5,3 +5,9 @@ node_modules
 /.next
 /.next
 /.next/server
+.next/app-build-manifest.json
+.next/prerender-manifest.json
+.next/react-loadable-manifest.json
+.next/server/app-paths-manifest.json
+.next/server/middleware-react-loadable-manifest.js
+.next/trace
