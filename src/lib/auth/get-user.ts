@@ -1,14 +1,13 @@
 import { Errors } from '@/lib/errors';
-import { getAuthUser } from '@/lib/auth/get-user';
 
 const DEV_USER_ID = '00000000-0000-0000-0000-000000000001';
 
-interface AuthUser {
+export interface AuthUser {
     id: string;
     email?: string | null;
 }
 
-interface SupabaseWithAuth {
+export interface SupabaseWithAuth {
     auth: {
         getUser: () => Promise<{ data: { user: AuthUser | null } }>;
     };
@@ -23,7 +22,7 @@ export async function getAuthUser(supabase: SupabaseWithAuth): Promise<AuthUser>
     if (process.env.NODE_ENV === 'development') {
         return { id: DEV_USER_ID, email: 'test@example.com' };
     }
-    const user = await getAuthUser(supabase);
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw Errors.unauthorized();
     return user;
 }

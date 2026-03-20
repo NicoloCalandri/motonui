@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from './get-user';
 
-type AdminResult = { adminId: string } | NextResponse;
+export type AdminResult = { adminId: string } | NextResponse;
 
 /**
  * Verifies the caller is an authenticated admin.
@@ -16,12 +15,13 @@ type AdminResult = { adminId: string } | NextResponse;
 const DEV_ADMIN_ID = '00000000-0000-0000-0000-000000000001';
 
 export async function requireAdmin(): Promise<AdminResult> {
+    // Dev bypass: skip auth checks entirely in local development
     if (process.env.NODE_ENV === 'development') {
         return { adminId: DEV_ADMIN_ID };
     }
 
     const supabase = await createClient();
-    const user = await getAuthUser(supabase);
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
         return NextResponse.json(
