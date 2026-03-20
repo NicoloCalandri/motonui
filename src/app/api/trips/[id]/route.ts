@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { requireTripMember } from '@/lib/authz';
 
 const UpdateTripSchema = z.object({
     title: z.string().min(1).max(200).optional(),
@@ -22,6 +23,7 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
 
     const { data: trip, error } = await (supabase.from('trips') as any)
         .select(`
@@ -53,6 +55,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
     const body: unknown = await request.json();
     const parsed = UpdateTripSchema.safeParse(body);
     if (!parsed.success) throw Errors.validation(parsed.error.message);

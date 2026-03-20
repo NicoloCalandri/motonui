@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
 import { validateFile, uploadFile, Buckets } from '@/lib/storage';
+import { requireTripMember, requireDayInTrip } from '@/lib/authz';
+import { sanitizePlainText } from '@/lib/sanitize';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,6 +19,7 @@ export const GET = withErrorHandler(async (request, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
     const { searchParams } = new URL(request.url);
 
     const filter = FilterSchema.safeParse({
@@ -48,6 +51,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -56,13 +60,14 @@ export const POST = withErrorHandler(async (request, { params }) => {
 
     if (!file) throw Errors.validation('Campo "file" mancante.');
 
-    validateFile(file.type, file.size);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    validateFile(file.type, file.size, buffer);
+    await requireDayInTrip(supabase, id, dayId);
 
-    const fileExt = file.name.split('.').pop() ?? 'jpg';
+    const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
     const filename = `${crypto.randomUUID()}.${fileExt}`;
     const storagePath = `trips/${id}/original/${filename}`;
 
-    const buffer = Buffer.from(await file.arrayBuffer());
     const publicUrl = await uploadFile(Buckets.tripMedia, storagePath, buffer, file.type);
 
     // Insert media record
@@ -75,7 +80,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
             url: publicUrl,
             size: file.size,
             mime_type: file.type,
-            caption: caption ?? null,
+            caption: caption ? sanitizePlainText(caption, 500) : null,
             tags: [],
         })
         .select()
