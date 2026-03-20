@@ -12,9 +12,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
     pool: 'forks',
-    forks: {
-      maxForks: 2,
-      minForks: 1,
-    },
+    maxWorkers: 2,
   },
 });
