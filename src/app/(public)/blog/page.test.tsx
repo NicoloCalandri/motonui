@@ -37,7 +37,7 @@ describe('BlogIndexPage', () => {
     it('renders the blog index heading', async () => {
         const Result = await BlogIndexPage();
         render(Result);
-        expect(screen.getByText(/Il Diario di Viaggio/i)).toBeDefined();
+        expect(screen.getByText(/Il nostro diario di viaggio/i)).toBeDefined();
     });
 
     it('renders the page tagline', async () => {
