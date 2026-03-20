@@ -69,14 +69,16 @@ export async function GET(request: Request) {
 
     const entries = (data ?? []).map((row: any) => ({
         id: row.id,
-        adminId: row.admin_id,
+        admin_id: row.admin_id,
+        admin_email: row.admin_email ?? null,
         action: row.action,
-        targetId: row.target_id ?? null,
-        metadata: row.metadata ?? null,
-        createdAt: row.created_at,
+        target_user_id: row.target_user_id ?? row.target_id ?? null,
+        target_email: row.target_email ?? null,
+        details: row.details ?? row.metadata ?? null,
+        created_at: row.created_at,
     }));
 
-    return ok({ entries, total: count ?? 0, page, pageSize });
+    return ok({ data: entries, total: count ?? 0, page, pageSize });
 }
 
 function toCsv(rows: Record<string, unknown>[]): string {

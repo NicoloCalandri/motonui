@@ -65,8 +65,8 @@ export default function AuditLogPage() {
             const res = await fetch(`/api/admin/audit-log?${params}`);
             if (!res.ok) throw new Error('Fetch failed');
             const json: AuditLogResponse = await res.json();
-            setData(json.data);
-            setTotal(json.total);
+            setData(json.data ?? []);
+            setTotal(json.total ?? 0);
         } catch {
             // keep existing data
         } finally {

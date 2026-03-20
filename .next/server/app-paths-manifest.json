@@ -1,4 +1,7 @@
 {
+  "/api/admin/users/route": "app/api/admin/users/route.js",
+  "/api/admin/users/[id]/route": "app/api/admin/users/[id]/route.js",
+  "/api/admin/audit-log/route": "app/api/admin/audit-log/route.js",
   "/(app)/trips/new/page": "app/(app)/trips/new/page.js",
   "/(admin)/admin/users/page": "app/(admin)/admin/users/page.js",
   "/(app)/trips/[id]/page": "app/(app)/trips/[id]/page.js",
