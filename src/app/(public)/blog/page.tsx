@@ -14,6 +14,9 @@ export const metadata: Metadata = {
 // Revalidate every hour for public caching
 export const revalidate = 3600;
 
+/** Shape of each row returned by the blog index query */
+type PostCard = Pick<Post, 'id' | 'title' | 'slug' | 'cover_image' | 'published_at' | 'reading_time' | 'seo_description'> & { trips: { destination: string } | null };
+
 /**
  * Public blog index — accessible without authentication.
  * Lists all published posts ordered by newest first.
@@ -31,7 +34,7 @@ export default async function BlogIndexPage() {
         .eq('status', 'published')
         .order('published_at', { ascending: false });
 
-    const allPosts = (posts ?? []) as (Post & { trips: { destination: string } | null })[];
+    const allPosts = (posts ?? []) as unknown as PostCard[];
 
     return (
         <div className="min-h-screen paper-bg">

@@ -129,7 +129,7 @@ export default function TripPage() {
 
             {/* Active Tab Content */}
             <div className="flex-1 pb-24 md:pb-8">
-                {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={setActiveTab} />}
+                {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} />}
                 {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} />}
                 {activeTab === 'expenses' && <ExpensesTab tripId={trip.id} />}
                 {activeTab === 'media' && <MediaTab tripId={trip.id} />}

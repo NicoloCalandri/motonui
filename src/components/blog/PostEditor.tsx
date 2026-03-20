@@ -100,7 +100,7 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
 
         const { from, to, empty } = editor.state.selection;
         const selectedText = empty ? undefined : editor.state.doc.textBetween(from, to, '\n');
-        const context = editor.getText('\n').slice(0, 5000) || undefined;
+        const context = editor.getText({ blockSeparator: '\n' }).slice(0, 5000) || undefined;
 
         try {
             const res = await fetch('/api/ai/blog', {
