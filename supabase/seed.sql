@@ -41,6 +41,11 @@ WITH test_trip AS (
   ON CONFLICT (id) DO NOTHING
   RETURNING id
 )
+-- Insert creator as owner member
+INSERT INTO trip_members (trip_id, user_id, role)
+VALUES ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'owner')
+ON CONFLICT DO NOTHING;
+
 -- Insert sample days
 INSERT INTO days (trip_id, date, title, sort_order)
 SELECT

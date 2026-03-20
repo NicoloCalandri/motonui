@@ -1,3 +1,4 @@
+import { getAuthUser } from '@/lib/auth/get-user';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AdminNav from './_components/AdminNav';
@@ -9,8 +10,8 @@ interface AdminLayoutProps {
 /** Server-side admin role check — defence in depth beyond middleware */
 async function checkAdminAccess() {
     if (process.env.NODE_ENV === 'development') return;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+        const supabase = await createClient();
+        const user = await getAuthUser(supabase);
     if (!user) redirect('/auth/login');
 
     const { data: profile } = await (supabase.from('profiles') as any)

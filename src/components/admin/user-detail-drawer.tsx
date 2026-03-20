@@ -1,8 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Plane, BookOpen, DollarSign, Shield } from 'lucide-react';
+import { X, Plane, BookOpen, DollarSign, RotateCcw } from 'lucide-react';
 import type { AdminUserSummary } from '@/lib/types';
+
+const STATUS_BADGE: Record<string, string> = {
+    planning:  'bg-blue-900/60 text-blue-300',
+    active:    'bg-green-900/60 text-green-300',
+    completed: 'bg-zinc-700 text-zinc-300',
+    archived:  'bg-red-900/60 text-red-300',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+    planning:  'Pianificazione',
+    active:    'Attivo',
+    completed: 'Completato',
+    archived:  'Archiviato',
+};
 
 interface Props {
     user: AdminUserSummary;
@@ -30,6 +44,25 @@ interface UserDetail {
 export default function UserDetailDrawer({ user, onClose, onAction }: Props) {
     const [detail, setDetail] = useState<UserDetail | null>(null);
     const [tab, setTab] = useState<'trips' | 'posts' | 'expenses'>('trips');
+    const [restoringId, setRestoringId] = useState<string | null>(null);
+
+    async function restoreTrip(tripId: string) {
+        setRestoringId(tripId);
+        try {
+            await fetch(`/api/admin/trips/${tripId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'completed' }),
+            });
+            // refresh detail
+            const res = await fetch(`/api/admin/users/${user.id}`);
+            const updated = await res.json();
+            setDetail(updated);
+            onAction();
+        } finally {
+            setRestoringId(null);
+        }
+    }
 
     useEffect(() => {
         fetch(`/api/admin/users/${user.id}`)
@@ -45,7 +78,7 @@ export default function UserDetailDrawer({ user, onClose, onAction }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-zinc-800">
                     <h2 className="text-lg font-semibold text-white">Dettaglio utente</h2>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
+                    <button onClick={onClose} title="Chiudi" className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -105,12 +138,25 @@ export default function UserDetailDrawer({ user, onClose, onAction }: Props) {
                             ? <p className="text-zinc-500 text-sm">Nessun viaggio</p>
                             : <ul className="space-y-2">
                                 {detail.recentTrips.map(trip => (
-                                    <li key={trip.id} className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg">
-                                        <Plane className="w-4 h-4 text-violet-400 shrink-0" />
-                                        <div>
-                                            <div className="text-white text-sm font-medium">{trip.title}</div>
-                                            <div className="text-zinc-400 text-xs">{trip.destination}</div>
+                                    <li key={trip.id} className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-lg">
+                                        <Plane className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-white text-sm font-medium truncate">{trip.title}</div>
+                                            <div className="text-zinc-400 text-xs truncate">{trip.destination}</div>
+                                            <span className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[trip.status] ?? 'bg-zinc-700 text-zinc-300'}`}>
+                                                {STATUS_LABEL[trip.status] ?? trip.status}
+                                            </span>
                                         </div>
+                                        {trip.status === 'archived' && (
+                                            <button
+                                                onClick={() => restoreTrip(trip.id)}
+                                                disabled={restoringId === trip.id}
+                                                title="Ripristina viaggio"
+                                                className="shrink-0 p-1.5 rounded-md bg-zinc-700 hover:bg-zinc-600 text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
+                                            >
+                                                <RotateCcw className={`w-3.5 h-3.5 ${restoringId === trip.id ? 'animate-spin' : ''}`} />
+                                            </button>
+                                        )}
                                     </li>
                                 ))}
                               </ul>

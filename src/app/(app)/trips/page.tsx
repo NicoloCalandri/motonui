@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -14,13 +15,13 @@ export const metadata: Metadata = { title: 'I Tuoi Viaggi' };
  */
 export default async function TripsPage() {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser(supabase);
 
-    // Fetch all user's trips via trip_members join
+   // Fetch all user's trips via trip_members join
     const { data: memberRows } = await supabase
         .from('trip_members')
         .select('trips(*)')
-        .eq('user_id', user?.id ?? '')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
     const trips: Trip[] = (memberRows ?? [])

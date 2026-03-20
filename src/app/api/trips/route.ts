@@ -20,14 +20,12 @@ export const GET = withErrorHandler(async () => {
     const user = await getAuthUser(supabase);
 
     const { data, error } = await (supabase.from('trip_members') as any)
-        .select(`
-      trip_id,
-      trips (
-        id, title, destination, cover_image, start_date, end_date, status, created_at
-      )
-    `)
+        .select(`trip_id, trips (id, title, destination, cover_image, start_date, end_date, status, created_at)`)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+    // stampa a console per debug
+    console.log('Fetched trips for user', user.id, { data, error });
 
     if (error) throw new Error(`[motonui][trips][GET] ${error.message}`);
 

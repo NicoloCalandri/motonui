@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -14,13 +15,13 @@ export const metadata: Metadata = { title: 'Dashboard' };
  */
 export default async function DashboardPage() {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser(supabase);
 
     // Fetch all user's trips via trip_members join
     const { data: memberRows } = await supabase
         .from('trip_members')
         .select('trips(*)')
-        .eq('user_id', user?.id ?? '')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
     const trips: Trip[] = (memberRows ?? [])
@@ -31,7 +32,7 @@ export default async function DashboardPage() {
     const pastTrips = trips.filter((t) => t.status !== 'active' && t.status !== 'archived');
 
     const today = format(new Date(), "EEEE d MMMM yyyy", { locale: it });
-    const firstName = user?.email?.split('@')[0] ?? 'Viaggiatore';
+    const firstName = (user as any).email?.split('@')[0] ?? 'Viaggiatore';
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">

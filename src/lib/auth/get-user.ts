@@ -1,4 +1,5 @@
 import { Errors } from '@/lib/errors';
+import { getAuthUser } from '@/lib/auth/get-user';
 
 const DEV_USER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -22,7 +23,7 @@ export async function getAuthUser(supabase: SupabaseWithAuth): Promise<AuthUser>
     if (process.env.NODE_ENV === 'development') {
         return { id: DEV_USER_ID, email: 'test@example.com' };
     }
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser(supabase);
     if (!user) throw Errors.unauthorized();
     return user;
 }
