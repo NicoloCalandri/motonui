@@ -326,6 +326,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/profile/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/profile">> = Specific
+  const handler = {} as typeof import("../../src/app/api/profile/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/profile/stats/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/profile/stats">> = Specific
+  const handler = {} as typeof import("../../src/app/api/profile/stats/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/trips/[id]/days/[dayId]/accommodations/[accId]/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/trips/[id]/days/[dayId]/accommodations/[accId]">> = Specific

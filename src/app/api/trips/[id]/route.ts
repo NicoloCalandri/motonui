@@ -12,6 +12,7 @@ const UpdateTripSchema = z.object({
     description: z.string().max(2000).optional().nullable(),
     cover_image: z.string().url().optional().nullable(),
     status: z.enum(['planning', 'active', 'completed', 'archived']).optional(),
+    budget_eur: z.number().nonnegative().nullable().optional(),
 });
 
 type Params = { params: Promise<{ id: string }> };

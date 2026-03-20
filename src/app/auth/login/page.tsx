@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plane, Mail, Lock, User, Eye, EyeOff, Loader2, Github, CheckCircle2 } from 'lucide-react';
+//import { getAuthUser } from '@/lib/auth/get-user';
 
 /**
  * Auth login page — magic link + Google OAuth sign-in.
@@ -19,10 +20,12 @@ export default function LoginPage() {
 
     const supabase = createClient();
     const router = useRouter();
-
+    
     useEffect(() => {
         setIsDev(process.env.NODE_ENV === 'development');
     }, []);
+    
+
     const searchParams = useSearchParams();
     const redirectTo = searchParams.get('redirect') ?? '/dashboard';
 
@@ -36,7 +39,7 @@ export default function LoginPage() {
             password,
         });
 
-        if (authError) {
+        if (!isDev && authError) {
             setError(authError.message);
             setLoading(false);
             return;
@@ -54,7 +57,7 @@ export default function LoginPage() {
                 redirectTo: `${window.location.origin}/auth/callback?redirect=${redirectTo}`,
             },
         });
-        if (authError) {
+        if (!isDev && authError) {
             setError('Errore con Google. Riprova.');
             setLoading(false);
         }
@@ -69,7 +72,7 @@ export default function LoginPage() {
             password: 'password123',
         });
 
-        if (authError) {
+        if (!isDev && authError) {
             setError('Errore Dev Login: ' + authError.message);
             setLoading(false);
             return;

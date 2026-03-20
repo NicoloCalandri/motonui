@@ -42,27 +42,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
     useEffect(() => {
         const checkUser = async () => {
-            if (process.env.NODE_ENV === 'development') {
-                setUserEmail('test@example.com');
-                setUserName('Dev User');
-                return;
-            }
-
-            const { data } = await supabase.auth.getUser();
-            const user = data.user;
-
-            if (!user) {
+            const res = await fetch('/api/profile');
+            if (!res.ok) {
                 if (!pathname?.startsWith('/blog')) {
                     router.push('/auth/login');
                 }
                 return;
             }
-            setUserEmail(user.email ?? null);
-            setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viaggiatore');
+            const data = await res.json();
+            setUserEmail(data.email ?? null);
+            setUserName(data.fullName || data.email?.split('@')[0] || 'Viaggiatore');
         };
 
         checkUser();
-    }, [router, supabase.auth]);
+    }, [router]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();

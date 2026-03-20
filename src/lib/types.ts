@@ -66,6 +66,7 @@ export interface Trip {
   status: TripStatus;
   description: string | null;
   owner_id: string;
+  budget_eur: number | null;    // optional total budget in EUR
 }
 
 /** Join table linking users to trips */
@@ -289,6 +290,7 @@ export interface TripStats {
   total_spent_eur: number;
   avg_per_day_eur: number;
   transport_breakdown: Record<LegType, number>; // leg type → km
+  budget_eur: number | null;
 }
 
 // =============================================================================

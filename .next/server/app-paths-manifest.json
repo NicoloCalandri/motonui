@@ -1,0 +1,11 @@
+{
+  "/api/trips/[id]/route": "app/api/trips/[id]/route.js",
+  "/api/trips/[id]/stats/route": "app/api/trips/[id]/stats/route.js",
+  "/api/profile/route": "app/api/profile/route.js",
+  "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
+  "/(app)/profile/page": "app/(app)/profile/page.js",
+  "/(admin)/admin/users/page": "app/(admin)/admin/users/page.js",
+  "/(app)/blog/page": "app/(app)/blog/page.js",
+  "/(app)/trips/page": "app/(app)/trips/page.js",
+  "/(app)/trips/[id]/page": "app/(app)/trips/[id]/page.js"
+}

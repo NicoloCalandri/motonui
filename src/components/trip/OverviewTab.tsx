@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import type { TripWithDetails } from '@/lib/types';
 import TripMap from '@/components/map/TripMap';
 import TripStatsCard from '@/components/trip/TripStatsCard';
-import { MapPin, Calendar, Globe, Route } from 'lucide-react';
+import { MapPin, Calendar, Globe, Route, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -17,6 +18,25 @@ interface OverviewTabProps {
  */
 export default function OverviewTab({ trip, onNavigate }: OverviewTabProps) {
     const allLegs = trip.days?.flatMap((d) => d.legs ?? []) ?? [];
+    const [currentBudget, setCurrentBudget] = useState<number | null>(trip.budget_eur ?? null);
+    const [budgetInput, setBudgetInput] = useState<string>(
+        trip.budget_eur != null ? String(trip.budget_eur) : ''
+    );
+    const [editingBudget, setEditingBudget] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    async function saveBudget() {
+        setSaving(true);
+        const value = budgetInput.trim() === '' ? null : Number(budgetInput);
+        await fetch(`/api/trips/${trip.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ budget_eur: value }),
+        });
+        setCurrentBudget(value);
+        setEditingBudget(false);
+        setSaving(false);
+    }
 
     return (
         <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
@@ -63,6 +83,60 @@ export default function OverviewTab({ trip, onNavigate }: OverviewTabProps) {
 
             {/* Stats */}
             <TripStatsCard tripId={trip.id} />
+
+            {/* Budget */}
+            <div className="card p-5">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-display text-base font-semibold text-ink-900 flex items-center gap-2">
+                        <Wallet className="w-4 h-4 text-terracotta-400" />
+                        Budget viaggio
+                    </h3>
+                    {!editingBudget && (
+                        <button
+                            onClick={() => setEditingBudget(true)}
+                            className="text-xs font-bold text-ink-400 hover:text-ink-900 transition-colors"
+                        >
+                            {currentBudget != null ? 'Modifica' : 'Imposta'}
+                        </button>
+                    )}
+                </div>
+                {editingBudget ? (
+                    <div className="flex items-center gap-2">
+                        <span className="text-ink-400 font-semibold text-sm">€</span>
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={budgetInput}
+                            onChange={(e) => setBudgetInput(e.target.value)}
+                            placeholder="0.00"
+                            className="flex-1 border border-sand-300 rounded-xl px-3 py-2 text-sm font-display focus:outline-none focus:border-ink-900"
+                        />
+                        <button
+                            onClick={saveBudget}
+                            disabled={saving}
+                            className="px-4 py-2 bg-[var(--color-ink)] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+                        >
+                            {saving ? '…' : 'Salva'}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingBudget(false);
+                                setBudgetInput(currentBudget != null ? String(currentBudget) : '');
+                            }}
+                            className="px-3 py-2 text-sm font-semibold text-ink-400 hover:text-ink-900 transition-colors"
+                        >
+                            Annulla
+                        </button>
+                    </div>
+                ) : currentBudget != null ? (
+                    <p className="font-display text-3xl font-bold text-ink-900">
+                        €{currentBudget.toLocaleString('it-IT', { minimumFractionDigits: 0 })}
+                    </p>
+                ) : (
+                    <p className="text-sm text-ink-400">Nessun budget impostato.</p>
+                )}
+            </div>
 
             {/* Members */}
             {trip.members && trip.members.length > 0 && (

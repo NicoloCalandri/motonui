@@ -56,7 +56,7 @@ export async function getTripStats(tripId: string): Promise<TripStats> {
 
     // Fetch trip, legs, and expenses in parallel
     const [tripResult, legsResult, expensesResult] = await Promise.all([
-        (supabase.from('trips') as any).select('start_date, end_date').eq('id', tripId).single(),
+        (supabase.from('trips') as any).select('start_date, end_date, budget_eur').eq('id', tripId).single(),
         (supabase.from('legs') as any).select('*').eq('trip_id', tripId),
         (supabase.from('expenses') as any)
             .select('amount_eur, amount')
@@ -129,5 +129,6 @@ export async function getTripStats(tripId: string): Promise<TripStats> {
         total_spent_eur: Math.round(totalSpentEur * 100) / 100,
         avg_per_day_eur: Math.round(avgPerDayEur * 100) / 100,
         transport_breakdown: transportBreakdown,
+        budget_eur: trip.budget_eur != null ? Number(trip.budget_eur) : null,
     };
 }

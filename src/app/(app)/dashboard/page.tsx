@@ -31,8 +31,24 @@ export default async function DashboardPage() {
     const activeTrip = trips.find((t) => t.status === 'active');
     const pastTrips = trips.filter((t) => t.status !== 'active' && t.status !== 'archived');
 
+    // Fetch total expenses for active trip (if any)
+    let activeTripSpent = 0;
+    if (activeTrip) {
+        const { data: expenseRows } = await supabase
+            .from('expenses')
+            .select('amount_eur')
+            .eq('trip_id', activeTrip.id);
+        activeTripSpent = (expenseRows ?? []).reduce((sum: number, e: { amount_eur: number | null }) => sum + (e.amount_eur ?? 0), 0);
+    }
+
     const today = format(new Date(), "EEEE d MMMM yyyy", { locale: it });
-    const firstName = (user as any).email?.split('@')[0] ?? 'Viaggiatore';
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single();
+    const firstName = profile?.display_name || (user as any).email?.split('@')[0] || 'Viaggiatore';
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -70,8 +86,26 @@ export default async function DashboardPage() {
                         <span className="text-[10px] font-bold text-ink-muted uppercase">Budget</span>
                     </div>
                     <div className="mt-4">
-                        <p className="text-2xl font-bold text-green-600">On track</p>
-                        <p className="text-xs font-semibold text-ink-muted">Situazione spese</p>
+                        {activeTrip?.budget_eur != null ? (
+                            <>
+                                <p className={`text-2xl font-bold ${activeTripSpent > activeTrip.budget_eur ? 'text-red-500' : 'text-green-600'}`}>
+                                    €{activeTripSpent.toLocaleString('it-IT', { minimumFractionDigits: 0 })}
+                                </p>
+                                <p className="text-xs font-semibold text-ink-muted">
+                                    su €{(activeTrip.budget_eur as number).toLocaleString('it-IT', { minimumFractionDigits: 0 })} budget
+                                </p>
+                            </>
+                        ) : activeTrip ? (
+                            <>
+                                <p className="text-2xl font-bold text-ink-muted">—</p>
+                                <p className="text-xs font-semibold text-ink-muted">Imposta un budget</p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-2xl font-bold text-ink-muted">—</p>
+                                <p className="text-xs font-semibold text-ink-muted">Nessun viaggio attivo</p>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

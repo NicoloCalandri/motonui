@@ -1,55 +1,54 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { User, Mail, Camera, Save, Loader2, ArrowLeft, Shield, Globe, Bell } from 'lucide-react';
+import { User, Mail, Camera, Save, Loader2, Shield, Globe, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-    const supabase = createClient();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<{ id: string; email: string | null; fullName: string; avatarUrl: string | null } | null>(null);
     const [fullName, setFullName] = useState('');
     const [stats, setStats] = useState({ trips: 0, posts: 0 });
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const { data } = await supabase.auth.getUser();
-            if (data.user) {
-                setUser(data.user);
-                setFullName(data.user.user_metadata?.full_name || '');
+            const res = await fetch('/api/profile');
+            if (res.ok) {
+                const data = await res.json();
+                setProfile(data);
+                setFullName(data.fullName || '');
 
-                // Fetch real stats
-                const [tripsRes, postsRes] = await Promise.all([
-                    supabase.from('trip_members').select('*', { count: 'exact', head: true }).eq('user_id', data.user.id),
-                    supabase.from('posts').select('*', { count: 'exact', head: true }).eq('author_id', data.user.id)
-                ]);
-
-                setStats({
-                    trips: tripsRes.count || 0,
-                    posts: postsRes.count || 0
-                });
+                // Fetch stats via supabase client (RLS not involved for counts via server)
+                const statsRes = await fetch('/api/profile/stats');
+                if (statsRes.ok) {
+                    const s = await statsRes.json();
+                    setStats({ trips: s.trips ?? 0, posts: s.posts ?? 0 });
+                }
             }
             setLoading(false);
         };
         fetchUserData();
-    }, [supabase]);
+    }, []);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         setMessage(null);
 
-        const { error } = await supabase.auth.updateUser({
-            data: { full_name: fullName }
+        const res = await fetch('/api/profile', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fullName }),
         });
 
-        if (error) {
-            setMessage({ type: 'error', text: 'Errore durante l\'aggiornamento: ' + error.message });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setMessage({ type: 'error', text: 'Errore durante l\'aggiornamento: ' + (data.error ?? res.statusText) });
         } else {
+            setProfile(prev => prev ? { ...prev, fullName } : prev);
             setMessage({ type: 'success', text: 'Profilo aggiornato con successo!' });
         }
         setSaving(false);
@@ -85,15 +84,19 @@ export default function ProfilePage() {
                         <div className="relative group mb-6">
                             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-neutral-50 shadow-inner bg-neutral-100">
                                 <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-400 flex items-center justify-center text-white text-4xl font-bold">
-                                    {fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
+                                    {fullName?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase()}
                                 </div>
                             </div>
-                            <button className="absolute bottom-0 right-0 p-3 bg-neutral-900 text-white rounded-full shadow-lg hover:scale-110 transition-all border-4 border-white">
+                            <button
+                                className="absolute bottom-0 right-0 p-3 bg-neutral-900 text-white rounded-full shadow-lg hover:scale-110 transition-all border-4 border-white"
+                                title="Cambia foto profilo"
+                                aria-label="Cambia foto profilo"
+                            >
                                 <Camera className="w-4 h-4" />
                             </button>
                         </div>
                         <h2 className="text-xl font-bold text-neutral-900 text-center">{fullName || 'Viaggiatore'}</h2>
-                        <p className="text-neutral-400 text-sm font-medium mb-6">{user?.email}</p>
+                        <p className="text-neutral-400 text-sm font-medium mb-6">{profile?.email}</p>
                         
                         <div className="grid grid-cols-2 w-full gap-4 pt-6 border-t border-neutral-50">
                             <div className="text-center">
@@ -169,7 +172,7 @@ export default function ProfilePage() {
                                         <input
                                             id="email"
                                             type="email"
-                                            value={user?.email || ''}
+                                            value={profile?.email || ''}
                                             disabled
                                             className="w-full pl-12 pr-4 py-4 bg-neutral-50/50 border-none rounded-2xl text-sm font-bold cursor-not-allowed"
                                         />
