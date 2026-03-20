@@ -14,6 +14,10 @@ import CarrierSearch from '@/components/trip/CarrierSearch';
 interface FlightSegment {
     from_name: string;  // e.g. "TRN — Torino"
     to_name: string;
+    from_lat?: number | null;
+    from_lng?: number | null;
+    to_lat?: number | null;
+    to_lng?: number | null;
 }
 
 const defaultSegment = (): FlightSegment => ({ from_name: '', to_name: '' });
@@ -193,8 +197,14 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                         departure_at,
                         arrival_at,
                         checkin_opens_at,
-                        // Signal multi-segment to API
-                        segments: validSegments,
+                        segments: validSegments.map(s => ({
+                            from_name: s.from_name,
+                            to_name: s.to_name,
+                            from_lat: s.from_lat ?? null,
+                            from_lng: s.from_lng ?? null,
+                            to_lat: s.to_lat ?? null,
+                            to_lng: s.to_lng ?? null,
+                        })),
                     }),
                 });
 
@@ -334,10 +344,12 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                                     initialValue={seg.from_name}
                                                     onSelect={(r: AirportResult) => {
                                                         setSegments(prev => prev.map((s, i) =>
-                                                            i === idx ? { ...s, from_name: r.label } : s
+                                                            i === idx ? { ...s, from_name: r.label, from_lat: r.lat, from_lng: r.lng } : s
                                                         ));
-                                                        // If first segment, also update form for single-leg fallback
-                                                        if (idx === 0) setValue('from_name', r.label, { shouldValidate: true });
+                                                        if (idx === 0) {
+                                                            setValue('from_name', r.label, { shouldValidate: true });
+                                                            setFromCoords({ lat: r.lat, lng: r.lng });
+                                                        }
                                                     }}
                                                     onTextChange={(text) => {
                                                         setSegments(prev => prev.map((s, i) =>
@@ -355,15 +367,18 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                                     onSelect={(r: AirportResult) => {
                                                         setSegments(prev => {
                                                             const updated = prev.map((s, i) =>
-                                                                i === idx ? { ...s, to_name: r.label } : s
+                                                                i === idx ? { ...s, to_name: r.label, to_lat: r.lat, to_lng: r.lng } : s
                                                             );
                                                             // Auto-fill next segment's "from" if blank
                                                             if (idx + 1 < updated.length && !updated[idx + 1].from_name) {
-                                                                updated[idx + 1] = { ...updated[idx + 1], from_name: r.label };
+                                                                updated[idx + 1] = { ...updated[idx + 1], from_name: r.label, from_lat: r.lat, from_lng: r.lng };
                                                             }
                                                             return updated;
                                                         });
-                                                        if (idx === segments.length - 1) setValue('to_name', r.label, { shouldValidate: true });
+                                                        if (idx === segments.length - 1) {
+                                                            setValue('to_name', r.label, { shouldValidate: true });
+                                                            setToCoords({ lat: r.lat, lng: r.lng });
+                                                        }
                                                     }}
                                                     onTextChange={(text) => {
                                                         setSegments(prev => prev.map((s, i) =>

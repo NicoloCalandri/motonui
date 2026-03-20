@@ -12,6 +12,7 @@ export default function TripStatsCard({ tripId }: { tripId: string }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!tripId) return;
         fetch(`/api/trips/${tripId}/stats`)
             .then((r) => r.json())
             .then((data: TripStats) => { setStats(data); setLoading(false); })

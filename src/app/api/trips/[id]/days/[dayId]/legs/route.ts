@@ -8,6 +8,10 @@ import { upsertFlightCheckinReminder } from '@/lib/reminders';
 const FlightSegmentSchema = z.object({
     from_name: z.string().min(1).max(200),
     to_name: z.string().min(1).max(200),
+    from_lat: z.number().nullable().optional(),
+    from_lng: z.number().nullable().optional(),
+    to_lat: z.number().nullable().optional(),
+    to_lng: z.number().nullable().optional(),
 });
 
 const CreateLegSchema = z.object({
@@ -53,6 +57,10 @@ export const POST = withErrorHandler(async (request, { params }) => {
             type: 'flight' as const,
             from_name: seg.from_name,
             to_name: seg.to_name,
+            from_lat: seg.from_lat ?? null,
+            from_lng: seg.from_lng ?? null,
+            to_lat: seg.to_lat ?? null,
+            to_lng: seg.to_lng ?? null,
             trip_id: id,
             day_id: dayId,
             carrier: input.carrier ?? null,
