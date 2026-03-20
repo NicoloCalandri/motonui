@@ -50,7 +50,9 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
 
                 if (legsWithCoords.length === 0) return;
 
-                // Build GeoJSON from legs
+                const now = new Date();
+
+                // Build GeoJSON from legs — mark if departure has already passed
                 const features = legsWithCoords.map((leg) => ({
                     type: 'Feature' as const,
                     geometry: {
@@ -60,15 +62,33 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
                             [leg.to_lng!, leg.to_lat!],
                         ],
                     },
-                    properties: { type: leg.type },
+                    properties: {
+                        type: leg.type,
+                        isPast: leg.departure_at ? new Date(leg.departure_at) < now : false,
+                    },
                 }));
 
                 map!.addSource('legs', { type: 'geojson', data: { type: 'FeatureCollection', features } });
 
+                // Past legs — solid green line
                 map!.addLayer({
-                    id: 'legs-line',
+                    id: 'legs-line-past',
                     type: 'line',
                     source: 'legs',
+                    filter: ['==', ['get', 'isPast'], true],
+                    paint: {
+                        'line-color': '#22c55e',
+                        'line-width': 3,
+                        'line-opacity': 0.9,
+                    },
+                });
+
+                // Future / unscheduled legs — dashed terracotta line
+                map!.addLayer({
+                    id: 'legs-line-future',
+                    type: 'line',
+                    source: 'legs',
+                    filter: ['!=', ['get', 'isPast'], true],
                     paint: {
                         'line-color': '#C4622D',
                         'line-width': 2.5,

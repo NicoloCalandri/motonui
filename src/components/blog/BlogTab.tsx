@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Post } from '@/lib/types';
 import Link from 'next/link';
-import { PlusCircle, FileText, Globe, Edit3 } from 'lucide-react';
+import { PlusCircle, FileText, Globe, Edit3, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -16,12 +16,20 @@ export default function BlogTab({ tripId }: BlogTabProps) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchPosts = () => {
         fetch(`/api/trips/${tripId}/posts`)
             .then((r) => r.json())
             .then((data: Post[]) => { setPosts(data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, [tripId]);
+    };
+
+    useEffect(() => { fetchPosts(); }, [tripId]);
+
+    const deletePost = async (postId: string) => {
+        if (!confirm('Eliminare questo post? L\'azione è irreversibile.')) return;
+        await fetch(`/api/trips/${tripId}/posts/${postId}`, { method: 'DELETE' });
+        fetchPosts();
+    };
 
     return (
         <div className="p-4 md:p-6 max-w-2xl mx-auto">
@@ -55,19 +63,17 @@ export default function BlogTab({ tripId }: BlogTabProps) {
                 <div className="space-y-3">
                     {posts.map((post) => (
                         <div key={post.id} className="card p-4 flex items-center gap-4">
-                            {post.cover_image && (
-                                <img
-                                    src={post.cover_image}
-                                    alt=""
-                                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
-                                />
-                            )}
+                            <img
+                                src={post.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'}
+                                alt=""
+                                className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-neutral-100"
+                            />
                             <div className="flex-1 min-w-0">
                                 <h3 className="font-display font-semibold text-ink-900 truncate">{post.title}</h3>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <span className={`text-xs px-2 py-0.5 rounded-full ${post.status === 'published'
-                                            ? 'bg-sage-100 text-sage-600'
-                                            : 'bg-sand-200 text-ink-400'
+                                        ? 'bg-sage-100 text-sage-600'
+                                        : 'bg-sand-200 text-ink-400'
                                         }`}>
                                         {post.status === 'published' ? '✓ Pubblicato' : 'Bozza'}
                                     </span>
@@ -97,6 +103,13 @@ export default function BlogTab({ tripId }: BlogTabProps) {
                                 >
                                     <Edit3 className="w-4 h-4" />
                                 </Link>
+                                <button
+                                    aria-label="Elimina post"
+                                    onClick={() => deletePost(post.id)}
+                                    className="p-2 text-ink-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     ))}

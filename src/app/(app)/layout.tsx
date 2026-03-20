@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Map, PlusCircle, BookOpen, LayoutDashboard, User, Plane } from 'lucide-react';
+import { Map, PlusCircle, BookOpen, LayoutDashboard, User, Plane, LogOut } from 'lucide-react';
+import ImpersonationBanner from '@/components/admin/impersonation-banner';
 
 interface AppLayoutProps {
     children: React.ReactNode;
@@ -13,9 +14,8 @@ interface AppLayoutProps {
 const NAV_ITEMS = [
     { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
     { href: '/trips', label: 'Viaggi', icon: Map },
-    { href: '/trips/new', label: 'Nuovo', icon: PlusCircle, primary: true },
     { href: '/blog', label: 'Blog', icon: BookOpen },
-    { href: '/profile', label: 'Profilo', icon: User },
+    { href: '/profile', label: 'Impostazioni', icon: User },
 ];
 
 /**
@@ -25,15 +25,30 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const router = useRouter();
     const supabase = createClient();
     const [userEmail, setUserEmail] = useState<string | null>(null);
+    const [userName, setUserName] = useState<string | null>(null);
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            if (!data.user) {
+        const checkUser = async () => {
+            const { data } = await supabase.auth.getUser();
+            let user = data.user;
+
+            if (!user && process.env.NODE_ENV === 'development') {
+                const { data: devAuth } = await supabase.auth.signInWithPassword({
+                    email: 'test@example.com',
+                    password: 'password123',
+                });
+                user = devAuth.user;
+            }
+
+            if (!user && process.env.NODE_ENV !== 'development') {
                 router.push('/auth/login');
                 return;
             }
-            setUserEmail(data.user.email ?? null);
-        });
+            setUserEmail(user?.email ?? null);
+            setUserName(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Viaggiatore');
+        };
+
+        checkUser();
     }, [router, supabase.auth]);
 
     const handleSignOut = async () => {
@@ -42,93 +57,105 @@ export default function AppLayout({ children }: AppLayoutProps) {
     };
 
     return (
-        <div className="flex min-h-screen bg-sand-100">
-            {/* ─── Desktop Sidebar ─── */}
-            <aside className="hidden md:flex flex-col w-64 min-h-screen bg-ink-900 text-sand-100 sticky top-0 h-screen">
-                {/* Logo */}
-                <div className="p-6 border-b border-ink-500/30">
-                    <Link href="/dashboard" className="flex items-center gap-2 group">
-                        <Plane className="w-7 h-7 text-terracotta-400 group-hover:rotate-12 transition-transform duration-300" />
-                        <span className="font-display text-2xl font-bold text-sand-100">motonui</span>
-                    </Link>
-                    {userEmail && (
-                        <p className="text-ink-300 text-xs mt-2 truncate">{userEmail}</p>
-                    )}
+        <div className="flex flex-col min-h-screen bg-[var(--color-bg)]">
+            <ImpersonationBanner />
+            <div className="flex flex-1">
+            {/* ─── Slim Sidebar (Image Reference) ─── */}
+            <aside className="hidden md:flex flex-col items-center w-20 min-h-screen bg-[var(--color-sidebar)] py-8 sticky top-0 h-screen">
+                <div className="mb-10">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+                        M
+                    </div>
                 </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 p-4 space-y-1">
-                    {NAV_ITEMS.filter((i) => !i.primary).map(({ href, label, icon: Icon }) => (
+                <nav className="flex-1 w-full px-3 space-y-6 flex flex-col items-center">
+                    {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
                         <Link
                             key={href}
                             href={href}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink-300 hover:text-sand-100 hover:bg-ink-500/20 transition-colors duration-150 text-sm font-medium"
+                            title={label}
+                            className="relative group p-3 rounded-2xl transition-all duration-300 hover:bg-white/10 text-gray-500 hover:text-white"
                         >
-                            <Icon className="w-5 h-5 flex-shrink-0" />
-                            {label}
+                            <Icon className="w-6 h-6" />
+                            {/* Active indicator mockup (optional) */}
+                            <div className="absolute left-[-12px] top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity" />
                         </Link>
                     ))}
+                    
+                    <Link
+                        href="/trips/new"
+                        className="p-3 rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all"
+                    >
+                        <PlusCircle className="w-6 h-6" />
+                    </Link>
                 </nav>
 
-                {/* New Trip CTA */}
-                <div className="p-4 border-t border-ink-500/30">
-                    <Link
-                        href="/trips/new"
-                        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-terracotta-400 hover:bg-terracotta-300 text-white rounded-xl text-sm font-semibold transition-colors duration-150"
-                    >
-                        <PlusCircle className="w-4 h-4" />
-                        Nuovo viaggio
-                    </Link>
-                    <button
-                        onClick={handleSignOut}
-                        className="mt-2 w-full px-4 py-2 text-ink-300 hover:text-sand-100 text-xs transition-colors duration-150"
-                    >
-                        Esci
-                    </button>
-                </div>
+                <button
+                    onClick={handleSignOut}
+                    title="Esci"
+                    aria-label="Esci"
+                    className="p-3 rounded-2xl text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+                >
+                    <LogOut className="w-6 h-6" />
+                </button>
             </aside>
 
-            {/* ─── Main Content ─── */}
-            <main className="flex-1 flex flex-col">
-                {/* Mobile Header */}
-                <header className="md:hidden sticky top-0 z-40 bg-sand-50/90 backdrop-blur-sm border-b border-sand-200 px-4 py-3 flex items-center justify-between">
-                    <Link href="/dashboard" className="flex items-center gap-2">
-                        <Plane className="w-6 h-6 text-terracotta-400" />
-                        <span className="font-display text-xl font-bold text-ink-900">motonui</span>
-                    </Link>
-                    <Link
-                        href="/trips/new"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-terracotta-400 text-white rounded-lg text-sm font-medium"
-                    >
-                        <PlusCircle className="w-4 h-4" />
-                        Nuovo
-                    </Link>
+            {/* ─── Main Content Area ─── */}
+            <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
+                {/* Top Cockpit Header */}
+                <header className="flex items-center justify-between mb-8">
+                    {/* Search Mockup */}
+                    <div className="flex-1 max-w-md relative group">
+                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                            <PlusCircle className="w-5 h-5 text-gray-400 group-focus-within:text-ink-900 transition-colors" />
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="Cerca il tuo viaggio..." 
+                            className="w-full bg-white border-none py-3 pl-12 pr-4 rounded-2xl shadow-soft focus:ring-2 focus:ring-gray-200 transition-all text-sm font-medium"
+                        />
+                    </div>
+
+                    {/* Actions & Profile */}
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full shadow-soft text-xs font-bold uppercase tracking-wider">
+                            <span className="w-2 h-2 bg-green-500 rounded-full" />
+                            Light
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-sm font-bold text-ink-900 leading-none">{userName}</p>
+                                <p className="text-[10px] font-medium text-ink-muted mt-1 uppercase">Trip Explorer</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-white shadow-soft p-1 overflow-hidden border border-gray-100">
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-200 to-gray-400" />
+                            </div>
+                        </div>
+                    </div>
                 </header>
 
                 {/* Page Content */}
-                <div className="flex-1 animate-fade-in">
+                <div className="flex-1 overflow-y-auto scrollbar-hide">
                     {children}
                 </div>
 
-                {/* ─── Mobile Bottom Navigation ─── */}
-                <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-sand-50/95 backdrop-blur-sm border-t border-sand-200 px-2 pb-safe">
+                {/* Mobile Bottom Navigation (Still needed for small screens) */}
+                <nav className="md:hidden fixed bottom-6 inset-x-4 z-40 bg-[var(--color-sidebar)]/90 backdrop-blur-xl rounded-3xl shadow-2xl p-2 border border-white/10">
                     <div className="flex items-center justify-around">
-                        {NAV_ITEMS.map(({ href, label, icon: Icon, primary }) => (
+                        {NAV_ITEMS.concat([{ href: '/trips/new', label: 'Nuovo', icon: PlusCircle }]).map(({ href, label, icon: Icon }) => (
                             <Link
                                 key={href}
                                 href={href}
-                                className={`flex flex-col items-center gap-0.5 py-2 px-3 min-w-[44px] min-h-[44px] transition-colors duration-150 ${primary
-                                        ? 'text-terracotta-400'
-                                        : 'text-ink-400 hover:text-ink-900'
-                                    }`}
+                                className="flex flex-col items-center gap-1 py-2 px-3 text-gray-400 hover:text-white transition-all"
                             >
-                                <Icon className={`${primary ? 'w-7 h-7' : 'w-5 h-5'}`} />
-                                <span className="text-[10px] font-medium">{label}</span>
+                                <Icon className="w-5 h-5" />
+                                <span className="text-[8px] font-bold uppercase">{label}</span>
                             </Link>
                         ))}
                     </div>
                 </nav>
             </main>
+            </div>
         </div>
     );
 }

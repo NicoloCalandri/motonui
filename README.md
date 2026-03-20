@@ -61,9 +61,9 @@ This project is designed to be built by a team of specialized AI agents. See [`a
 ```bash
 git clone https://github.com/YOUR_USERNAME/motonui
 cd motonui
-npm install
-cp .env.example .env.local
-# Fill in your Supabase + Mapbox keys
+npm run setup
+# Fill in your .env.local with Supabase + Mapbox keys
+npm run db:start
 npm run dev
 ```
 

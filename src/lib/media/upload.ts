@@ -12,7 +12,7 @@ export async function uploadMedia(file: File, tripId: string): Promise<UploadRes
     // 1. Validate MIME type and size
     validateFile(file.type, file.size);
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = Buffer.from(await file.arrayBuffer() as ArrayBuffer);
 
     // 2. Extract EXIF metadata (images only)
     const metadata = await extractExifMetadata(buffer, file.type);
@@ -35,14 +35,14 @@ export async function uploadMedia(file: File, tripId: string): Promise<UploadRes
         height = imgMeta.height ?? 0;
 
         // Convert to WebP for storage efficiency
-        originalBuffer = await img.webp({ quality: 90 }).toBuffer();
+        originalBuffer = await img.webp({ quality: 90 }).toBuffer() as any;
 
         // Thumbnail: 400×400 cover crop
         const thumbBuffer = await sharp(buffer)
             .rotate()
             .resize(400, 400, { fit: 'cover', position: 'attention' })
             .webp({ quality: 80 })
-            .toBuffer();
+            .toBuffer() as any;
 
         // Upload thumbnail
         const thumbPath = `trips/${tripId}/thumbs/${fileId}.webp`;
@@ -109,6 +109,7 @@ async function extractExifMetadata(buffer: Buffer, mimeType: string): Promise<Im
 
 async function importSharp() {
     // Dynamic import prevents sharp from being bundled for the browser
-    const sharp = (await import('sharp')).default;
+    const sharpModule = await import('sharp');
+    const sharp = sharpModule.default || sharpModule;
     return { sharp };
 }

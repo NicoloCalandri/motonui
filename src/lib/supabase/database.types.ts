@@ -1,534 +1,789 @@
-/**
- * Supabase Database TypeScript types — hand-authored to match migrations/0001_initial.sql
- * For use with the typed Supabase client.
- */
-
 export type Json =
-    | string
-    | number
-    | boolean
-    | null
-    | { [key: string]: Json | undefined }
-    | Json[];
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-export interface Database {
-    public: {
-        Tables: {
-            trips: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    title: string;
-                    destination: string;
-                    cover_image: string | null;
-                    start_date: string | null;
-                    end_date: string | null;
-                    status: 'planning' | 'active' | 'completed' | 'archived';
-                    description: string | null;
-                    owner_id: string;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    title: string;
-                    destination: string;
-                    cover_image?: string | null;
-                    start_date?: string | null;
-                    end_date?: string | null;
-                    status?: 'planning' | 'active' | 'completed' | 'archived';
-                    description?: string | null;
-                    owner_id: string;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    title?: string;
-                    destination?: string;
-                    cover_image?: string | null;
-                    start_date?: string | null;
-                    end_date?: string | null;
-                    status?: 'planning' | 'active' | 'completed' | 'archived';
-                    description?: string | null;
-                    owner_id?: string;
-                };
-            };
-            trip_members: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    trip_id: string;
-                    user_id: string;
-                    role: 'owner' | 'member';
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    trip_id: string;
-                    user_id: string;
-                    role?: 'owner' | 'member';
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    trip_id?: string;
-                    user_id?: string;
-                    role?: 'owner' | 'member';
-                };
-            };
-            days: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    trip_id: string;
-                    date: string;
-                    title: string | null;
-                    notes: string | null;
-                    sort_order: number;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id: string;
-                    date: string;
-                    title?: string | null;
-                    notes?: string | null;
-                    sort_order?: number;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string;
-                    date?: string;
-                    title?: string | null;
-                    notes?: string | null;
-                    sort_order?: number;
-                };
-            };
-            legs: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    trip_id: string;
-                    day_id: string | null;
-                    type: 'flight' | 'train' | 'car' | 'ferry' | 'walk' | 'bus' | 'other';
-                    from_name: string;
-                    to_name: string;
-                    from_lat: number | null;
-                    from_lng: number | null;
-                    to_lat: number | null;
-                    to_lng: number | null;
-                    departure_at: string | null;
-                    arrival_at: string | null;
-                    duration_min: number | null;
-                    cost: number | null;
-                    currency: string;
-                    notes: string | null;
-                    sort_order: number;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id: string;
-                    day_id?: string | null;
-                    type: 'flight' | 'train' | 'car' | 'ferry' | 'walk' | 'bus' | 'other';
-                    from_name: string;
-                    to_name: string;
-                    from_lat?: number | null;
-                    from_lng?: number | null;
-                    to_lat?: number | null;
-                    to_lng?: number | null;
-                    departure_at?: string | null;
-                    arrival_at?: string | null;
-                    duration_min?: number | null;
-                    cost?: number | null;
-                    currency?: string;
-                    notes?: string | null;
-                    sort_order?: number;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string;
-                    day_id?: string | null;
-                    type?: 'flight' | 'train' | 'car' | 'ferry' | 'walk' | 'bus' | 'other';
-                    from_name?: string;
-                    to_name?: string;
-                    from_lat?: number | null;
-                    from_lng?: number | null;
-                    to_lat?: number | null;
-                    to_lng?: number | null;
-                    departure_at?: string | null;
-                    arrival_at?: string | null;
-                    duration_min?: number | null;
-                    cost?: number | null;
-                    currency?: string;
-                    notes?: string | null;
-                    sort_order?: number;
-                };
-            };
-            accommodations: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    trip_id: string;
-                    day_id: string | null;
-                    name: string;
-                    address: string | null;
-                    lat: number | null;
-                    lng: number | null;
-                    check_in: string | null;
-                    check_out: string | null;
-                    cost: number | null;
-                    currency: string;
-                    booking_ref: string | null;
-                    notes: string | null;
-                    url: string | null;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id: string;
-                    day_id?: string | null;
-                    name: string;
-                    address?: string | null;
-                    lat?: number | null;
-                    lng?: number | null;
-                    check_in?: string | null;
-                    check_out?: string | null;
-                    cost?: number | null;
-                    currency?: string;
-                    booking_ref?: string | null;
-                    notes?: string | null;
-                    url?: string | null;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string;
-                    day_id?: string | null;
-                    name?: string;
-                    address?: string | null;
-                    lat?: number | null;
-                    lng?: number | null;
-                    check_in?: string | null;
-                    check_out?: string | null;
-                    cost?: number | null;
-                    currency?: string;
-                    booking_ref?: string | null;
-                    notes?: string | null;
-                    url?: string | null;
-                };
-            };
-            expenses: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    trip_id: string;
-                    day_id: string | null;
-                    description: string;
-                    amount: number;
-                    currency: string;
-                    amount_eur: number | null;
-                    category: 'food' | 'transport' | 'accommodation' | 'activity' | 'shopping' | 'other';
-                    paid_by: string;
-                    split: boolean;
-                    date: string | null;
-                    notes: string | null;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id: string;
-                    day_id?: string | null;
-                    description: string;
-                    amount: number;
-                    currency?: string;
-                    amount_eur?: number | null;
-                    category: 'food' | 'transport' | 'accommodation' | 'activity' | 'shopping' | 'other';
-                    paid_by: string;
-                    split?: boolean;
-                    date?: string | null;
-                    notes?: string | null;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string;
-                    day_id?: string | null;
-                    description?: string;
-                    amount?: number;
-                    currency?: string;
-                    amount_eur?: number | null;
-                    category?: 'food' | 'transport' | 'accommodation' | 'activity' | 'shopping' | 'other';
-                    paid_by?: string;
-                    split?: boolean;
-                    date?: string | null;
-                    notes?: string | null;
-                };
-            };
-            posts: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    trip_id: string | null;
-                    author_id: string;
-                    title: string;
-                    slug: string;
-                    content_json: Json | null;
-                    cover_image: string | null;
-                    status: 'draft' | 'published';
-                    published_at: string | null;
-                    reading_time: number | null;
-                    seo_title: string | null;
-                    seo_description: string | null;
-                    og_description: string | null;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string | null;
-                    author_id: string;
-                    title: string;
-                    slug: string;
-                    content_json?: Json | null;
-                    cover_image?: string | null;
-                    status?: 'draft' | 'published';
-                    published_at?: string | null;
-                    reading_time?: number | null;
-                    seo_title?: string | null;
-                    seo_description?: string | null;
-                    og_description?: string | null;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string | null;
-                    author_id?: string;
-                    title?: string;
-                    slug?: string;
-                    content_json?: Json | null;
-                    cover_image?: string | null;
-                    status?: 'draft' | 'published';
-                    published_at?: string | null;
-                    reading_time?: number | null;
-                    seo_title?: string | null;
-                    seo_description?: string | null;
-                    og_description?: string | null;
-                };
-            };
-            media: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    trip_id: string;
-                    day_id: string | null;
-                    uploaded_by: string;
-                    url: string;
-                    thumbnail_url: string | null;
-                    width: number | null;
-                    height: number | null;
-                    size: number | null;
-                    mime_type: string | null;
-                    caption: string | null;
-                    tags: string[];
-                    taken_at: string | null;
-                    gps_lat: number | null;
-                    gps_lng: number | null;
-                    camera: string | null;
-                    sort_order: number;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id: string;
-                    day_id?: string | null;
-                    uploaded_by: string;
-                    url: string;
-                    thumbnail_url?: string | null;
-                    width?: number | null;
-                    height?: number | null;
-                    size?: number | null;
-                    mime_type?: string | null;
-                    caption?: string | null;
-                    tags?: string[];
-                    taken_at?: string | null;
-                    gps_lat?: number | null;
-                    gps_lng?: number | null;
-                    camera?: string | null;
-                    sort_order?: number;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string;
-                    day_id?: string | null;
-                    uploaded_by?: string;
-                    url?: string;
-                    thumbnail_url?: string | null;
-                    width?: number | null;
-                    height?: number | null;
-                    size?: number | null;
-                    mime_type?: string | null;
-                    caption?: string | null;
-                    tags?: string[];
-                    taken_at?: string | null;
-                    gps_lat?: number | null;
-                    gps_lng?: number | null;
-                    camera?: string | null;
-                    sort_order?: number;
-                };
-            };
-            instagram_exports: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    updated_at: string;
-                    trip_id: string;
-                    created_by: string;
-                    type: 'carousel' | 'story' | 'reel';
-                    media_ids: string[];
-                    template: string | null;
-                    options: Json | null;
-                    status: 'pending' | 'processing' | 'ready' | 'failed';
-                    zip_url: string | null;
-                    expires_at: string | null;
-                    caption: string | null;
-                    hashtags: string[];
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id: string;
-                    created_by: string;
-                    type: 'carousel' | 'story' | 'reel';
-                    media_ids: string[];
-                    template?: string | null;
-                    options?: Json | null;
-                    status?: 'pending' | 'processing' | 'ready' | 'failed';
-                    zip_url?: string | null;
-                    expires_at?: string | null;
-                    caption?: string | null;
-                    hashtags?: string[];
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                    trip_id?: string;
-                    created_by?: string;
-                    type?: 'carousel' | 'story' | 'reel';
-                    media_ids?: string[];
-                    template?: string | null;
-                    options?: Json | null;
-                    status?: 'pending' | 'processing' | 'ready' | 'failed';
-                    zip_url?: string | null;
-                    expires_at?: string | null;
-                    caption?: string | null;
-                    hashtags?: string[];
-                };
-            };
-            currency_rates: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    base_currency: string;
-                    rates: Json;
-                    fetched_at: string;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    base_currency?: string;
-                    rates: Json;
-                    fetched_at?: string;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    base_currency?: string;
-                    rates?: Json;
-                    fetched_at?: string;
-                };
-            };
-            ai_usage: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    user_id: string;
-                    date: string;
-                    call_type: string;
-                    tokens: number | null;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    user_id: string;
-                    date?: string;
-                    call_type: string;
-                    tokens?: number | null;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    user_id?: string;
-                    date?: string;
-                    call_type?: string;
-                    tokens?: number | null;
-                };
-            };
-            destination_cache: {
-                Row: {
-                    id: string;
-                    created_at: string;
-                    destination: string;
-                    briefing: Json;
-                    fetched_at: string;
-                };
-                Insert: {
-                    id?: string;
-                    created_at?: string;
-                    destination: string;
-                    briefing: Json;
-                    fetched_at?: string;
-                };
-                Update: {
-                    id?: string;
-                    created_at?: string;
-                    destination?: string;
-                    briefing?: Json;
-                    fetched_at?: string;
-                };
-            };
-        };
-        Views: Record<string, never>;
-        Functions: {
-            is_trip_member: {
-                Args: { trip_id: string };
-                Returns: boolean;
-            };
-        };
-        Enums: Record<string, never>;
-    };
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      accommodations: {
+        Row: {
+          address: string | null
+          booking_ref: string | null
+          check_in: string | null
+          check_out: string | null
+          cost: number | null
+          created_at: string
+          currency: string | null
+          day_id: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          notes: string | null
+          trip_id: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          address?: string | null
+          booking_ref?: string | null
+          check_in?: string | null
+          check_out?: string | null
+          cost?: number | null
+          created_at?: string
+          currency?: string | null
+          day_id?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          notes?: string | null
+          trip_id: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          address?: string | null
+          booking_ref?: string | null
+          check_in?: string | null
+          check_out?: string | null
+          cost?: number | null
+          created_at?: string
+          currency?: string | null
+          day_id?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          notes?: string | null
+          trip_id?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodations_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodations_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage: {
+        Row: {
+          call_type: string
+          created_at: string
+          date: string
+          id: string
+          tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          call_type: string
+          created_at?: string
+          date?: string
+          id?: string
+          tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          call_type?: string
+          created_at?: string
+          date?: string
+          id?: string
+          tokens?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      currency_rates: {
+        Row: {
+          base_currency: string
+          created_at: string
+          fetched_at: string
+          id: string
+          rates: Json
+        }
+        Insert: {
+          base_currency?: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          rates: Json
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          rates?: Json
+        }
+        Relationships: []
+      }
+      days: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          sort_order: number
+          title: string | null
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          sort_order?: number
+          title?: string | null
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          sort_order?: number
+          title?: string | null
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "days_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      destination_cache: {
+        Row: {
+          briefing: Json
+          created_at: string
+          destination: string
+          fetched_at: string
+          id: string
+        }
+        Insert: {
+          briefing: Json
+          created_at?: string
+          destination: string
+          fetched_at?: string
+          id?: string
+        }
+        Update: {
+          briefing?: Json
+          created_at?: string
+          destination?: string
+          fetched_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          amount_eur: number | null
+          category: string
+          created_at: string
+          currency: string
+          date: string | null
+          day_id: string | null
+          description: string
+          id: string
+          notes: string | null
+          paid_by: string
+          split: boolean
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          amount_eur?: number | null
+          category: string
+          created_at?: string
+          currency?: string
+          date?: string | null
+          day_id?: string | null
+          description: string
+          id?: string
+          notes?: string | null
+          paid_by: string
+          split?: boolean
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          amount_eur?: number | null
+          category?: string
+          created_at?: string
+          currency?: string
+          date?: string | null
+          day_id?: string | null
+          description?: string
+          id?: string
+          notes?: string | null
+          paid_by?: string
+          split?: boolean
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_exports: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          hashtags: string[] | null
+          id: string
+          media_ids: string[]
+          options: Json | null
+          status: string
+          template: string | null
+          trip_id: string
+          type: string
+          updated_at: string
+          zip_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          hashtags?: string[] | null
+          id?: string
+          media_ids: string[]
+          options?: Json | null
+          status?: string
+          template?: string | null
+          trip_id: string
+          type: string
+          updated_at?: string
+          zip_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          hashtags?: string[] | null
+          id?: string
+          media_ids?: string[]
+          options?: Json | null
+          status?: string
+          template?: string | null
+          trip_id?: string
+          type?: string
+          updated_at?: string
+          zip_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_exports_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legs: {
+        Row: {
+          arrival_at: string | null
+          cost: number | null
+          created_at: string
+          currency: string | null
+          day_id: string | null
+          departure_at: string | null
+          duration_min: number | null
+          from_lat: number | null
+          from_lng: number | null
+          from_name: string
+          id: string
+          notes: string | null
+          sort_order: number
+          to_lat: number | null
+          to_lng: number | null
+          to_name: string
+          trip_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          arrival_at?: string | null
+          cost?: number | null
+          created_at?: string
+          currency?: string | null
+          day_id?: string | null
+          departure_at?: string | null
+          duration_min?: number | null
+          from_lat?: number | null
+          from_lng?: number | null
+          from_name: string
+          id?: string
+          notes?: string | null
+          sort_order?: number
+          to_lat?: number | null
+          to_lng?: number | null
+          to_name: string
+          trip_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          arrival_at?: string | null
+          cost?: number | null
+          created_at?: string
+          currency?: string | null
+          day_id?: string | null
+          departure_at?: string | null
+          duration_min?: number | null
+          from_lat?: number | null
+          from_lng?: number | null
+          from_name?: string
+          id?: string
+          notes?: string | null
+          sort_order?: number
+          to_lat?: number | null
+          to_lng?: number | null
+          to_name?: string
+          trip_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legs_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media: {
+        Row: {
+          camera: string | null
+          caption: string | null
+          created_at: string
+          day_id: string | null
+          gps_lat: number | null
+          gps_lng: number | null
+          height: number | null
+          id: string
+          mime_type: string | null
+          size: number | null
+          sort_order: number
+          tags: string[] | null
+          taken_at: string | null
+          thumbnail_url: string | null
+          trip_id: string
+          updated_at: string
+          uploaded_by: string
+          url: string
+          width: number | null
+        }
+        Insert: {
+          camera?: string | null
+          caption?: string | null
+          created_at?: string
+          day_id?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          size?: number | null
+          sort_order?: number
+          tags?: string[] | null
+          taken_at?: string | null
+          thumbnail_url?: string | null
+          trip_id: string
+          updated_at?: string
+          uploaded_by: string
+          url: string
+          width?: number | null
+        }
+        Update: {
+          camera?: string | null
+          caption?: string | null
+          created_at?: string
+          day_id?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          size?: number | null
+          sort_order?: number
+          tags?: string[] | null
+          taken_at?: string | null
+          thumbnail_url?: string | null
+          trip_id?: string
+          updated_at?: string
+          uploaded_by?: string
+          url?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          content_json: Json | null
+          cover_image: string | null
+          created_at: string
+          id: string
+          og_description: string | null
+          published_at: string | null
+          reading_time: number | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: string
+          title: string
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content_json?: Json | null
+          cover_image?: string | null
+          created_at?: string
+          id?: string
+          og_description?: string | null
+          published_at?: string | null
+          reading_time?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: string
+          title: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content_json?: Json | null
+          cover_image?: string | null
+          created_at?: string
+          id?: string
+          og_description?: string | null
+          published_at?: string | null
+          reading_time?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_members_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          cover_image: string | null
+          created_at: string
+          description: string | null
+          destination: string
+          end_date: string | null
+          id: string
+          owner_id: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          destination: string
+          end_date?: string | null
+          id?: string
+          owner_id: string
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          destination?: string
+          end_date?: string | null
+          id?: string
+          owner_id?: string
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      is_trip_member: { Args: { trip_id: string }; Returns: boolean }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
+

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { Media } from '@/lib/types';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image, Loader2 } from 'lucide-react';
+import { Upload, X, Image, Loader2, Trash2 } from 'lucide-react';
 
 interface MediaTabProps { tripId: string }
 
@@ -49,6 +49,13 @@ export default function MediaTab({ tripId }: MediaTabProps) {
             next.has(id) ? next.delete(id) : next.add(id);
             return next;
         });
+    };
+
+    const deleteMedia = async (id: string) => {
+        if (!confirm('Eliminare questa foto?')) return;
+        setLightbox(null);
+        await fetch(`/api/trips/${tripId}/media/${id}`, { method: 'DELETE' });
+        fetchMedia();
     };
 
     return (
@@ -131,6 +138,14 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                                     <span className="text-white text-xs flex items-center justify-center h-full">✓</span>
                                 )}
                             </button>
+                            {/* Delete button */}
+                            <button
+                                aria-label="Elimina foto"
+                                onClick={(e) => { e.stopPropagation(); deleteMedia(item.id); }}
+                                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-ink-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                            >
+                                <Trash2 className="w-3 h-3" />
+                            </button>
                             {/* Caption overlay */}
                             {item.caption && (
                                 <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-ink-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -148,8 +163,15 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                     className="fixed inset-0 bg-ink-900/90 z-50 flex items-center justify-center p-4"
                     onClick={() => setLightbox(null)}
                 >
-                    <button className="absolute top-4 right-4 text-white p-2">
+                    <button className="absolute top-4 right-4 text-white p-2" onClick={() => setLightbox(null)}>
                         <X className="w-6 h-6" />
+                    </button>
+                    <button
+                        aria-label="Elimina foto"
+                        className="absolute top-4 right-14 text-white p-2 hover:text-red-400 transition-colors"
+                        onClick={(e) => { e.stopPropagation(); deleteMedia(lightbox.id); }}
+                    >
+                        <Trash2 className="w-6 h-6" />
                     </button>
                     <img
                         src={lightbox.url}

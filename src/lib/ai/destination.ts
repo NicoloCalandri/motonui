@@ -1,21 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '../supabase/database.types';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
-interface DestinationBriefing {
-    summary: string;
-    bestTimeToVisit: string;
-    mustSee: string[];
-    localTips: string[];
-    currencyTip: string;
-    languageTip: string;
-}
+import { DestinationBriefing } from '@/lib/types';
 
-interface DestinationCache {
-    destination: string;
-    data: DestinationBriefing;
-    generatedAt: string;
-}
 
 /**
  * Generates or retrieves a cached destination briefing for trip planning.
@@ -24,30 +14,32 @@ interface DestinationCache {
 export async function getDestinationBriefing(
     destination: string,
     language: 'it' | 'en',
-    supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>
+    supabase: SupabaseClient<Database>
 ): Promise<DestinationBriefing> {
     const cacheKey = `${destination.toLowerCase().trim()}_${language}`;
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Check cache
-    const { data: cached } = await supabase
-        .from('destination_cache')
-        .select('data, generated_at')
+    const { data: cached } = await (supabase.from('destination_cache') as any)
+        .select('briefing, fetched_at')
         .eq('destination', cacheKey)
-        .gte('generated_at', sevenDaysAgo)
+        .gte('fetched_at', sevenDaysAgo)
         .single();
 
-    if (cached?.data) {
-        return cached.data as DestinationBriefing;
+    if (cached?.briefing) {
+        return cached.briefing as unknown as DestinationBriefing;
     }
 
     // Generate fresh
     const briefing = await generateBriefing(destination, language);
 
     // Store in cache
-    await supabase
-        .from('destination_cache')
-        .upsert({ destination: cacheKey, data: briefing, generated_at: new Date().toISOString() });
+    await (supabase.from('destination_cache') as any)
+        .upsert({ 
+            destination: cacheKey, 
+            briefing: briefing as any, 
+            fetched_at: new Date().toISOString() 
+        });
 
     return briefing;
 }

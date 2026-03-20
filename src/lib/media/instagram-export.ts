@@ -71,21 +71,21 @@ export async function generateExport(input: GenerateExportInput): Promise<Genera
         if (!res.ok) {
             throw new Error(`[motonui][instagram-export] Cannot fetch media ${media.id}: ${res.status}`);
         }
-        let buffer = Buffer.from(await res.arrayBuffer());
+        let buffer = Buffer.from(await res.arrayBuffer() as ArrayBuffer);
 
         // Crop to correct aspect ratio
-        buffer = await cropToAspect(buffer, config.ratio);
+        buffer = await cropToAspect(buffer, config.ratio) as any;
 
         // Apply filter
         const filter = exportOptions.filter ?? 'none';
 
         // applyFilter returns a Buffer but needs to accept our filter type
         const { applyFilter: filterFn } = await import('@/lib/media/process');
-        buffer = await filterFn(buffer, filter);
+        buffer = await filterFn(buffer, filter) as any;
 
         // Optional text overlay
         if (exportOptions.textOverlay) {
-            buffer = await overlayText(buffer, exportOptions.textOverlay);
+            buffer = await overlayText(buffer, exportOptions.textOverlay) as any;
         }
 
         processedBuffers.push(buffer);

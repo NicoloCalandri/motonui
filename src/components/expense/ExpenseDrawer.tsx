@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Loader2 } from 'lucide-react';
-import type { ExpenseCategory } from '@/lib/types';
+import type { ExpenseCategory, Expense } from '@/lib/types';
 
 const CATEGORIES: { id: ExpenseCategory; label: string; emoji: string }[] = [
     { id: 'food', label: 'Cibo', emoji: '🍕' },
@@ -35,14 +35,16 @@ interface ExpenseDrawerProps {
     open: boolean;
     onClose: () => void;
     onSaved: () => void;
+    initialData?: Expense;
 }
 
 /**
- * Slide-up drawer for adding a new expense.
+ * Slide-up drawer for adding or editing an expense.
  */
-export default function ExpenseDrawer({ tripId, open, onClose, onSaved }: ExpenseDrawerProps) {
+export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialData }: ExpenseDrawerProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const isEditing = !!initialData;
 
     const {
         register,
@@ -61,6 +63,29 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved }: Expens
         },
     });
 
+    useEffect(() => {
+        if (open) {
+            if (initialData) {
+                reset({
+                    description: initialData.description,
+                    amount: initialData.amount,
+                    currency: initialData.currency,
+                    category: initialData.category,
+                    split: initialData.split,
+                    date: initialData.date ?? undefined,
+                    notes: initialData.notes ?? undefined,
+                });
+            } else {
+                reset({
+                    currency: 'EUR',
+                    split: true,
+                    category: 'food',
+                    date: new Date().toISOString().split('T')[0],
+                });
+            }
+        }
+    }, [open, initialData]);
+
     const selectedCategory = watch('category');
 
     const onSubmit = async (values: FormValues) => {
@@ -68,8 +93,12 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved }: Expens
         setError(null);
 
         try {
-            const res = await fetch(`/api/trips/${tripId}/expenses`, {
-                method: 'POST',
+            const url = isEditing
+                ? `/api/expenses/${initialData!.id}`
+                : `/api/trips/${tripId}/expenses`;
+
+            const res = await fetch(url, {
+                method: isEditing ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(values),
             });
@@ -92,140 +121,171 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved }: Expens
     if (!open) return null;
 
     return (
-        <>
+        <div className="relative z-50 aria-hidden={!open}">
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-ink-900/40 backdrop-blur-sm z-50"
+                className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
 
-            {/* Drawer */}
-            <div className="fixed bottom-0 inset-x-0 z-50 bg-sand-50 rounded-t-3xl shadow-drawer max-h-[90vh] overflow-y-auto animate-slide-up">
-                <div className="p-5">
-                    {/* Handle */}
-                    <div className="w-12 h-1 bg-sand-300 rounded-full mx-auto mb-5" />
+            {/* Modal/Drawer Container */}
+            <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+                <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
+                    
+                    {/* Panel */}
+                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in flex flex-col relative">
+                        
+                        <div className="p-6 sm:p-10">
+                            {/* Handle (mobile only) */}
+                            <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
 
-                    <div className="flex items-center justify-between mb-5">
-                        <h2 className="font-display text-xl font-semibold text-ink-900">Nuova spesa</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-sand-100 rounded-xl transition-colors">
-                            <X className="w-5 h-5 text-ink-400" />
-                        </button>
-                    </div>
-
-                    {error && (
-                        <div className="mb-4 p-3 bg-terracotta-50 border border-terracotta-200 rounded-xl text-terracotta-600 text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-medium text-ink-700 mb-1">Descrizione *</label>
-                            <input
-                                {...register('description')}
-                                placeholder="es. Cena al ristorante"
-                                className="w-full px-4 py-2.5 rounded-xl border border-sand-300 bg-white text-ink-900 placeholder-ink-300 focus:outline-none focus:ring-2 focus:ring-terracotta-400/60"
-                            />
-                            {errors.description && <p className="text-xs text-terracotta-500 mt-1">{errors.description.message}</p>}
-                        </div>
-
-                        {/* Amount + Currency */}
-                        <div className="flex gap-3">
-                            <div className="flex-1">
-                                <label className="block text-sm font-medium text-ink-700 mb-1">Importo *</label>
-                                <input
-                                    {...register('amount')}
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-sand-300 bg-white text-ink-900 focus:outline-none focus:ring-2 focus:ring-terracotta-400/60"
-                                />
-                                {errors.amount && <p className="text-xs text-terracotta-500 mt-1">{errors.amount.message}</p>}
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica spesa' : 'Nuova spesa'}</h2>
+                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div className="w-28">
-                                <label className="block text-sm font-medium text-ink-700 mb-1">Valuta</label>
-                                <select
-                                    {...register('currency')}
-                                    className="w-full px-3 py-2.5 rounded-xl border border-sand-300 bg-white text-ink-900 focus:outline-none focus:ring-2 focus:ring-terracotta-400/60"
-                                >
-                                    {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                        </div>
 
-                        {/* Category */}
-                        <div>
-                            <label className="block text-sm font-medium text-ink-700 mb-2">Categoria *</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {CATEGORIES.map(({ id, label, emoji }) => (
-                                    <button
-                                        key={id}
-                                        type="button"
-                                        onClick={() => setValue('category', id)}
-                                        className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 text-xs font-medium transition-colors ${selectedCategory === id
-                                                ? 'border-terracotta-400 bg-terracotta-50 text-terracotta-700'
-                                                : 'border-sand-200 bg-white text-ink-600 hover:border-sand-300'
+                            {error && (
+                                <div className="mb-8 p-5 bg-red-50 text-red-600 rounded-2xl text-sm font-bold tracking-wide">
+                                    {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                {/* Description */}
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        Cosa hai acquistato? *
+                                    </label>
+                                    <input
+                                        {...register('description')}
+                                        placeholder="es. Cena romantica al molo, Biglietti treno..."
+                                        className="w-full px-6 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
+                                        autoComplete="off"
+                                    />
+                                    {errors.description && <p className="text-xs font-bold text-red-500 mt-2">{errors.description.message}</p>}
+                                </div>
+
+                                {/* Amount + Currency */}
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                            Importo *
+                                        </label>
+                                        <input
+                                            {...register('amount')}
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            placeholder="0.00"
+                                            className="w-full px-6 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-black text-2xl"
+                                        />
+                                        {errors.amount && <p className="text-xs font-bold text-red-500 mt-2">{errors.amount.message}</p>}
+                                    </div>
+                                    <div className="w-36">
+                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                            Valuta
+                                        </label>
+                                        <select
+                                            {...register('currency')}
+                                            className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg appearance-none cursor-pointer text-center"
+                                        >
+                                            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Category */}
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        Categoria *
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {CATEGORIES.map(({ id, label, emoji }) => {
+                                            const isSelected = selectedCategory === id;
+                                            return (
+                                                <button
+                                                    key={id}
+                                                    type="button"
+                                                    onClick={() => setValue('category', id)}
+                                                    className={`flex flex-col items-center justify-center p-5 rounded-3xl transition-all duration-300 ${
+                                                        isSelected
+                                                            ? 'bg-neutral-900 text-white shadow-panel scale-95 ring-4 ring-neutral-900 ring-offset-2'
+                                                            : 'bg-neutral-50/80 text-neutral-600 hover:bg-neutral-100 hover:scale-[0.98]'
+                                                    }`}
+                                                >
+                                                    <span className="text-4xl mb-3 block drop-shadow-sm">{emoji}</span>
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-white' : 'text-neutral-500'}`}>{label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Date & Split */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                            Data
+                                        </label>
+                                        <input
+                                            {...register('date')}
+                                            type="date"
+                                            className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col flex-1 justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => setValue('split', !watch('split'))}
+                                            className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 h-[56px] ${
+                                                watch('split') 
+                                                ? 'bg-[#1a1a1a] shadow-panel' 
+                                                : 'bg-neutral-50/80 hover:bg-neutral-100'
                                             }`}
+                                        >
+                                            <div className="text-left flex-1 min-w-0 mr-3">
+                                                <p className={`text-[10px] font-black uppercase tracking-widest truncate ${watch('split') ? 'text-white' : 'text-neutral-500'}`}>Condivisa</p>
+                                                <p className={`text-[10px] font-medium truncate ${watch('split') ? 'text-neutral-400' : 'text-neutral-400'}`}>Dividi 50%</p>
+                                            </div>
+                                            <div className={`w-12 h-6 shrink-0 rounded-full relative transition-colors duration-300 ${watch('split') ? 'bg-white/20' : 'bg-neutral-200'}`}>
+                                                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 ${watch('split') ? 'translate-x-6 shadow-sm' : ''}`} />
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Notes */}
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        Note (Opzionale)
+                                    </label>
+                                    <textarea
+                                        {...register('notes')}
+                                        rows={2}
+                                        placeholder="Dettagli aggiuntivi da ricordare..."
+                                        className="w-full px-6 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-neutral-200 transition-all font-medium resize-none text-sm"
+                                    />
+                                </div>
+
+                                {/* Submit */}
+                                <div className="pt-6">
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-[24px] font-bold text-lg transition-all duration-300 hover:shadow-panel active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                                     >
-                                        <span className="text-2xl leading-none">{emoji}</span>
-                                        {label}
+                                        {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : null}
+                                        {saving ? 'Salvataggio...' : isEditing ? 'Salva modifiche' : 'Conferma spesa'}
                                     </button>
-                                ))}
-                            </div>
+                                </div>
+                            </form>
                         </div>
-
-                        {/* Date */}
-                        <div>
-                            <label className="block text-sm font-medium text-ink-700 mb-1">Data</label>
-                            <input
-                                {...register('date')}
-                                type="date"
-                                className="w-full px-4 py-2.5 rounded-xl border border-sand-300 bg-white text-ink-900 focus:outline-none focus:ring-2 focus:ring-terracotta-400/60"
-                            />
-                        </div>
-
-                        {/* Split toggle */}
-                        <div className="flex items-center justify-between p-3 bg-sand-100 rounded-xl">
-                            <div>
-                                <p className="text-sm font-medium text-ink-800">Spesa condivisa</p>
-                                <p className="text-xs text-ink-400">Dividi equamente con il partner</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setValue('split', !watch('split'))}
-                                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${watch('split') ? 'bg-terracotta-400' : 'bg-sand-300'
-                                    }`}
-                            >
-                                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${watch('split') ? 'translate-x-5' : 'translate-x-0.5'
-                                    }`} />
-                            </button>
-                        </div>
-
-                        {/* Notes */}
-                        <div>
-                            <label className="block text-sm font-medium text-ink-700 mb-1">Note (opzionale)</label>
-                            <textarea
-                                {...register('notes')}
-                                rows={2}
-                                placeholder="Note aggiuntive..."
-                                className="w-full px-4 py-2.5 rounded-xl border border-sand-300 bg-white text-ink-900 placeholder-ink-300 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-400/60 resize-none"
-                            />
-                        </div>
-
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-ink-900 hover:bg-ink-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
-                        >
-                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                            {saving ? 'Salvataggio...' : 'Aggiungi spesa'}
-                        </button>
-                    </form>
+                    </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 }

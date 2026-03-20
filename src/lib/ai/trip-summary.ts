@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { TriptapDoc } from '@/lib/types';
+import type { TiptapDoc } from '@/lib/types';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -28,7 +28,7 @@ interface TripContext {
 export async function generateTripSummary(
     trip: TripContext,
     language: 'it' | 'en' = 'it'
-): Promise<TriptapDoc> {
+): Promise<TiptapDoc> {
     const system = language === 'it'
         ? `Sei un blogger di viaggio di coppia. Scrivi post coinvolgenti, poetici e autentici.
        Quando descrivi un viaggio, vai oltre i fatti — racconti emozioni, odori, conversazioni notturne.
@@ -75,7 +75,7 @@ export async function generateTripSummary(
         // Claude should return valid Tiptap JSON
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]) as TriptapDoc;
+            return JSON.parse(jsonMatch[0]) as TiptapDoc;
         }
     } catch {
         // Fallback: wrap plain text in Tiptap doc

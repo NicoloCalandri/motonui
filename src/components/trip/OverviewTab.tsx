@@ -3,18 +3,19 @@
 import type { TripWithDetails } from '@/lib/types';
 import TripMap from '@/components/map/TripMap';
 import TripStatsCard from '@/components/trip/TripStatsCard';
-import { MapPin, Calendar, Globe } from 'lucide-react';
+import { MapPin, Calendar, Globe, Route } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 interface OverviewTabProps {
     trip: TripWithDetails;
+    onNavigate?: (tab: string) => void;
 }
 
 /**
  * Overview tab: Mapbox map of legs, quick stats, description.
  */
-export default function OverviewTab({ trip }: OverviewTabProps) {
+export default function OverviewTab({ trip, onNavigate }: OverviewTabProps) {
     const allLegs = trip.days?.flatMap((d) => d.legs ?? []) ?? [];
 
     return (
@@ -40,9 +41,23 @@ export default function OverviewTab({ trip }: OverviewTabProps) {
             )}
 
             {/* Map */}
-            {allLegs.length > 0 && (
+            {allLegs.length > 0 ? (
                 <div className="rounded-2xl overflow-hidden border border-sand-200 shadow-card">
                     <TripMap legs={allLegs} />
+                </div>
+            ) : (
+                <div className="rounded-2xl border border-dashed border-sand-300 bg-sand-50 p-8 flex flex-col items-center gap-3 text-center">
+                    <Route className="w-10 h-10 text-sand-300" />
+                    <p className="font-display text-base font-semibold text-ink-700">Nessuno spostamento aggiunto</p>
+                    <p className="text-sm text-ink-400">Aggiungi gli spostamenti nell'itinerario per vedere la mappa del viaggio.</p>
+                    {onNavigate && (
+                        <button
+                            onClick={() => onNavigate('itinerary')}
+                            className="mt-1 px-4 py-2 bg-neutral-900 text-white text-sm font-bold rounded-2xl hover:bg-black transition-colors shadow-panel"
+                        >
+                            Vai all'itinerario
+                        </button>
+                    )}
                 </div>
             )}
 

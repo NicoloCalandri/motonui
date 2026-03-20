@@ -15,9 +15,7 @@ const nextConfig: NextConfig = {
             },
         ],
     },
-    experimental: {
-        serverComponentsExternalPackages: ['sharp', 'exifr'],
-    },
+    serverExternalPackages: ['sharp', 'exifr'],
 };
 
 export default nextConfig;

@@ -9,7 +9,7 @@ const CreateExpenseSchema = z.object({
     amount: z.number().positive(),
     currency: z.string().length(3).default('EUR'),
     category: z.enum(['food', 'transport', 'accommodation', 'activity', 'shopping', 'other']),
-    paid_by: z.string().uuid(),
+    paid_by: z.string().uuid().optional(),
     split: z.boolean().default(true),
     date: z.string().optional(),
     day_id: z.string().uuid().optional(),
@@ -98,6 +98,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
             ...input,
             trip_id: id,
             amount_eur,
+            paid_by: input.paid_by ?? user.id,
         })
         .select()
         .single();

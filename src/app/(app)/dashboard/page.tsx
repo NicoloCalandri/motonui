@@ -34,121 +34,114 @@ export default async function DashboardPage() {
     const firstName = user?.email?.split('@')[0] ?? 'Viaggiatore';
 
     return (
-        <div className="p-4 md:p-8 max-w-6xl mx-auto pb-28 md:pb-8">
-            {/* Greeting */}
-            <div className="mb-8 animate-fade-in">
-                <p className="text-ink-400 text-sm capitalize">{today}</p>
-                <h1 className="font-display text-3xl md:text-4xl font-bold text-ink-900 mt-1">
-                    Ciao {firstName} 👋
-                </h1>
-            </div>
-
-            {/* Active Trip Hero */}
-            {activeTrip ? (
-                <Link href={`/trips/${activeTrip.id}`} className="block mb-8 animate-fade-in">
-                    <div className="relative rounded-3xl overflow-hidden shadow-card-hover group">
-                        {activeTrip.cover_image ? (
-                            <img
-                                src={activeTrip.cover_image}
-                                alt={activeTrip.title}
-                                className="w-full h-64 md:h-80 object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                        ) : (
-                            <div className="w-full h-64 md:h-80 bg-gradient-to-br from-terracotta-300 to-sage-300" />
-                        )}
-                        <div className="absolute inset-0 hero-gradient" />
-                        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-terracotta-400/90 rounded-full text-xs font-medium mb-2">
-                                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                                Viaggio in corso
-                            </div>
-                            <h2 className="font-display text-2xl md:text-3xl font-bold">{activeTrip.title}</h2>
-                            <div className="flex items-center gap-4 mt-2 text-white/80 text-sm">
-                                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{activeTrip.destination}</span>
-                                {activeTrip.end_date && (
-                                    <span className="flex items-center gap-1">
-                                        <Calendar className="w-3.5 h-3.5" />
-                                        Fino al {format(new Date(activeTrip.end_date), 'd MMM', { locale: it })}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
+        <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
+            {/* Top Stat Row (from image inspiration) */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="md:col-span-2 card p-8 flex flex-col justify-between min-h-[220px]">
+                    <div>
+                        <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-1">{today}</p>
+                        <h2 className="text-3xl font-bold tracking-tight">Ciao {firstName}</h2>
                     </div>
-                </Link>
-            ) : (
-                /* Empty state */
-                <div className="mb-8 rounded-3xl border-2 border-dashed border-sand-300 p-10 text-center animate-fade-in">
-                    <div className="w-16 h-16 bg-sand-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <MapPin className="w-8 h-8 text-sand-400" />
-                    </div>
-                    <h2 className="font-display text-xl font-semibold text-ink-700 mb-2">
-                        Nessun viaggio attivo
-                    </h2>
-                    <p className="text-ink-400 text-sm mb-4">Inizia a pianificare la vostra prossima avventura</p>
-                    <Link
-                        href="/trips/new"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-terracotta-400 text-white rounded-xl text-sm font-medium hover:bg-terracotta-500 transition-colors"
-                    >
-                        <PlusCircle className="w-4 h-4" />
-                        Crea il primo viaggio
-                    </Link>
-                </div>
-            )}
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-3 gap-3 mb-8">
-                {[
-                    { href: '/trips/new', label: 'Nuovo viaggio', icon: PlusCircle, color: 'bg-terracotta-50 text-terracotta-400' },
-                    { href: activeTrip ? `/trips/${activeTrip.id}?tab=expenses` : '/trips', label: 'Aggiungi spesa', icon: TrendingUp, color: 'bg-sage-50 text-sage-400' },
-                    { href: activeTrip ? `/trips/${activeTrip.id}?tab=media` : '/trips', label: 'Carica foto', icon: MapPin, color: 'bg-sand-200 text-ink-500' },
-                ].map(({ href, label, icon: Icon, color }) => (
-                    <Link
-                        key={href}
-                        href={href}
-                        className="card p-4 flex flex-col items-center gap-2 text-center hover:scale-105 transition-transform duration-150"
-                    >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
-                            <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-medium text-ink-700 leading-tight">{label}</span>
-                    </Link>
-                ))}
-            </div>
-
-            {/* Past Trips Grid */}
-            {pastTrips.length > 0 && (
-                <section>
-                    <h2 className="font-display text-xl font-semibold text-ink-900 mb-4">
-                        I vostri viaggi
-                    </h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {pastTrips.map((trip) => (
-                            <Link key={trip.id} href={`/trips/${trip.id}`} className="card group overflow-hidden">
-                                {trip.cover_image ? (
-                                    <img
-                                        src={trip.cover_image}
-                                        alt={trip.title}
-                                        className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                ) : (
-                                    <div className="w-full h-36 bg-gradient-to-br from-sand-200 to-sage-100" />
-                                )}
-                                <div className="p-3">
-                                    <h3 className="font-display font-semibold text-ink-900 text-sm leading-tight">{trip.title}</h3>
-                                    <p className="text-ink-400 text-xs mt-0.5">{trip.destination}</p>
-                                </div>
-                            </Link>
-                        ))}
-                        <Link
+                    <div className="flex items-center gap-4">
+                        <Link 
                             href="/trips/new"
-                            className="card p-4 flex flex-col items-center justify-center gap-2 min-h-[154px] border-2 border-dashed border-sand-300 bg-transparent hover:bg-sand-50 transition-colors"
+                            className="px-6 py-3 bg-[var(--color-ink)] text-white rounded-2xl text-sm font-bold shadow-panel active:scale-95 transition-all"
                         >
-                            <PlusCircle className="w-7 h-7 text-sand-400" />
-                            <span className="text-xs text-ink-400 text-center">Nuovo viaggio</span>
+                            Inizia nuovo viaggio
                         </Link>
                     </div>
-                </section>
-            )}
+                </div>
+
+                <div className="card p-6 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                        <span className="p-2 bg-gray-100 rounded-xl"><Calendar className="w-5 h-5" /></span>
+                        <span className="text-[10px] font-bold text-ink-muted uppercase">Statistiche</span>
+                    </div>
+                    <div className="mt-4">
+                        <p className="text-2xl font-bold">{trips.length}</p>
+                        <p className="text-xs font-semibold text-ink-muted">Viaggi totali</p>
+                    </div>
+                </div>
+
+                <div className="card p-6 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                        <span className="p-2 bg-gray-100 rounded-xl"><TrendingUp className="w-5 h-5" /></span>
+                        <span className="text-[10px] font-bold text-ink-muted uppercase">Budget</span>
+                    </div>
+                    <div className="mt-4">
+                        <p className="text-2xl font-bold text-green-600">On track</p>
+                        <p className="text-xs font-semibold text-ink-muted">Situazione spese</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Interactive Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Active Trip Panel */}
+                <div className="lg:col-span-2 space-y-8">
+                    {activeTrip ? (
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-ink-muted uppercase tracking-wider px-1">Location Live</h3>
+                            <Link href={`/trips/${activeTrip.id}`} className="block group">
+                                <div className="card overflow-hidden h-[400px] relative">
+                                    <img
+                                        src={activeTrip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'}
+                                        alt={activeTrip.title}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                    <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-wider mb-4 border border-white/20">
+                                            <span className="w-2 h-2 bg-terracotta-400 rounded-full animate-pulse" />
+                                            Viaggio attivo
+                                        </div>
+                                        <h2 className="text-3xl font-bold tracking-tight mb-2 leading-tight">{activeTrip.title}</h2>
+                                        <p className="flex items-center gap-2 text-white/80 text-sm font-medium">
+                                            <MapPin className="w-4 h-4" /> {activeTrip.destination}
+                                        </p>
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="card p-12 text-center flex flex-col items-center justify-center border-2 border-dashed border-gray-200 bg-transparent shadow-none min-h-[400px]">
+                            <PlusCircle className="w-12 h-12 text-gray-300 mb-4" />
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Pronti per una nuova avventura?</h3>
+                            <p className="text-gray-500 text-sm max-w-xs mx-auto mb-6">Pianifica ora il vostro prossimo viaggio di coppia e tieni traccia di tutto in un unico posto.</p>
+                            <Link href="/trips/new" className="px-6 py-3 bg-[var(--color-ink)] text-white rounded-2xl text-sm font-bold">
+                                Crea Viaggio
+                            </Link>
+                        </div>
+                    )}
+                </div>
+
+                {/* Side Panels (Past & Utils) */}
+                <div className="space-y-8">
+                    {/* Past Trips List */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-ink-muted uppercase tracking-wider px-1">Recent Trips</h3>
+                        <div className="space-y-4">
+                            {pastTrips.slice(0, 3).map((trip) => (
+                                <Link key={trip.id} href={`/trips/${trip.id}`} className="card p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                                    <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0">
+                                        <img src={trip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-ink-900 truncate">{trip.title}</p>
+                                        <p className="text-[10px] font-medium text-ink-muted mt-0.5 uppercase tracking-tighter">{trip.destination}</p>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <TrendingUp className="w-4 h-4" />
+                                    </div>
+                                </Link>
+                            ))}
+                            <Link href="/trips" className="block text-center text-xs font-bold text-ink-muted hover:text-ink-900 uppercase tracking-widest pt-2">
+                                Vedi tutti i viaggi
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

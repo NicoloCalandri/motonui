@@ -19,8 +19,7 @@ export const GET = withErrorHandler(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw Errors.unauthorized();
 
-    const { data, error } = await supabase
-        .from('trip_members')
+    const { data, error } = await (supabase.from('trip_members') as any)
         .select(`
       trip_id,
       trips (
@@ -34,7 +33,7 @@ export const GET = withErrorHandler(async () => {
 
     // Reshape to trip cards
     const trips = (data ?? [])
-        .map((row) => row.trips)
+        .map((row: any) => row.trips)
         .filter(Boolean);
 
     return ok(trips);
@@ -54,8 +53,7 @@ export const POST = withErrorHandler(async (request) => {
     const input = parsed.data;
 
     // Create trip
-    const { data: trip, error: tripError } = await supabase
-        .from('trips')
+    const { data: trip, error: tripError } = await (supabase.from('trips') as any)
         .insert({ ...input, owner_id: user.id })
         .select()
         .single();
@@ -63,7 +61,7 @@ export const POST = withErrorHandler(async (request) => {
     if (tripError || !trip) throw new Error(`[motonui][trips][POST] ${tripError?.message}`);
 
     // Auto-add creator as owner member
-    const { error: memberError } = await supabase.from('trip_members').insert({
+    const { error: memberError } = await (supabase.from('trip_members') as any).insert({
         trip_id: trip.id,
         user_id: user.id,
         role: 'owner',

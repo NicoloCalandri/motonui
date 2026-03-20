@@ -40,6 +40,10 @@ export default function TripPage() {
     const [trip, setTrip] = useState<TripWithDetails | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const handleDaysChange = (days: TripWithDetails['days']) => {
+        setTrip((prev) => prev ? { ...prev, days } : prev);
+    };
+
     useEffect(() => {
         fetch(`/api/trips/${id}`)
             .then((r) => r.json())
@@ -75,11 +79,7 @@ export default function TripPage() {
         <div className="flex flex-col min-h-screen">
             {/* Hero */}
             <div className="relative h-48 md:h-72 overflow-hidden flex-shrink-0">
-                {trip.cover_image ? (
-                    <img src={trip.cover_image} alt={trip.title} className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-terracotta-300 via-sand-300 to-sage-300" />
-                )}
+                <img src={trip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'} alt={trip.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 hero-gradient" />
 
                 {/* Back button */}
@@ -116,8 +116,8 @@ export default function TripPage() {
                             key={tabId}
                             onClick={() => setActiveTab(tabId)}
                             className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activeTab === tabId
-                                    ? 'border-terracotta-400 text-terracotta-400'
-                                    : 'border-transparent text-ink-400 hover:text-ink-700'
+                                ? 'border-terracotta-400 text-terracotta-400'
+                                : 'border-transparent text-ink-400 hover:text-ink-700'
                                 }`}
                         >
                             <Icon className="w-4 h-4" />
@@ -129,8 +129,8 @@ export default function TripPage() {
 
             {/* Active Tab Content */}
             <div className="flex-1 pb-24 md:pb-8">
-                {activeTab === 'overview' && <OverviewTab trip={trip} />}
-                {activeTab === 'itinerary' && <ItineraryTab trip={trip} />}
+                {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={setActiveTab} />}
+                {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} />}
                 {activeTab === 'expenses' && <ExpensesTab tripId={trip.id} />}
                 {activeTab === 'media' && <MediaTab tripId={trip.id} />}
                 {activeTab === 'blog' && <BlogTab tripId={trip.id} />}

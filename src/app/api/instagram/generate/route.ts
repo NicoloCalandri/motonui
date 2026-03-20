@@ -83,7 +83,7 @@ export const POST = withErrorHandler(async (request) => {
         const response: InstagramGenerateResponse = {
             exportId: exportJob.id,
             downloadUrl,
-            caption: captionResult ?? undefined,
+            caption: captionResult as any,
             expiresAt,
         };
 

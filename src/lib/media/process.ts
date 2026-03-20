@@ -1,13 +1,15 @@
 import type { ResponsiveImageSet, TextOverlayOptions, ImageFilter, AspectRatio } from '@/lib/types';
 
 // ─── Sharp lazy import ────────────────────────────────────────────────────────
+// ─── Sharp lazy import ────────────────────────────────────────────────────────
 async function getSharp() {
-    return (await import('sharp')).default;
+    const sharpModule = await import('sharp');
+    return sharpModule.default || sharpModule;
 }
 
 // ─── Filter Definitions ────────────────────────────────────────────────────────
 
-const FILTER_PIPELINES: Record<ImageFilter, (img: ReturnType<Awaited<ReturnType<typeof getSharp>>['default']>) => ReturnType<Awaited<ReturnType<typeof getSharp>>['default']>> = {
+const FILTER_PIPELINES: Record<ImageFilter, (img: any) => any> = {
     none: (img) => img,
     warm: (img) =>
         img.modulate({ brightness: 1.05, saturation: 1.1 }).tint({ r: 255, g: 230, b: 190 }),

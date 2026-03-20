@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { Expense, ExpenseSummary, SplitResult } from '@/lib/types';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { PlusCircle, Utensils, Car, Hotel, Ticket, ShoppingBag, MoreHorizontal, Download } from 'lucide-react';
+import { PlusCircle, Utensils, Car, Hotel, Ticket, ShoppingBag, MoreHorizontal, Download, Pencil, Trash2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import ExpenseDrawer from './ExpenseDrawer';
 
@@ -33,7 +33,17 @@ export default function ExpensesTab({ tripId }: ExpensesTabProps) {
     const [summary, setSummary] = useState<ExpenseSummary | null>(null);
     const [split, setSplit] = useState<SplitResult | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const openAdd = () => { setEditingExpense(null); setDrawerOpen(true); };
+    const openEdit = (e: Expense) => { setEditingExpense(e); setDrawerOpen(true); };
+
+    const deleteExpense = async (id: string) => {
+        if (!confirm('Eliminare questa spesa?')) return;
+        await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+        fetchExpenses();
+    };
 
     const fetchExpenses = () => {
         fetch(`/api/trips/${tripId}/expenses`)
@@ -97,7 +107,7 @@ export default function ExpensesTab({ tripId }: ExpensesTabProps) {
                             <Download className="w-4 h-4" />
                         </button>
                         <button
-                            onClick={() => setDrawerOpen(true)}
+                            onClick={openAdd}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-terracotta-400 text-white rounded-xl text-sm font-medium hover:bg-terracotta-500 transition-colors"
                         >
                             <PlusCircle className="w-4 h-4" /> Aggiungi
@@ -129,7 +139,7 @@ export default function ExpensesTab({ tripId }: ExpensesTabProps) {
                                     {exps.map((expense) => {
                                         const Icon = CATEGORY_ICONS[expense.category] ?? MoreHorizontal;
                                         return (
-                                            <div key={expense.id} className="card p-3 flex items-center gap-3">
+                                            <div key={expense.id} className="card p-3 flex items-center gap-3 group">
                                                 <div
                                                     className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                                                     style={{ backgroundColor: `${CATEGORY_COLORS[expense.category]}20` }}
@@ -150,6 +160,22 @@ export default function ExpensesTab({ tripId }: ExpensesTabProps) {
                                                     {expense.amount_eur && expense.currency !== 'EUR' && (
                                                         <p className="text-xs text-ink-400">€{expense.amount_eur.toFixed(2)}</p>
                                                     )}
+                                                </div>
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                                    <button
+                                                        aria-label="Modifica spesa"
+                                                        onClick={() => openEdit(expense)}
+                                                        className="p-1.5 rounded-lg text-ink-400 hover:text-terracotta-400 hover:bg-terracotta-50 transition-colors"
+                                                    >
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                        aria-label="Elimina spesa"
+                                                        onClick={() => deleteExpense(expense.id)}
+                                                        className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         );
@@ -229,12 +255,13 @@ export default function ExpensesTab({ tripId }: ExpensesTabProps) {
                 </div>
             )}
 
-            {/* Add Expense Drawer */}
+            {/* Add / Edit Expense Drawer */}
             <ExpenseDrawer
                 tripId={tripId}
                 open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
+                onClose={() => { setDrawerOpen(false); setEditingExpense(null); }}
                 onSaved={fetchExpenses}
+                initialData={editingExpense ?? undefined}
             />
         </div>
     );

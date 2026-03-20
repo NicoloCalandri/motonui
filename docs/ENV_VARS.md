@@ -21,7 +21,9 @@
 
 | Variable | Description |
 |----------|-------------|
-| `ADMIN_CLEANUP_SECRET` | Static secret for `/api/admin/cleanup` cron endpoint |
+| `ADMIN_CLEANUP_SECRET` | Static secret for `/api/admin/cleanup` and `/api/admin/send-reminders` cron endpoints |
+| `RESEND_API_KEY` | Resend API key for email reminders — [resend.com](https://resend.com) → Dashboard → API Keys |
+| `RESEND_FROM_EMAIL` | Sender address, e.g. `motonui <reminders@motonui.app>` |
 
 ## App URL
 

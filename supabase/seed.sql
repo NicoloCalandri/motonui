@@ -2,8 +2,28 @@
 -- Run with: make db-seed
 
 -- ─── Test Users ───────────────────────────────────────────────────────────────
--- Note: In local dev, users are created via Supabase Auth.
--- We only seed the related data.
+-- Ensure a test user exists in auth.users for seeding related data
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, confirmation_token, email_change, email_change_token_new, recovery_token)
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'test@example.com',
+    '$2a$10$7RmszB.O2L8JmO18HCHtheE11M64m.d9b/x3HpkP0V9Uf3Z6E6Z.W', -- password123
+    NOW(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Test User"}',
+    NOW(),
+    NOW(),
+    'authenticated',
+    '',
+    '',
+    '',
+    ''
+)
+ON CONFLICT (id) DO UPDATE SET 
+    encrypted_password = EXCLUDED.encrypted_password,
+    email_confirmed_at = EXCLUDED.email_confirmed_at,
+    raw_app_meta_data = EXCLUDED.raw_app_meta_data,
+    raw_user_meta_data = EXCLUDED.raw_user_meta_data;
 
 -- Insert a test trip for development
 WITH test_trip AS (
@@ -58,7 +78,7 @@ VALUES (
 ON CONFLICT DO NOTHING;
 
 -- Sample destination cache
-INSERT INTO destination_cache (destination, data, generated_at)
+INSERT INTO destination_cache (destination, briefing, fetched_at)
 VALUES (
   'tokyo, giappone_it',
   '{

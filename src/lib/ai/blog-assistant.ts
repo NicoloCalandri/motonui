@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { TriptapDoc } from '@/lib/types';
+import type { TiptapDoc } from '@/lib/types';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -103,21 +103,24 @@ export async function checkRateLimit(
 ): Promise<boolean> {
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: usage } = await supabase
-        .from('ai_usage')
-        .select('count')
+    const { data: usage } = await (supabase.from('ai_usage') as any)
+        .select('tokens')
         .eq('user_id', userId)
-        .eq('model', model)
+        .eq('call_type', model)
         .eq('date', today)
         .single();
 
-    const currentCount = (usage?.count as number) ?? 0;
+    const currentCount = (usage?.tokens as number) ?? 0;
     if (currentCount >= DAILY_LIMITS[model]) return false;
 
     // Upsert usage
-    await supabase.from('ai_usage').upsert(
-        { user_id: userId, model, date: today, count: currentCount + 1 },
-        { onConflict: 'user_id,model,date' }
+    await (supabase.from('ai_usage') as any).upsert(
+        { 
+            user_id: userId, 
+            call_type: model, 
+            date: today, 
+            tokens: currentCount + 1 
+        }
     );
 
     return true;
