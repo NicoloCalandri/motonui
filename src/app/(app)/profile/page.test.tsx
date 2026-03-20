@@ -1,6 +1,28 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ProfilePage from './page';
+
+beforeEach(() => {
+    vi.stubGlobal('fetch', (url: string) => {
+        if (url === '/api/profile') {
+            return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve({ id: '1', email: 'test@example.com', fullName: 'Test User', avatarUrl: null }),
+            });
+        }
+        if (url === '/api/profile/stats') {
+            return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve({ trips: 3, posts: 1 }),
+            });
+        }
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({}) });
+    });
+});
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 describe('ProfilePage', () => {
     it('renders profile header and email field', async () => {

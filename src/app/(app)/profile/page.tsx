@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { User, Mail, Camera, Save, Loader2, Shield, Globe, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -12,6 +12,9 @@ export default function ProfilePage() {
     const [fullName, setFullName] = useState('');
     const [stats, setStats] = useState({ trips: 0, posts: 0 });
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const [avatarError, setAvatarError] = useState<string | null>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -32,6 +35,25 @@ export default function ProfilePage() {
         };
         fetchUserData();
     }, []);
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setAvatarUploading(true);
+        setAvatarError(null);
+        const form = new FormData();
+        form.append('avatar', file);
+        const res = await fetch('/api/profile/avatar', { method: 'POST', body: form });
+        const data = await res.json();
+        if (res.ok) {
+            setProfile(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev);
+        } else {
+            setAvatarError(data.error ?? 'Errore durante l\'upload.');
+        }
+        setAvatarUploading(false);
+        // Reset so the same file can be re-selected
+        e.target.value = '';
+    };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,18 +105,42 @@ export default function ProfilePage() {
                     <div className="bg-white rounded-[40px] p-8 shadow-soft border border-neutral-100 flex flex-col items-center">
                         <div className="relative group mb-6">
                             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-neutral-50 shadow-inner bg-neutral-100">
-                                <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-400 flex items-center justify-center text-white text-4xl font-bold">
-                                    {fullName?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase()}
-                                </div>
+                                {profile?.avatarUrl ? (
+                                    <img
+                                        src={profile.avatarUrl}
+                                        alt="Foto profilo"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-400 flex items-center justify-center text-white text-4xl font-bold">
+                                        {fullName?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase()}
+                                    </div>
+                                )}
                             </div>
+                            <input
+                                ref={avatarInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/heic"
+                                className="hidden"
+                                title="Carica foto profilo"
+                                onChange={handleAvatarChange}
+                            />
                             <button
-                                className="absolute bottom-0 right-0 p-3 bg-neutral-900 text-white rounded-full shadow-lg hover:scale-110 transition-all border-4 border-white"
+                                type="button"
+                                onClick={() => avatarInputRef.current?.click()}
+                                disabled={avatarUploading}
+                                className="absolute bottom-0 right-0 p-3 bg-neutral-900 text-white rounded-full shadow-lg hover:scale-110 transition-all border-4 border-white disabled:opacity-60"
                                 title="Cambia foto profilo"
                                 aria-label="Cambia foto profilo"
                             >
-                                <Camera className="w-4 h-4" />
+                                {avatarUploading
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : <Camera className="w-4 h-4" />}
                             </button>
                         </div>
+                        {avatarError && (
+                            <p className="text-xs text-red-500 font-medium text-center mb-2">{avatarError}</p>
+                        )}
                         <h2 className="text-xl font-bold text-neutral-900 text-center">{fullName || 'Viaggiatore'}</h2>
                         <p className="text-neutral-400 text-sm font-medium mb-6">{profile?.email}</p>
                         

@@ -13,13 +13,32 @@ vi.mock('@/lib/supabase/server', () => ({
                 getUser: () =>
                     Promise.resolve({ data: { user: { email: mockUserEmail, id: 'user-1' } } }),
             },
-            from: () => ({
-                select: () => ({
-                    eq: () => ({
-                        order: () => Promise.resolve({ data: mockMemberRows }),
+            from: (table: string) => {
+                if (table === 'profiles') {
+                    return {
+                        select: () => ({
+                            eq: () => ({
+                                single: () => Promise.resolve({ data: { display_name: null } }),
+                            }),
+                        }),
+                    };
+                }
+                if (table === 'expenses') {
+                    return {
+                        select: () => ({
+                            eq: () => Promise.resolve({ data: [] }),
+                        }),
+                    };
+                }
+                // trip_members (default)
+                return {
+                    select: () => ({
+                        eq: () => ({
+                            order: () => Promise.resolve({ data: mockMemberRows }),
+                        }),
                     }),
-                }),
-            }),
+                };
+            },
         }),
 }));
 
