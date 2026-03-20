@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
 
 const CreateTripSchema = z.object({
@@ -16,8 +17,7 @@ const CreateTripSchema = z.object({
 export const GET = withErrorHandler(async () => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { data, error } = await (supabase.from('trip_members') as any)
         .select(`
@@ -43,8 +43,7 @@ export const GET = withErrorHandler(async () => {
 export const POST = withErrorHandler(async (request) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const body: unknown = await request.json();
     const parsed = CreateTripSchema.safeParse(body);

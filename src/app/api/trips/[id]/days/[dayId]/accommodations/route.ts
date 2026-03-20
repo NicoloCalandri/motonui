@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, created } from '@/lib/errors';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertAccommodationReminders } from '@/lib/reminders';
@@ -21,8 +22,7 @@ type Params = { params: Promise<{ id: string; dayId: string }> };
 export const POST = withErrorHandler(async (request, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id, dayId } = await params;
     const body: unknown = await request.json();

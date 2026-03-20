@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 
 type Params = { params: Promise<{ id: string; postId: string }> };
@@ -7,8 +8,7 @@ type Params = { params: Promise<{ id: string; postId: string }> };
 export const DELETE = withErrorHandler(async (_req, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id, postId } = await params;
 

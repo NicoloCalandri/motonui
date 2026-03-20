@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 import { uploadFile, Buckets, validateFile } from '@/lib/storage';
 import { requireTripMember } from '@/lib/authz';
@@ -12,8 +13,7 @@ type Params = { params: Promise<{ id: string; dayId: string; legId: string }> };
 export const POST = withErrorHandler(async (request, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id, dayId, legId } = await params;
     await requireTripMember(supabase, id, user.id);
@@ -58,8 +58,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
 export const DELETE = withErrorHandler(async (_req, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id, dayId, legId } = await params;
     await requireTripMember(supabase, id, user.id);

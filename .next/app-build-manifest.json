@@ -26,35 +26,95 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(app)/trips/new/page.js"
     ],
-    "/api/trips/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/trips/route.js"
-    ],
     "/(app)/trips/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(app)/trips/page.js"
     ],
-    "/(public)/layout": [
+    "/(admin)/admin/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(public)/layout.js"
+      "static/chunks/app/(admin)/admin/layout.js"
     ],
-    "/(public)/blog/page": [
+    "/(admin)/admin/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(public)/blog/page.js"
+      "static/chunks/app/(admin)/admin/page.js"
     ],
-    "/auth/login/page": [
+    "/api/admin/stats/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/auth/login/page.js"
+      "static/chunks/app/api/admin/stats/route.js"
+    ],
+    "/api/trips/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/route.js"
+    ],
+    "/(admin)/admin/users/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/users/page.js"
+    ],
+    "/api/admin/users/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/admin/users/route.js"
     ],
     "/(app)/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(app)/profile/page.js"
+    ],
+    "/(app)/trips/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(app)/trips/[id]/page.js"
+    ],
+    "/api/trips/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/[id]/route.js"
+    ],
+    "/api/trips/[id]/stats/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/[id]/stats/route.js"
+    ],
+    "/api/trips/[id]/days/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/[id]/days/route.js"
+    ],
+    "/api/trips/[id]/expenses/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/[id]/expenses/route.js"
+    ],
+    "/api/trips/[id]/media/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/[id]/media/route.js"
+    ],
+    "/api/trips/[id]/posts/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/[id]/posts/route.js"
+    ],
+    "/api/trips/[id]/days/[dayId]/legs/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/trips/[id]/days/[dayId]/legs/route.js"
+    ],
+    "/(admin)/admin/audit-log/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/audit-log/page.js"
+    ],
+    "/api/admin/audit-log/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/admin/audit-log/route.js"
     ]
   }
 }

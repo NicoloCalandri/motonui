@@ -12,6 +12,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
     pool: 'forks',
-    maxWorkers: 2,
+    poolOptions: {
+      forks: {
+        maxForks: 2,
+        execArgv: ['--max-old-space-size=1024'],
+      },
+    },
   },
 });

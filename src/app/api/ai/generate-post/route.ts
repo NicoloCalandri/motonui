@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { generateTripSummary } from '@/lib/ai/trip-summary';
 import { checkRateLimit } from '@/lib/ai/blog-assistant';
 import { ok, withErrorHandler, Errors } from '@/lib/errors';
@@ -16,8 +17,7 @@ const Schema = z.object({
 /** POST /api/ai/generate-post — generates a full blog post from trip data */
 export const POST = withErrorHandler(async (request) => {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const body: unknown = await request.json();
     const parsed = Schema.safeParse(body);

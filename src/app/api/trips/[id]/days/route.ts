@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
 
 const CreateDaySchema = z.object({
@@ -15,8 +16,7 @@ type Params = { params: Promise<{ id: string }> };
 export const GET = withErrorHandler(async (_req, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id } = await params;
 
@@ -35,8 +35,7 @@ export const GET = withErrorHandler(async (_req, { params }) => {
 export const POST = withErrorHandler(async (request, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id } = await params;
     const body: unknown = await request.json();

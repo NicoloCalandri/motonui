@@ -5,11 +5,12 @@ import { createClient } from '@/lib/supabase/server';
 import type { Post } from '@/lib/types';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Clock, MapPin, ArrowLeft, Share2 } from 'lucide-react';
+import { Clock, MapPin, ArrowLeft } from 'lucide-react';
 import { generateHTML } from '@tiptap/html';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
 import TiptapLink from '@tiptap/extension-link';
+import ShareButton from '../_components/ShareButton';
 
 // Revalidate every hour for caching
 export const revalidate = 3600;
@@ -43,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Public blog post view — server component, no auth.
+ * Public blog post view — server component, no auth required.
  * Renders Tiptap JSON to HTML server-side for SEO.
  */
 export default async function BlogPostPage({ params }: Props) {
@@ -61,7 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
 
     if (!post) notFound();
 
-    // Fetch related posts
+    // Fetch related posts from the same trip
     const { data: related } = post.trip_id
         ? await supabase
             .from('posts')
@@ -89,28 +90,22 @@ export default async function BlogPostPage({ params }: Props) {
     const typedPost = post as Post & { trips: { destination: string; title: string } | null };
 
     return (
-        <article className="min-h-screen paper-bg">
-            {/* Nav */}
-            <nav className="border-b border-sand-200 bg-sand-50/80 backdrop-blur-sm sticky top-0 z-10">
-                <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <Link href="/blog" className="flex items-center gap-2 text-ink-500 hover:text-ink-900 text-sm transition-colors">
-                        <ArrowLeft className="w-4 h-4" />
-                        Tutti i post
-                    </Link>
-                    <Link href="/" className="font-display text-xl font-bold text-ink-900">motonui</Link>
-                    <button
-                        onClick={() => navigator.share?.({ title: typedPost.title, url: window.location.href })}
-                        className="flex items-center gap-1.5 text-ink-400 hover:text-ink-700 text-sm transition-colors"
-                    >
-                        <Share2 className="w-4 h-4" />
-                        <span className="hidden sm:inline">Condividi</span>
-                    </button>
-                </div>
-            </nav>
+        <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
+            {/* Top bar: back link + share */}
+            <div className="flex items-center justify-between mb-8">
+                <Link
+                    href="/blog"
+                    className="flex items-center gap-2 text-ink-500 hover:text-ink-900 text-sm transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Tutti i post
+                </Link>
+                <ShareButton title={typedPost.title} />
+            </div>
 
-            {/* Hero */}
+            {/* Hero image */}
             {typedPost.cover_image && (
-                <div className="relative h-64 md:h-96 overflow-hidden">
+                <div className="relative h-64 md:h-96 overflow-hidden rounded-3xl mb-10">
                     <img
                         src={typedPost.cover_image}
                         alt={typedPost.title}
@@ -120,8 +115,8 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
             )}
 
-            {/* Content */}
-            <div className="max-w-2xl mx-auto px-4 py-12">
+            {/* Article content */}
+            <article className="max-w-2xl mx-auto">
                 {/* Meta */}
                 {typedPost.trips?.destination && (
                     <div className="flex items-center gap-1.5 text-terracotta-400 text-sm mb-3">
@@ -155,39 +150,33 @@ export default async function BlogPostPage({ params }: Props) {
                 ) : (
                     <p className="text-ink-400 italic">Contenuto non disponibile.</p>
                 )}
-            </div>
+            </article>
 
             {/* Related posts */}
             {related && related.length > 0 && (
-                <div className="border-t border-sand-200 mt-16 py-12 bg-sand-100">
-                    <div className="max-w-5xl mx-auto px-4">
-                        <h2 className="font-display text-2xl font-bold text-ink-900 mb-6">
-                            Altri post dallo stesso viaggio
-                        </h2>
-                        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-                            {(related as Post[]).map((rel) => (
-                                <Link key={rel.id} href={`/blog/${rel.slug}`} className="card group overflow-hidden hover:shadow-card-hover transition-shadow">
-                                    {rel.cover_image && (
-                                        <img src={rel.cover_image} alt="" className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
+                <div className="border-t border-sand-200 mt-16 pt-12">
+                    <h2 className="font-display text-2xl font-bold text-ink-900 mb-6">
+                        Altri post dallo stesso viaggio
+                    </h2>
+                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+                        {(related as Post[]).map((rel) => (
+                            <Link key={rel.id} href={`/blog/${rel.slug}`} className="card group overflow-hidden hover:shadow-card-hover transition-shadow">
+                                {rel.cover_image && (
+                                    <img src={rel.cover_image} alt="" className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
+                                )}
+                                <div className="p-4">
+                                    <h3 className="font-display font-semibold text-ink-900 text-sm leading-tight group-hover:text-terracotta-500 transition-colors">
+                                        {rel.title}
+                                    </h3>
+                                    {rel.reading_time && (
+                                        <p className="text-xs text-ink-400 mt-1">{rel.reading_time} min</p>
                                     )}
-                                    <div className="p-4">
-                                        <h3 className="font-display font-semibold text-ink-900 text-sm leading-tight group-hover:text-terracotta-500 transition-colors">
-                                            {rel.title}
-                                        </h3>
-                                        {rel.reading_time && (
-                                            <p className="text-xs text-ink-400 mt-1">{rel.reading_time} min</p>
-                                        )}
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
+                                </div>
+                            </Link>
+                        ))}
                     </div>
                 </div>
             )}
-
-            <footer className="border-t border-sand-200 py-8 text-center text-ink-400 text-sm">
-                <p>© motonui — <Link href="/blog" className="hover:underline">Leggi altri post</Link></p>
-            </footer>
-        </article>
+        </div>
     );
 }

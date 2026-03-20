@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
 import { validateFile, uploadFile, Buckets } from '@/lib/storage';
 import { requireTripMember, requireDayInTrip } from '@/lib/authz';
@@ -15,8 +16,7 @@ const FilterSchema = z.object({
 export const GET = withErrorHandler(async (request, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id } = await params;
     await requireTripMember(supabase, id, user.id);
@@ -47,8 +47,7 @@ export const GET = withErrorHandler(async (request, { params }) => {
 export const POST = withErrorHandler(async (request, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id } = await params;
     await requireTripMember(supabase, id, user.id);

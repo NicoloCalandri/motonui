@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 import { requireDayInTrip, requireTripPayer } from '@/lib/authz';
 import { sanitizePlainText } from '@/lib/sanitize';
@@ -22,8 +23,7 @@ type Params = { params: Promise<{ id: string }> };
 export const PUT = withErrorHandler(async (request, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id } = await params;
     const body: unknown = await request.json();
@@ -74,8 +74,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
 export const DELETE = withErrorHandler(async (_req, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id } = await params;
 

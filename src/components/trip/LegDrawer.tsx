@@ -4,10 +4,19 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Loader2, Upload, Ticket } from 'lucide-react';
+import { X, Loader2, Upload, Ticket, Plus, Trash2, ArrowRight } from 'lucide-react';
 import type { Leg } from '@/lib/types';
 import LocationSearch, { type LocationResult } from '@/components/map/LocationSearch';
+import AirportSearch, { type AirportResult } from '@/components/trip/AirportSearch';
 import CarrierSearch from '@/components/trip/CarrierSearch';
+
+// ─── Flight segment (multi-stop support) ─────────────────────────────────────
+interface FlightSegment {
+    from_name: string;  // e.g. "TRN — Torino"
+    to_name: string;
+}
+
+const defaultSegment = (): FlightSegment => ({ from_name: '', to_name: '' });
 
 const LEG_TYPES = [
     { id: 'flight', label: 'Volo', emoji: '✈️' },
@@ -53,6 +62,9 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
+
+    // Multi-segment state (flight only)
+    const [segments, setSegments] = useState<FlightSegment[]>([defaultSegment()]);
 
     // Boarding pass upload state
     const [boardingPassUrl, setBoardingPassUrl] = useState<string | null>(null);
@@ -106,6 +118,8 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                         ? { lat: initialData.to_lat, lng: initialData.to_lng }
                         : null
                 );
+                // Editing: single segment pre-filled
+                setSegments([{ from_name: initialData.from_name, to_name: initialData.to_name }]);
             } else {
                 reset({ type: 'flight', currency: 'EUR', departure_date: dayDate ?? undefined, arrival_date: dayDate ?? undefined });
                 setFromInitial('');
@@ -113,6 +127,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                 setFromCoords(null);
                 setToCoords(null);
                 setBoardingPassUrl(null);
+                setSegments([defaultSegment()]);
             }
         }
     }, [open, initialData]);
@@ -155,32 +170,71 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
         setError(null);
 
         try {
-            const payload: Record<string, unknown> = { ...values, departure_at: null, arrival_at: null };
             const depDate = values.departure_date ?? dayDate ?? initialData?.departure_at?.slice(0, 10);
             const arrDate = values.arrival_date ?? dayDate ?? initialData?.arrival_at?.slice(0, 10);
-            if (depDate && values.departure_time) payload.departure_at = `${depDate}T${values.departure_time}:00`;
-            if (arrDate && values.arrival_time) payload.arrival_at = `${arrDate}T${values.arrival_time}:00`;
-            // attach geocoded coordinates if the user selected a suggestion
-            payload.from_lat = fromCoords?.lat ?? null;
-            payload.from_lng = fromCoords?.lng ?? null;
-            payload.to_lat = toCoords?.lat ?? null;
-            payload.to_lng = toCoords?.lng ?? null;
-            // normalise checkin_opens_at to include seconds
-            if (values.checkin_opens_at) payload.checkin_opens_at = `${values.checkin_opens_at}:00`;
+            const departure_at = (depDate && values.departure_time) ? `${depDate}T${values.departure_time}:00` : null;
+            const arrival_at = (arrDate && values.arrival_time) ? `${arrDate}T${values.arrival_time}:00` : null;
+            const checkin_opens_at = values.checkin_opens_at ? `${values.checkin_opens_at}:00` : null;
 
-            const url = isEditing
-                ? `/api/trips/${tripId}/days/${dayId}/legs/${initialData!.id}`
-                : `/api/trips/${tripId}/days/${dayId}/legs`;
+            // ── Multi-segment flight ──────────────────────────────────────────
+            if (values.type === 'flight' && !isEditing && segments.length > 1) {
+                const validSegments = segments.filter(s => s.from_name && s.to_name);
+                if (validSegments.length < 2) {
+                    setError('Compila almeno due tratte per un volo con scalo');
+                    setSaving(false);
+                    return;
+                }
 
-            const res = await fetch(url, {
-                method: isEditing ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
+                const res = await fetch(`/api/trips/${tripId}/days/${dayId}/legs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...values,
+                        departure_at,
+                        arrival_at,
+                        checkin_opens_at,
+                        // Signal multi-segment to API
+                        segments: validSegments,
+                    }),
+                });
 
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error ?? 'Errore nel salvataggio');
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error ?? 'Errore nel salvataggio');
+                }
+            } else {
+                // ── Single leg (non-flight or editing or single segment) ─────
+                const firstSeg = segments[0];
+                const from_name = (values.type === 'flight' && firstSeg?.from_name) ? firstSeg.from_name : values.from_name;
+                const to_name = (values.type === 'flight' && firstSeg?.to_name) ? firstSeg.to_name : values.to_name;
+
+                const payload: Record<string, unknown> = {
+                    ...values,
+                    from_name,
+                    to_name,
+                    departure_at,
+                    arrival_at,
+                    checkin_opens_at,
+                    from_lat: fromCoords?.lat ?? null,
+                    from_lng: fromCoords?.lng ?? null,
+                    to_lat: toCoords?.lat ?? null,
+                    to_lng: toCoords?.lng ?? null,
+                };
+
+                const url = isEditing
+                    ? `/api/trips/${tripId}/days/${dayId}/legs/${initialData!.id}`
+                    : `/api/trips/${tripId}/days/${dayId}/legs`;
+
+                const res = await fetch(url, {
+                    method: isEditing ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error ?? 'Errore nel salvataggio');
+                }
             }
 
             reset();
@@ -205,7 +259,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
                             <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica spostamento' : 'Nuovo spostamento'}</h2>
-                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <button onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -238,43 +292,146 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Da *</label>                                        <LocationSearch
-                                            placeholder="es. Torino"
-                                            initialValue={fromInitial}
-                                            onSelect={(r: LocationResult) => {
-                                                setValue('from_name', r.name, { shouldValidate: true });
-                                                setFromCoords({ lat: r.lat, lng: r.lng });
-                                            }}
-                                            onTextChange={(text) => {
-                                                setValue('from_name', text, { shouldValidate: true });
-                                                if (!text) setFromCoords(null);
-                                            }}
-                                        />
-                                        {errors.from_name && (
-                                            <p className="mt-1 text-xs text-red-500">{errors.from_name.message}</p>
+                                {/* ── Origin / Destination ── */}
+                                {selectedType === 'flight' ? (
+                                    /* Multi-segment airport picker */
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Tratte *</label>
+                                            {!isEditing && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSegments(prev => [...prev, { from_name: prev[prev.length - 1]?.to_name ?? '', to_name: '' }])}
+                                                    className="flex items-center gap-1 text-xs font-bold text-neutral-500 hover:text-neutral-900 transition-colors"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                    Aggiungi scalo
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {segments.map((seg, idx) => (
+                                            <div key={idx} className="relative bg-neutral-50 rounded-2xl p-3 space-y-2">
+                                                {segments.length > 1 && (
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                                                            {idx === 0 ? 'Volo 1' : `Scalo ${idx} → Volo ${idx + 1}`}
+                                                        </span>
+                                                        {!isEditing && segments.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                aria-label="Rimuovi tratta"
+                                                                onClick={() => setSegments(prev => prev.filter((_, i) => i !== idx))}
+                                                                className="text-neutral-400 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <AirportSearch
+                                                    placeholder="Da — codice IATA o città"
+                                                    initialValue={seg.from_name}
+                                                    onSelect={(r: AirportResult) => {
+                                                        setSegments(prev => prev.map((s, i) =>
+                                                            i === idx ? { ...s, from_name: r.label } : s
+                                                        ));
+                                                        // If first segment, also update form for single-leg fallback
+                                                        if (idx === 0) setValue('from_name', r.label, { shouldValidate: true });
+                                                    }}
+                                                    onTextChange={(text) => {
+                                                        setSegments(prev => prev.map((s, i) =>
+                                                            i === idx ? { ...s, from_name: text } : s
+                                                        ));
+                                                        if (idx === 0) setValue('from_name', text, { shouldValidate: true });
+                                                    }}
+                                                />
+                                                <div className="flex items-center gap-2 px-1">
+                                                    <ArrowRight className="w-3.5 h-3.5 text-neutral-300 flex-shrink-0" />
+                                                </div>
+                                                <AirportSearch
+                                                    placeholder="A — codice IATA o città"
+                                                    initialValue={seg.to_name}
+                                                    onSelect={(r: AirportResult) => {
+                                                        setSegments(prev => {
+                                                            const updated = prev.map((s, i) =>
+                                                                i === idx ? { ...s, to_name: r.label } : s
+                                                            );
+                                                            // Auto-fill next segment's "from" if blank
+                                                            if (idx + 1 < updated.length && !updated[idx + 1].from_name) {
+                                                                updated[idx + 1] = { ...updated[idx + 1], from_name: r.label };
+                                                            }
+                                                            return updated;
+                                                        });
+                                                        if (idx === segments.length - 1) setValue('to_name', r.label, { shouldValidate: true });
+                                                    }}
+                                                    onTextChange={(text) => {
+                                                        setSegments(prev => prev.map((s, i) =>
+                                                            i === idx ? { ...s, to_name: text } : s
+                                                        ));
+                                                        if (idx === segments.length - 1) setValue('to_name', text, { shouldValidate: true });
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+
+                                        {/* Show the overall route summary when multi-segment */}
+                                        {segments.length > 1 && segments[0].from_name && segments[segments.length - 1].to_name && (
+                                            <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900 rounded-xl text-white text-xs font-bold">
+                                                <span className="font-mono">{segments[0].from_name.split(' — ')[0]}</span>
+                                                <ArrowRight className="w-3 h-3 opacity-60 flex-shrink-0" />
+                                                {segments.slice(1, -1).map((s, i) => (
+                                                    <span key={i} className="flex items-center gap-2">
+                                                        <span className="font-mono opacity-60">{s.from_name.split(' — ')[0]}</span>
+                                                        <ArrowRight className="w-3 h-3 opacity-60 flex-shrink-0" />
+                                                    </span>
+                                                ))}
+                                                <span className="font-mono">{segments[segments.length - 1].to_name.split(' — ')[0]}</span>
+                                                <span className="ml-auto opacity-40 font-normal">{segments.length} voli</span>
+                                            </div>
                                         )}
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">A *</label>
-                                        <LocationSearch
-                                            placeholder="es. San Paolo del Brasile"
-                                            initialValue={toInitial}
-                                            onSelect={(r: LocationResult) => {
-                                                setValue('to_name', r.name, { shouldValidate: true });
-                                                setToCoords({ lat: r.lat, lng: r.lng });
-                                            }}
-                                            onTextChange={(text) => {
-                                                setValue('to_name', text, { shouldValidate: true });
-                                                if (!text) setToCoords(null);
-                                            }}
-                                        />
-                                        {errors.to_name && (
-                                            <p className="mt-1 text-xs text-red-500">{errors.to_name.message}</p>
-                                        )}
+                                ) : (
+                                    /* Standard location search for non-flight types */
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Da *</label>
+                                            <LocationSearch
+                                                placeholder="es. Torino"
+                                                initialValue={fromInitial}
+                                                onSelect={(r: LocationResult) => {
+                                                    setValue('from_name', r.name, { shouldValidate: true });
+                                                    setFromCoords({ lat: r.lat, lng: r.lng });
+                                                }}
+                                                onTextChange={(text) => {
+                                                    setValue('from_name', text, { shouldValidate: true });
+                                                    if (!text) setFromCoords(null);
+                                                }}
+                                            />
+                                            {errors.from_name && (
+                                                <p className="mt-1 text-xs text-red-500">{errors.from_name.message}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">A *</label>
+                                            <LocationSearch
+                                                placeholder="es. San Paolo del Brasile"
+                                                initialValue={toInitial}
+                                                onSelect={(r: LocationResult) => {
+                                                    setValue('to_name', r.name, { shouldValidate: true });
+                                                    setToCoords({ lat: r.lat, lng: r.lng });
+                                                }}
+                                                onTextChange={(text) => {
+                                                    setValue('to_name', text, { shouldValidate: true });
+                                                    if (!text) setToCoords(null);
+                                                }}
+                                            />
+                                            {errors.to_name && (
+                                                <p className="mt-1 text-xs text-red-500">{errors.to_name.message}</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {/* Carrier */}
                                 {selectedType !== 'walk' && (

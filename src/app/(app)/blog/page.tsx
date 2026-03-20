@@ -37,35 +37,24 @@ export default async function BlogIndexPage() {
     const allPosts = (posts ?? []) as unknown as PostCard[];
 
     return (
-        <div className="min-h-screen paper-bg">
-            {/* Header */}
-            <header className="border-b border-sand-200 bg-sand-50/80 backdrop-blur-sm sticky top-0 z-10">
-                <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <Link href="/" className="font-display text-2xl font-bold text-ink-900">motonui</Link>
-                    <Link href="/auth/login" className="text-sm text-ink-500 hover:text-terracotta-400 transition-colors">
-                        Accedi
-                    </Link>
-                </div>
-            </header>
+        <div className="max-w-5xl mx-auto pb-20 animate-fade-in">
+            {/* Page title */}
+            <div className="mb-10">
+                <h1 className="font-display text-3xl md:text-4xl font-bold text-ink-900 tracking-tight">
+                    Il nostro diario di viaggio
+                </h1>
+                <p className="text-ink-400 mt-2">
+                    Storie, fotografie e riflessioni dai nostri viaggi in giro per il mondo.
+                </p>
+            </div>
 
-            <main className="max-w-5xl mx-auto px-4 py-12">
-                {/* Hero */}
-                <div className="text-center mb-16">
-                    <h1 className="font-display text-4xl md:text-6xl font-bold text-ink-900 mb-4">
-                        Il nostro diario di viaggio
-                    </h1>
-                    <p className="text-ink-400 text-lg max-w-xl mx-auto">
-                        Storie, fotografie e riflessioni dai nostri viaggi in giro per il mondo.
-                    </p>
+            {/* Posts grid */}
+            {allPosts.length === 0 ? (
+                <div className="card p-16 text-center text-ink-400">
+                    <p className="font-display text-xl">Nessun post pubblicato ancora.</p>
                 </div>
-
-                {/* Posts grid */}
-                {allPosts.length === 0 ? (
-                    <div className="text-center py-20 text-ink-400">
-                        <p className="font-display text-xl">Nessun post pubblicato ancora.</p>
-                    </div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {allPosts.map((post, i) => (
                             <Link
                                 key={post.id}
@@ -113,13 +102,8 @@ export default async function BlogIndexPage() {
                                 </div>
                             </Link>
                         ))}
-                    </div>
-                )}
-            </main>
-
-            <footer className="border-t border-sand-200 mt-20 py-8 text-center text-ink-400 text-sm">
-                <p>motonui — Il compagno di viaggio di coppia</p>
-            </footer>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertAccommodationReminders } from '@/lib/reminders';
@@ -23,8 +24,7 @@ const UpdateAccommodationSchema = z.object({
 export const PUT = withErrorHandler(async (request, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id, dayId, accId } = await params;
     const body: unknown = await request.json();
@@ -68,7 +68,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
                 currency: acc.currency,
                 amount_eur,
                 category: 'accommodation',
-                paid_by: (await supabase.auth.getUser()).data.user!.id,
+                paid_by: user.id,
                 split: true,
                 date: day?.date ?? null,
             });
@@ -101,8 +101,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
 export const DELETE = withErrorHandler(async (_req, { params }) => {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw Errors.unauthorized();
+    const user = await getAuthUser(supabase);
 
     const { id, dayId, accId } = await params;
 

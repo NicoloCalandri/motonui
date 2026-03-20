@@ -1,5 +1,6 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/auth/get-user';
 import { streamBlogAssistant, checkRateLimit } from '@/lib/ai/blog-assistant';
 import { Errors } from '@/lib/errors';
 
@@ -16,8 +17,7 @@ const Schema = z.object({
  */
 export async function POST(request: Request): Promise<Response> {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return Response.json({ error: 'Non autenticato' }, { status: 401 });
+    const user = await getAuthUser(supabase);
 
     const body: unknown = await request.json();
     const parsed = Schema.safeParse(body);
