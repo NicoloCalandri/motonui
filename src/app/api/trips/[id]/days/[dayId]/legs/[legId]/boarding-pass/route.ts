@@ -1,9 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { uploadFile, Buckets } from '@/lib/storage';
-
-const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf']);
-const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
+import { uploadFile, Buckets, validateFile } from '@/lib/storage';
+import { requireTripMember } from '@/lib/authz';
 
 type Params = { params: Promise<{ id: string; dayId: string; legId: string }> };
 
@@ -18,6 +16,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id, dayId, legId } = await params;
+    await requireTripMember(supabase, id, user.id);
 
     // Verify leg belongs to this trip/day
     const { data: leg } = await supabase
@@ -33,16 +32,10 @@ export const POST = withErrorHandler(async (request, { params }) => {
     const file = formData.get('file') as File | null;
     if (!file) throw Errors.validation('Campo "file" mancante.');
 
-    if (!ALLOWED.has(file.type)) {
-        throw Errors.validation('Formato non supportato. Carica JPEG, PNG, WebP, HEIC o PDF.');
-    }
-    if (file.size > MAX_SIZE) {
-        throw Errors.validation(`File troppo grande (max 20 MB).`);
-    }
-
-    const ext = file.type === 'application/pdf' ? 'pdf' : file.name.split('.').pop() ?? 'jpg';
+    const ext = file.type === 'application/pdf' ? 'pdf' : file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') ?? 'bin';
     const storagePath = `trips/${id}/boarding-passes/${legId}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
+    validateFile(file.type, file.size, buffer);
     const publicUrl = await uploadFile(Buckets.tripMedia, storagePath, buffer, file.type);
 
     // Update leg with boarding pass URL
@@ -69,6 +62,7 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id, dayId, legId } = await params;
+    await requireTripMember(supabase, id, user.id);
 
     const { error } = await supabase
         .from('legs')

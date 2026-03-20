@@ -9,45 +9,6 @@ import type { Database } from './database.types';
 export async function createClient() {
     const cookieStore = await cookies();
 
-    // ─── Development Ultimate Bypass ───
-    // If in development, we use the service role key (to bypass RLS) 
-    // AND we mock the auth object so getUser() always returns a valid user.
-    if (process.env.NODE_ENV === 'development') {
-        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-        const adminSupabase = createSupabaseClient<any>(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!, // Bypass RLS
-            { auth: { autoRefreshToken: false, persistSession: false } }
-        );
-
-        // Mock the auth object
-        const mockUser = {
-            id: '00000000-0000-0000-0000-000000000001', // Matches seed.sql
-            email: 'test@example.com',
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            created_at: new Date().toISOString(),
-        };
-
-        // Inject proxy to simulate authenticated state
-        const proxy = new Proxy(adminSupabase, {
-            get(target, prop) {
-                if (prop === 'auth') {
-                    return {
-                        getUser: async () => ({ data: { user: mockUser }, error: null }),
-                        getSession: async () => ({ data: { session: { user: mockUser } }, error: null }),
-                        signInWithPassword: async () => ({ data: { user: mockUser }, error: null }),
-                        signOut: async () => ({ error: null }),
-                    };
-                }
-                return (target as any)[prop];
-            }
-        });
-
-        return proxy;
-    }
-
     return createServerClient<any>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -9,10 +9,10 @@ import type { UploadResult, ImageMetadata } from '@/lib/types';
  * @param tripId - UUID of the trip this media belongs to
  */
 export async function uploadMedia(file: File, tripId: string): Promise<UploadResult> {
-    // 1. Validate MIME type and size
-    validateFile(file.type, file.size);
-
     const buffer = Buffer.from(await file.arrayBuffer() as ArrayBuffer);
+
+    // 1. Validate MIME type, size, and magic bytes
+    validateFile(file.type, file.size, buffer);
 
     // 2. Extract EXIF metadata (images only)
     const metadata = await extractExifMetadata(buffer, file.type);
