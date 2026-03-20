@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
 import { getTripExpenseSummary, convertCurrency, splitExpenses } from '@/lib/expenses';
+import { requireTripMember, requireDayInTrip, requireTripPayer } from '@/lib/authz';
+import { sanitizePlainText } from '@/lib/sanitize';
 import type { Expense } from '@/lib/types';
 
 const CreateExpenseSchema = z.object({
@@ -34,6 +36,7 @@ export const GET = withErrorHandler(async (request, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
     const { searchParams } = new URL(request.url);
 
     const filter = FilterSchema.safeParse({
@@ -83,11 +86,15 @@ export const POST = withErrorHandler(async (request, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
     const body: unknown = await request.json();
     const parsed = CreateExpenseSchema.safeParse(body);
     if (!parsed.success) throw Errors.validation(parsed.error.message);
 
     const input = parsed.data;
+    const payerId = input.paid_by ?? user.id;
+    await requireDayInTrip(supabase, id, input.day_id);
+    await requireTripPayer(supabase, id, payerId);
 
     // Convert to EUR for unified reporting
     const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR');
@@ -96,9 +103,12 @@ export const POST = withErrorHandler(async (request, { params }) => {
         .from('expenses')
         .insert({
             ...input,
+            description: sanitizePlainText(input.description, 500),
+            notes: input.notes ? sanitizePlainText(input.notes, 1000) : null,
+            currency: input.currency.toUpperCase(),
             trip_id: id,
             amount_eur,
-            paid_by: input.paid_by ?? user.id,
+            paid_by: payerId,
         })
         .select()
         .single();

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { requireDayInTrip, requireTripPayer } from '@/lib/authz';
+import { sanitizePlainText } from '@/lib/sanitize';
 
 const UpdateExpenseSchema = z.object({
     description: z.string().min(1).max(500).optional(),
@@ -28,26 +30,37 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     const parsed = UpdateExpenseSchema.safeParse(body);
     if (!parsed.success) throw Errors.validation(parsed.error.message);
 
+    const { data: currentExpense, error: currentExpenseError } = await supabase
+        .from('expenses')
+        .select('trip_id, amount, currency, paid_by')
+        .eq('id', id)
+        .single();
+
+    if (currentExpenseError || !currentExpense) throw Errors.notFound('Spesa');
+
     // Recalculate EUR if amount or currency changed
     let amount_eur: number | undefined;
     if (parsed.data.amount !== undefined || parsed.data.currency !== undefined) {
         const { convertCurrency } = await import('@/lib/expenses');
 
         // Get current expense to fill in missing values
-        const { data: current } = await supabase
-            .from('expenses')
-            .select('amount, currency')
-            .eq('id', id)
-            .single();
-
-        const amount = parsed.data.amount ?? current?.amount ?? 0;
-        const currency = parsed.data.currency ?? current?.currency ?? 'EUR';
+        const amount = parsed.data.amount ?? currentExpense.amount ?? 0;
+        const currency = parsed.data.currency ?? currentExpense.currency ?? 'EUR';
         amount_eur = await convertCurrency(amount, currency, 'EUR');
     }
 
+    await requireDayInTrip(supabase, currentExpense.trip_id, parsed.data.day_id ?? undefined);
+    await requireTripPayer(supabase, currentExpense.trip_id, parsed.data.paid_by ?? currentExpense.paid_by);
+
     const { data: expense, error } = await supabase
         .from('expenses')
-        .update({ ...parsed.data, ...(amount_eur !== undefined ? { amount_eur } : {}) })
+        .update({
+            ...parsed.data,
+            ...(parsed.data.description !== undefined ? { description: sanitizePlainText(parsed.data.description, 500) } : {}),
+            ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes ? sanitizePlainText(parsed.data.notes, 1000) : null } : {}),
+            ...(parsed.data.currency !== undefined ? { currency: parsed.data.currency.toUpperCase() } : {}),
+            ...(amount_eur !== undefined ? { amount_eur } : {}),
+        })
         .eq('id', id)
         .select()
         .single();

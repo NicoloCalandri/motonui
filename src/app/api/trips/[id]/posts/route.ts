@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
+import { requireTripMember } from '@/lib/authz';
+import { sanitizeTiptapDocument } from '@/lib/sanitize';
 
 const CreatePostSchema = z.object({
     title: z.string().min(1).max(300),
@@ -20,6 +22,7 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
 
     const { data, error } = await supabase
         .from('posts')
@@ -40,14 +43,18 @@ export const POST = withErrorHandler(async (request, { params }) => {
     if (!user) throw Errors.unauthorized();
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
     const body: unknown = await request.json();
     const parsed = CreatePostSchema.safeParse(body);
     if (!parsed.success) throw Errors.validation(parsed.error.message);
+
+    const contentJson = parsed.data.content_json ? sanitizeTiptapDocument(parsed.data.content_json) : null;
 
     const { data: post, error } = await supabase
         .from('posts')
         .insert({
             ...parsed.data,
+            content_json: contentJson,
             trip_id: id,
             author_id: user.id,
             published_at: parsed.data.status === 'published' ? new Date().toISOString() : null,

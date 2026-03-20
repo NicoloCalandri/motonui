@@ -1,13 +1,16 @@
 import { createAdminClient } from '@/lib/supabase/server';
 
+const FILE_SIGNATURES: Record<string, Array<readonly number[]>> = {
+    'image/jpeg': [[0xff, 0xd8, 0xff]],
+    'image/png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+    'image/webp': [[0x52, 0x49, 0x46, 0x46]],
+    'image/heic': [[0x00, 0x00, 0x00]],
+    'video/mp4': [[0x00, 0x00, 0x00]],
+    'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
+};
+
 /** Allowed MIME types for upload */
-const ALLOWED_MIME_TYPES = new Set([
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/heic',
-    'video/mp4',
-]);
+const ALLOWED_MIME_TYPES = new Set(Object.keys(FILE_SIGNATURES));
 
 /** Max file size: 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -25,10 +28,10 @@ export type BucketName = (typeof Buckets)[keyof typeof Buckets];
  * Validates a file's MIME type and size before uploading.
  * Throws an error with a user-friendly message if invalid.
  */
-export function validateFile(mimeType: string, size: number): void {
+export function validateFile(mimeType: string, size: number, file?: Buffer | Uint8Array): void {
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
         throw new Error(
-            `Tipo di file non supportato: ${mimeType}. Carica JPEG, PNG, WebP, HEIC o MP4.`
+            `Tipo di file non supportato: ${mimeType}. Carica JPEG, PNG, WebP, HEIC, MP4 o PDF.`
         );
     }
     if (size > MAX_FILE_SIZE) {
@@ -36,6 +39,32 @@ export function validateFile(mimeType: string, size: number): void {
             `File troppo grande (${(size / 1024 / 1024).toFixed(1)} MB). Massimo consentito: 50 MB.`
         );
     }
+
+    if (file && !matchesSignature(mimeType, file)) {
+        throw new Error('Il contenuto del file non corrisponde al tipo dichiarato.');
+    }
+}
+
+function matchesSignature(mimeType: string, file: Buffer | Uint8Array): boolean {
+    const signatures = FILE_SIGNATURES[mimeType];
+    if (!signatures?.length) return true;
+
+    if (mimeType === 'image/webp') {
+        return hasPrefix(file, [0x52, 0x49, 0x46, 0x46]) && file.subarray(8, 12).toString() === 'WEBP';
+    }
+
+    if (mimeType === 'image/heic' || mimeType === 'video/mp4') {
+        const brand = file.subarray(4, 12).toString();
+        if (mimeType === 'image/heic') return brand.startsWith('ftypheic') || brand.startsWith('ftypheix') || brand.startsWith('ftypmif1');
+        return brand.startsWith('ftyp');
+    }
+
+    return signatures.some((signature) => hasPrefix(file, signature));
+}
+
+function hasPrefix(file: Buffer | Uint8Array, signature: readonly number[]): boolean {
+    if (file.length < signature.length) return false;
+    return signature.every((byte, index) => file[index] === byte);
 }
 
 /**

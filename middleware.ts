@@ -12,10 +12,6 @@ import type { ImpersonationPayload } from '@/lib/types';
  * - Handles read-only impersonation sessions
  */
 export async function middleware(request: NextRequest) {
-    if (process.env.NODE_ENV === 'development') {
-        return NextResponse.next();
-    }
-
     const { pathname } = request.nextUrl;
 
     // Routes that do NOT require authentication
@@ -74,10 +70,6 @@ export async function middleware(request: NextRequest) {
 
     if (user) {
         // Fetch profile for role/suspension check
-        const profileUrl = new URL(
-            `/api/admin/internal/profile?uid=${user.id}`,
-            request.url
-        );
         // We check role/suspension via the Supabase REST API to avoid circular imports.
         // A lightweight inline check is done below using the anon key.
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

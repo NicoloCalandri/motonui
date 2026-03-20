@@ -17,12 +17,19 @@ describe('validateFile', () => {
         ['image/webp'],
         ['image/heic'],
         ['video/mp4'],
+        ['application/pdf'],
     ])('accepts allowed MIME type: %s', (mime) => {
         expect(() => validateFile(mime, 1024)).not.toThrow();
     });
 
     it('throws for an unsupported MIME type', () => {
-        expect(() => validateFile('application/pdf', 1024)).toThrow('Tipo di file non supportato');
+        expect(() => validateFile('application/octet-stream', 1024)).toThrow('Tipo di file non supportato');
+    });
+
+    it('rejects files whose magic bytes do not match the declared MIME type', () => {
+        expect(() => validateFile('image/png', 8, Buffer.from('notapng!'))).toThrow(
+            'Il contenuto del file non corrisponde al tipo dichiarato.'
+        );
     });
 
     it('throws for GIF which is not in the allowlist', () => {
