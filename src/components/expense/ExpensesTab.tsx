@@ -23,12 +23,12 @@ const CATEGORY_LABELS: Record<string, string> = {
     activity: 'Attività', shopping: 'Shopping', other: 'Altro',
 };
 
-interface ExpensesTabProps { tripId: string }
+interface ExpensesTabProps { tripId: string; tripStartDate?: string | null; tripEndDate?: string | null }
 
 /**
  * Expenses tab: split list view and summary panel with charts.
  */
-export default function ExpensesTab({ tripId }: ExpensesTabProps) {
+export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: ExpensesTabProps) {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [summary, setSummary] = useState<ExpenseSummary | null>(null);
     const [split, setSplit] = useState<SplitResult | null>(null);
@@ -262,6 +262,8 @@ export default function ExpensesTab({ tripId }: ExpensesTabProps) {
                 onClose={() => { setDrawerOpen(false); setEditingExpense(null); }}
                 onSaved={fetchExpenses}
                 initialData={editingExpense ?? undefined}
+                tripStartDate={tripStartDate}
+                tripEndDate={tripEndDate}
             />
         </div>
     );

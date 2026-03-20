@@ -45,9 +45,11 @@ interface LegDrawerProps {
     onSaved: () => void;
     dayDate?: string;
     initialData?: Leg;
+    tripStartDate?: string | null;
+    tripEndDate?: string | null;
 }
 
-export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDate, initialData }: LegDrawerProps) {
+export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDate, initialData, tripStartDate, tripEndDate }: LegDrawerProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
@@ -293,6 +295,8 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                             <input
                                                 {...register('departure_date')}
                                                 type="date"
+                                                min={tripStartDate || undefined}
+                                                max={tripEndDate || undefined}
                                                 className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                                             />
                                             <input
@@ -308,6 +312,8 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                             <input
                                                 {...register('arrival_date')}
                                                 type="date"
+                                                min={watch('departure_date') || tripStartDate || undefined}
+                                                max={tripEndDate || undefined}
                                                 className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                                             />
                                             <input

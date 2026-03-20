@@ -18,9 +18,11 @@ interface DayDrawerProps {
     open: boolean;
     onClose: () => void;
     onSaved: () => void;
+    tripStartDate?: string | null;
+    tripEndDate?: string | null;
 }
 
-export default function DayDrawer({ tripId, open, onClose, onSaved }: DayDrawerProps) {
+export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDate, tripEndDate }: DayDrawerProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -98,6 +100,8 @@ export default function DayDrawer({ tripId, open, onClose, onSaved }: DayDrawerP
                                     <input
                                         {...register('date')}
                                         type="date"
+                                        min={tripStartDate || undefined}
+                                        max={tripEndDate || undefined}
                                         className="w-full px-6 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
                                     />
                                     {errors.date && <p className="text-xs font-bold text-red-500 mt-2">{errors.date.message}</p>}

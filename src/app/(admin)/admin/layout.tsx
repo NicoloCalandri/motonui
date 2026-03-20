@@ -1,20 +1,14 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
-import { LayoutDashboard, Users, ScrollText, Settings, ArrowLeft } from 'lucide-react';
+import AdminNav from './_components/AdminNav';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
 }
 
-const NAV_ITEMS = [
-    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-    { href: '/admin/users', label: 'Utenti', icon: Users },
-    { href: '/admin/audit-log', label: 'Audit Log', icon: ScrollText },
-];
-
 /** Server-side admin role check — defence in depth beyond middleware */
 async function checkAdminAccess() {
+    if (process.env.NODE_ENV === 'development') return;
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/auth/login');
@@ -41,28 +35,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                     <div className="text-lg font-bold text-white mt-1">motonui</div>
                 </div>
 
-                <nav className="flex-1 space-y-1">
-                    {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                        <Link
-                            key={href}
-                            href={href}
-                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-sm"
-                        >
-                            <Icon className="w-4 h-4" />
-                            {label}
-                        </Link>
-                    ))}
-                </nav>
-
-                <div className="border-t border-zinc-800 pt-4">
-                    <Link
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors text-sm"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Torna all&apos;app
-                    </Link>
-                </div>
+                <AdminNav />
             </aside>
 
             {/* Main content */}

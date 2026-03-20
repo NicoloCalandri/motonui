@@ -17,7 +17,7 @@ const LEG_ICONS: Record<string, React.ElementType> = {
 type DayWithDetails = Day & { legs: Leg[]; accommodations: Accommodation[] };
 
 interface ItineraryTabProps {
-    trip: { id: string; days?: DayWithDetails[] };
+    trip: { id: string; days?: DayWithDetails[]; start_date?: string | null; end_date?: string | null };
     onDaysChange?: (days: DayWithDetails[]) => void;
 }
 
@@ -226,6 +226,8 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 onSaved={fetchDays}
+                tripStartDate={trip.start_date}
+                tripEndDate={trip.end_date}
             />
             
             <LegDrawer
@@ -236,6 +238,8 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
                 onClose={() => { setLegDrawerOpen(false); setActiveDay(null); setEditingLeg(null); }}
                 onSaved={fetchDays}
                 initialData={editingLeg ?? undefined}
+                tripStartDate={trip.start_date}
+                tripEndDate={trip.end_date}
             />
             
             <AccommodationDrawer
@@ -246,6 +250,8 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
                 onClose={() => { setAccDrawerOpen(false); setActiveDay(null); setEditingAcc(null); }}
                 onSaved={fetchDays}
                 initialData={editingAcc ?? undefined}
+                tripStartDate={trip.start_date}
+                tripEndDate={trip.end_date}
             />
 
             {boardingPassLeg && (

@@ -36,12 +36,14 @@ interface ExpenseDrawerProps {
     onClose: () => void;
     onSaved: () => void;
     initialData?: Expense;
+    tripStartDate?: string | null;
+    tripEndDate?: string | null;
 }
 
 /**
  * Slide-up drawer for adding or editing an expense.
  */
-export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialData }: ExpenseDrawerProps) {
+export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialData, tripStartDate, tripEndDate }: ExpenseDrawerProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
@@ -233,6 +235,8 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                         <input
                                             {...register('date')}
                                             type="date"
+                                            min={tripStartDate || undefined}
+                                            max={tripEndDate || undefined}
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                                         />
                                     </div>

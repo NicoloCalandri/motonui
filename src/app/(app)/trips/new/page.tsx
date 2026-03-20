@@ -82,6 +82,7 @@ export default function NewTripPage() {
 
   const form1 = useForm<Step1Values>({ resolver: zodResolver(Step1Schema) });
   const form2 = useForm<Step2Values>({ resolver: zodResolver(Step2Schema) });
+  const startDate = form1.watch('start_date');
 
   const handleStep1 = (values: Step1Values) => {
     setTripData(values);
@@ -213,6 +214,7 @@ export default function NewTripPage() {
                     <input
                       {...form1.register('end_date')}
                       type="date"
+                      min={startDate || undefined}
                       className="w-full pl-12 pr-4 py-4 bg-neutral-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-neutral-200 transition-all cursor-pointer"
                     />
                   </div>

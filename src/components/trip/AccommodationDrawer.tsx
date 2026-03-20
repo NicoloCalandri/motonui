@@ -29,14 +29,16 @@ interface AccommodationDrawerProps {
     onSaved: () => void;
     dayDate?: string;
     initialData?: Accommodation;
+    tripStartDate?: string | null;
+    tripEndDate?: string | null;
 }
 
-export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSaved, dayDate, initialData }: AccommodationDrawerProps) {
+export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSaved, dayDate, initialData, tripStartDate, tripEndDate }: AccommodationDrawerProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+    const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: {
             currency: 'EUR',
@@ -143,6 +145,8 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
                                         <input
                                             {...register('check_in')}
                                             type="date"
+                                            min={tripStartDate || undefined}
+                                            max={tripEndDate || undefined}
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                                         />
                                     </div>
@@ -151,6 +155,8 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
                                         <input
                                             {...register('check_out')}
                                             type="date"
+                                            min={watch('check_in') || tripStartDate || undefined}
+                                            max={tripEndDate || undefined}
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                                         />
                                     </div>
