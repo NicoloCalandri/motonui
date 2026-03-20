@@ -1,9 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/auth/login/page": "app/auth/login/page.js",
   "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
-  "/(admin)/admin/users/page": "app/(admin)/admin/users/page.js",
   "/(public)/blog/page": "app/(public)/blog/page.js",
-  "/(app)/trips/page": "app/(app)/trips/page.js",
   "/(app)/trips/new/page": "app/(app)/trips/new/page.js"
 }

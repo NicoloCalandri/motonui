@@ -12,7 +12,13 @@ type AdminResult = { adminId: string } | NextResponse;
  *   if (result instanceof NextResponse) return result;
  *   const { adminId } = result;
  */
+const DEV_ADMIN_ID = '00000000-0000-0000-0000-000000000001';
+
 export async function requireAdmin(): Promise<AdminResult> {
+    if (process.env.NODE_ENV === 'development') {
+        return { adminId: DEV_ADMIN_ID };
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 

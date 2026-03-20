@@ -29,23 +29,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
     useEffect(() => {
         const checkUser = async () => {
-            const { data } = await supabase.auth.getUser();
-            let user = data.user;
-
-            if (!user && process.env.NODE_ENV === 'development') {
-                const { data: devAuth } = await supabase.auth.signInWithPassword({
-                    email: 'test@example.com',
-                    password: 'password123',
-                });
-                user = devAuth.user;
+            if (process.env.NODE_ENV === 'development') {
+                setUserEmail('test@example.com');
+                setUserName('Dev User');
+                return;
             }
 
-            if (!user && process.env.NODE_ENV !== 'development') {
+            const { data } = await supabase.auth.getUser();
+            const user = data.user;
+
+            if (!user) {
                 router.push('/auth/login');
                 return;
             }
-            setUserEmail(user?.email ?? null);
-            setUserName(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Viaggiatore');
+            setUserEmail(user.email ?? null);
+            setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viaggiatore');
         };
 
         checkUser();
