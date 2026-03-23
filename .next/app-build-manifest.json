@@ -31,20 +31,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/trips/[id]/route.js"
     ],
-    "/(app)/blog/page": [
+    "/api/trips/[id]/stats/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(app)/blog/page.js"
-    ],
-    "/(app)/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(app)/profile/page.js"
-    ],
-    "/api/profile/stats/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/profile/stats/route.js"
+      "static/chunks/app/api/trips/[id]/stats/route.js"
     ]
   }
 }

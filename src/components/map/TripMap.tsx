@@ -110,11 +110,20 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
                     seen.add(key);
 
                     const el = document.createElement('div');
-                    el.className = 'w-3 h-3 rounded-full border-2 border-white bg-terracotta-400 shadow';
+                    Object.assign(el.style, {
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        border: '2px solid white',
+                        backgroundColor: '#C4622D',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+                        cursor: 'pointer',
+                        flexShrink: '0',
+                    });
 
                     new mapboxgl.Marker(el)
                         .setLngLat([lng, lat])
-                        .setPopup(new mapboxgl.Popup({ offset: 8 }).setText(name))
+                        .setPopup(new mapboxgl.Popup({ offset: 8 }).setText(name ?? ''))
                         .addTo(map!);
                 });
 
