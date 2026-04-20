@@ -19,7 +19,7 @@ export async function upsertReminder(
     opts: {
         userId: string;
         tripId: string;
-        entityType: 'leg' | 'accommodation';
+        entityType: 'leg' | 'accommodation' | 'restaurant' | 'activity';
         entityId: string;
         type: ReminderType;
         remindAt: Date | null;
