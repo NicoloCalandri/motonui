@@ -37,6 +37,9 @@ export const GET = withErrorHandler(async (_req, { params }) => {
         legs (*),
         accommodations (*)
       ),
+      restaurants (*),
+      activities (*),
+      documents (*),
       media (count),
       expenses (amount_eur, amount)
     `)
