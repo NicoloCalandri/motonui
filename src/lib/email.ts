@@ -120,3 +120,74 @@ export function paymentDeadlineEmail(opts: {
       <p style="color:#aaa;font-size:12px;margin-top:32px">Inviato da motonui · il tuo diario di viaggio</p>
     </div>`;
 }
+
+export function restaurantReminderEmail(opts: {
+    userName: string;
+    restaurantName: string;
+    bookingRef: string | null;
+    date: string;
+    time: string;
+}): string {
+    const dateStr = new Date(opts.date).toLocaleDateString('it-IT', {
+        weekday: 'long', day: '2-digit', month: 'long',
+    });
+
+    return `
+    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px 16px;color:#1a1a1a">
+      <div style="background:#ea580c;border-radius:16px;padding:24px;color:white;text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;margin-bottom:8px">🍽️</div>
+        <h1 style="margin:0;font-size:22px">Prenotazione ristorante</h1>
+        <p style="margin:8px 0 0;opacity:0.85">${opts.restaurantName}</p>
+      </div>
+
+      <p style="font-size:16px">Ciao ${opts.userName},</p>
+      <p>Promemoria per la tua prenotazione al ristorante.</p>
+
+      <div style="background:#f5f5f0;border-radius:12px;padding:20px;margin:24px 0">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Ristorante</td><td style="padding:6px 0;font-weight:700">${opts.restaurantName}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Data</td><td style="padding:6px 0;font-weight:700">${dateStr}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Orario</td><td style="padding:6px 0;font-weight:700;color:#ea580c">${opts.time}</td></tr>
+          ${opts.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Prenotazione</td><td style="padding:6px 0;font-weight:700">${opts.bookingRef}</td></tr>` : ''}
+        </table>
+      </div>
+
+      <p style="color:#aaa;font-size:12px;margin-top:32px">Inviato da motonui · il tuo diario di viaggio</p>
+    </div>`;
+}
+
+export function activityReminderEmail(opts: {
+    userName: string;
+    activityName: string;
+    bookingRef: string | null;
+    date: string;
+    time: string;
+}): string {
+    const dateStr = new Date(opts.date).toLocaleDateString('it-IT', {
+        weekday: 'long', day: '2-digit', month: 'long',
+    });
+
+    return `
+    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px 16px;color:#1a1a1a">
+      <div style="background:#7c3aed;border-radius:16px;padding:24px;color:white;text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;margin-bottom:8px">🎟️</div>
+        <h1 style="margin:0;font-size:22px">Attività in arrivo</h1>
+        <p style="margin:8px 0 0;opacity:0.85">${opts.activityName}</p>
+      </div>
+
+      <p style="font-size:16px">Ciao ${opts.userName},</p>
+      <p>Promemoria per la tua attività programmata.</p>
+
+      <div style="background:#f5f5f0;border-radius:12px;padding:20px;margin:24px 0">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Attività</td><td style="padding:6px 0;font-weight:700">${opts.activityName}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Data</td><td style="padding:6px 0;font-weight:700">${dateStr}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Orario</td><td style="padding:6px 0;font-weight:700;color:#7c3aed">${opts.time}</td></tr>
+          ${opts.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Prenotazione</td><td style="padding:6px 0;font-weight:700">${opts.bookingRef}</td></tr>` : ''}
+        </table>
+      </div>
+
+      <p style="color:#666;font-size:13px">Ricorda di avere con te il biglietto o la conferma di prenotazione.</p>
+      <p style="color:#aaa;font-size:12px;margin-top:32px">Inviato da motonui · il tuo diario di viaggio</p>
+    </div>`;
+}

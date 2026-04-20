@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ReminderType } from '@/lib/types';
 
 const DAYS_BEFORE = 3; // send reminders N days before deadline
+const HOURS_BEFORE_RESERVATION = 3; // send reminders N hours before restaurant/activity
 
 /**
  * Upsert a single reminder.
@@ -18,7 +19,7 @@ export async function upsertReminder(
     opts: {
         userId: string;
         tripId: string;
-        entityType: 'leg' | 'accommodation';
+        entityType: 'leg' | 'accommodation' | 'restaurant' | 'activity';
         entityId: string;
         type: ReminderType;
         remindAt: Date | null;
@@ -121,5 +122,65 @@ export async function upsertAccommodationReminders(
         type: 'cancellation_deadline',
         remindAt: canRemindAt,
         title: `Cancellazione gratuita scade il: ${opts.name}`,
+    });
+}
+
+/**
+ * Schedules a reminder for a restaurant reservation.
+ * Sends HOURS_BEFORE_RESERVATION hours before the reservation time.
+ */
+export async function upsertRestaurantReminder(
+    supabase: SupabaseClient,
+    opts: {
+        userId: string;
+        tripId: string;
+        restaurantId: string;
+        name: string;
+        date: string;
+        time: string;
+    }
+): Promise<void> {
+    const dateTime = new Date(`${opts.date}T${opts.time}:00`);
+    const remindAt = new Date(dateTime.getTime() - HOURS_BEFORE_RESERVATION * 60 * 60 * 1000);
+
+    await upsertReminder(supabase, {
+        userId: opts.userId,
+        tripId: opts.tripId,
+        entityType: 'restaurant',
+        entityId: opts.restaurantId,
+        type: 'restaurant_reservation',
+        remindAt,
+        title: `Prenotazione ristorante: ${opts.name}`,
+        message: `Alle ${opts.time}`,
+    });
+}
+
+/**
+ * Schedules a reminder for an activity/excursion.
+ * Sends HOURS_BEFORE_RESERVATION hours before the activity time.
+ */
+export async function upsertActivityReminder(
+    supabase: SupabaseClient,
+    opts: {
+        userId: string;
+        tripId: string;
+        activityId: string;
+        name: string;
+        date: string;
+        time: string;
+    }
+): Promise<void> {
+    const dateTime = new Date(`${opts.date}T${opts.time}:00`);
+    const remindAt = new Date(dateTime.getTime() - HOURS_BEFORE_RESERVATION * 60 * 60 * 1000);
+
+    await upsertReminder(supabase, {
+        userId: opts.userId,
+        tripId: opts.tripId,
+        entityType: 'activity',
+        entityId: opts.activityId,
+        type: 'activity_ticket',
+        remindAt,
+        title: `Attività: ${opts.name}`,
+        message: `Alle ${opts.time}`,
     });
 }

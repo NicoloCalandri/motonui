@@ -49,6 +49,21 @@ export type MemberRole = 'owner' | 'member';
 
 export type AICallType = 'blog' | 'seo' | 'caption' | 'destination' | 'category';
 
+export type ActivityType = 'museum' | 'tour' | 'excursion' | 'show' | 'sport' | 'other';
+
+export type DocumentType =
+  | 'boarding_pass'
+  | 'hotel_voucher'
+  | 'ticket'
+  | 'reservation_confirmation'
+  | 'insurance'
+  | 'visa'
+  | 'other';
+
+export type DocumentEntityType = 'leg' | 'accommodation' | 'restaurant' | 'activity' | 'trip';
+
+export type DocumentFileType = 'pdf' | 'image';
+
 // =============================================================================
 // DATABASE ROW TYPES (mirror Supabase schema)
 // =============================================================================
@@ -138,6 +153,72 @@ export interface Accommodation {
   cancellation_deadline: string | null;   // ISO date — free cancellation until
   notes: string | null;
   url: string | null;
+}
+
+/** Restaurant reservation */
+export interface Restaurant {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  trip_id: string;
+  day_id: string | null;
+  name: string;
+  cuisine_type: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  date: string | null;          // ISO date string
+  time: string | null;          // HH:mm
+  covers: number;
+  cost: number | null;
+  currency: string;
+  booking_ref: string | null;
+  confirmation_url: string | null;
+  phone: string | null;
+  notes: string | null;
+  sort_order: number;
+}
+
+/** Activity / excursion / visit */
+export interface Activity {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  trip_id: string;
+  day_id: string | null;
+  name: string;
+  type: ActivityType;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  date: string | null;          // ISO date string
+  time: string | null;          // HH:mm
+  duration_min: number | null;
+  cost: number | null;
+  currency: string;
+  booking_ref: string | null;
+  ticket_url: string | null;
+  notes: string | null;
+  sort_order: number;
+}
+
+/** Travel wallet document (boarding pass, voucher, ticket, etc.) */
+export interface Document {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  trip_id: string;
+  uploaded_by: string;
+  entity_type: DocumentEntityType | null;
+  entity_id: string | null;
+  type: DocumentType;
+  title: string;
+  file_url: string;
+  file_type: DocumentFileType;
+  valid_from: string | null;    // ISO date string
+  valid_until: string | null;   // ISO date string
+  barcode_data: string | null;
+  notes: string | null;
 }
 
 /** Individual expense entry */
@@ -243,6 +324,9 @@ export interface UserProfile {
 export interface TripWithDetails extends Trip {
   members: (TripMember & { profile: UserProfile })[];
   days: (Day & { legs: Leg[]; accommodations: Accommodation[] })[];
+  restaurants: Restaurant[];
+  activities: Activity[];
+  documents: Document[];
   media_count: number;
   expense_total_eur: number;
 }
@@ -512,6 +596,53 @@ export interface CreateAccommodationInput {
   url?: string;
 }
 
+/** Request body for creating a restaurant reservation */
+export interface CreateRestaurantInput {
+  day_id?: string;
+  name: string;
+  cuisine_type?: string;
+  address?: string;
+  date?: string;
+  time?: string;
+  covers?: number;
+  cost?: number;
+  currency?: string;
+  booking_ref?: string;
+  confirmation_url?: string;
+  phone?: string;
+  notes?: string;
+}
+
+/** Request body for creating an activity */
+export interface CreateActivityInput {
+  day_id?: string;
+  name: string;
+  type?: ActivityType;
+  address?: string;
+  date?: string;
+  time?: string;
+  duration_min?: number;
+  cost?: number;
+  currency?: string;
+  booking_ref?: string;
+  ticket_url?: string;
+  notes?: string;
+}
+
+/** Request body for creating a document (wallet) */
+export interface CreateDocumentInput {
+  entity_type?: DocumentEntityType;
+  entity_id?: string;
+  type: DocumentType;
+  title: string;
+  file_url: string;
+  file_type?: DocumentFileType;
+  valid_from?: string;
+  valid_until?: string;
+  barcode_data?: string;
+  notes?: string;
+}
+
 /** Request body for Instagram export */
 export interface InstagramGenerateInput {
   tripId: string;
@@ -534,8 +665,16 @@ export interface InstagramGenerateResponse {
 // REMINDERS
 // =============================================================================
 
-export type ReminderType = 'flight_checkin' | 'payment_deadline' | 'cancellation_deadline';
-export type ReminderEntityType = 'leg' | 'accommodation';
+export type ReminderType =
+  | 'flight_checkin'
+  | 'payment_deadline'
+  | 'cancellation_deadline'
+  | 'restaurant_reservation'
+  | 'activity_ticket'
+  | 'visa_expiry'
+  | 'insurance_expiry'
+  | 'custom';
+export type ReminderEntityType = 'leg' | 'accommodation' | 'restaurant' | 'activity';
 
 /** A scheduled email reminder for a trip event */
 export interface Reminder {

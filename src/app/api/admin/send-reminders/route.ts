@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
-import { sendEmail, flightCheckinEmail, paymentDeadlineEmail } from '@/lib/email';
+import { sendEmail, flightCheckinEmail, paymentDeadlineEmail, restaurantReminderEmail, activityReminderEmail } from '@/lib/email';
 
 const ADMIN_SECRET = process.env.ADMIN_CLEANUP_SECRET;
 
@@ -29,7 +29,9 @@ export async function POST(request: Request): Promise<Response> {
             *,
             trips ( id, title, owner_id ),
             legs:entity_id ( id, from_name, to_name, carrier, pnr, booking_ref, departure_at, checkin_opens_at ),
-            accommodations:entity_id ( id, name, booking_ref )
+            accommodations:entity_id ( id, name, booking_ref ),
+            restaurants:entity_id ( id, name, booking_ref, date, time ),
+            activities:entity_id ( id, name, booking_ref, date, time )
         `)
         .lte('remind_at', now)
         .is('sent_at', null);
@@ -82,6 +84,28 @@ export async function POST(request: Request): Promise<Response> {
                     bookingRef: acc.booking_ref,
                     deadline: reminder.remind_at,
                     type: reminder.type,
+                });
+            } else if (reminder.type === 'restaurant_reservation' && reminder.entity_type === 'restaurant') {
+                const rest = reminder.restaurants;
+                if (!rest) continue;
+                subject = `🍽️ Prenotazione ristorante: ${rest.name}`;
+                html = restaurantReminderEmail({
+                    userName,
+                    restaurantName: rest.name ?? '',
+                    bookingRef: rest.booking_ref,
+                    date: rest.date ?? '',
+                    time: rest.time ?? '',
+                });
+            } else if (reminder.type === 'activity_ticket' && reminder.entity_type === 'activity') {
+                const act = reminder.activities;
+                if (!act) continue;
+                subject = `🎟️ Attività: ${act.name}`;
+                html = activityReminderEmail({
+                    userName,
+                    activityName: act.name ?? '',
+                    bookingRef: act.booking_ref,
+                    date: act.date ?? '',
+                    time: act.time ?? '',
                 });
             } else {
                 continue;
