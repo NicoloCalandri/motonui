@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { ArrowLeft, MapPin, Calendar, Users, Map, DollarSign, Images, BookOpen } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Users, Map, DollarSign, Images, BookOpen, ClipboardList, Wallet, CalendarDays } from 'lucide-react';
 import type { TripWithDetails } from '@/lib/types';
 
 // Tab imports are lazy-loaded to reduce initial bundle
@@ -16,12 +16,18 @@ const ItineraryTab = dynamic(() => import('@/components/trip/ItineraryTab'));
 const ExpensesTab = dynamic(() => import('@/components/expense/ExpensesTab'));
 const MediaTab = dynamic(() => import('@/components/media/MediaTab'));
 const BlogTab = dynamic(() => import('@/components/blog/BlogTab'));
+const BookingsTab = dynamic(() => import('@/components/booking/BookingsTab'));
+const TravelWallet = dynamic(() => import('@/components/wallet/TravelWallet'));
+const TripCalendar = dynamic(() => import('@/components/calendar/TripCalendar'));
 
-type TabId = 'overview' | 'itinerary' | 'expenses' | 'media' | 'blog';
+type TabId = 'overview' | 'itinerary' | 'bookings' | 'wallet' | 'calendar' | 'expenses' | 'media' | 'blog';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'overview', label: 'Panoramica', icon: Map },
     { id: 'itinerary', label: 'Itinerario', icon: Calendar },
+    { id: 'bookings', label: 'Prenotazioni', icon: ClipboardList },
+    { id: 'wallet', label: 'Wallet', icon: Wallet },
+    { id: 'calendar', label: 'Calendario', icon: CalendarDays },
     { id: 'expenses', label: 'Spese', icon: DollarSign },
     { id: 'media', label: 'Foto', icon: Images },
     { id: 'blog', label: 'Blog', icon: BookOpen },
@@ -131,6 +137,9 @@ export default function TripPage() {
             <div className="flex-1 pb-24 md:pb-8">
                 {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} />}
                 {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} />}
+                {activeTab === 'bookings' && <BookingsTab trip={trip} />}
+                {activeTab === 'wallet' && <TravelWallet trip={trip} />}
+                {activeTab === 'calendar' && <TripCalendar trip={trip} />}
                 {activeTab === 'expenses' && <ExpensesTab tripId={trip.id} tripStartDate={trip.start_date} tripEndDate={trip.end_date} />}
                 {activeTab === 'media' && <MediaTab tripId={trip.id} />}
                 {activeTab === 'blog' && <BlogTab tripId={trip.id} />}
