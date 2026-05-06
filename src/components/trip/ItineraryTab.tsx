@@ -19,12 +19,13 @@ type DayWithDetails = Day & { legs: Leg[]; accommodations: Accommodation[] };
 interface ItineraryTabProps {
     trip: { id: string; days?: DayWithDetails[]; start_date?: string | null; end_date?: string | null };
     onDaysChange?: (days: DayWithDetails[]) => void;
+    onDataChange?: () => void;
 }
 
 /**
  * Itinerary tab: timeline view of days, legs, accommodations.
  */
-export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) {
+export default function ItineraryTab({ trip, onDaysChange, onDataChange }: ItineraryTabProps) {
     const [days, setDays] = useState<DayWithDetails[]>(trip.days ?? []);
     const [drawerOpen, setDrawerOpen] = useState(false);
     
@@ -35,17 +36,31 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
     const [editingLeg, setEditingLeg] = useState<Leg | null>(null);
     const [editingAcc, setEditingAcc] = useState<Accommodation | null>(null);
     const [boardingPassLeg, setBoardingPassLeg] = useState<Leg | null>(null);
+    const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+
+    const toggleExpand = (id: string) => {
+        setExpandedItemId(prev => prev === id ? null : id);
+    };
+
+    const deleteDay = async (tripId: string, dayId: string) => {
+        if (!confirm('Sei sicuro di voler eliminare questo giorno e tutte le sue attività?')) return;
+        await fetch(`/api/trips/${tripId}/days/${dayId}`, { method: 'DELETE' });
+        fetchDays();
+        onDataChange?.();
+    };
 
     const deleteLeg = async (tripId: string, dayId: string, legId: string) => {
         if (!confirm('Eliminare questo spostamento?')) return;
         await fetch(`/api/trips/${tripId}/days/${dayId}/legs/${legId}`, { method: 'DELETE' });
         fetchDays();
+        onDataChange?.();
     };
 
     const deleteAcc = async (tripId: string, dayId: string, accId: string) => {
         if (!confirm('Eliminare questo alloggio?')) return;
         await fetch(`/api/trips/${tripId}/days/${dayId}/accommodations/${accId}`, { method: 'DELETE' });
         fetchDays();
+        onDataChange?.();
     };
 
     const fetchDays = () => {
@@ -101,13 +116,31 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
                         <div className="w-8 h-8 bg-terracotta-400 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                             {idx + 1}
                         </div>
-                        <div>
-                            <h3 className="font-display font-semibold text-ink-900">
-                                {day.title ?? format(new Date(day.date), 'EEEE', { locale: it })}
-                            </h3>
-                            <p className="text-xs text-ink-400">
-                                {format(new Date(day.date), 'd MMMM yyyy', { locale: it })}
-                            </p>
+                        <div className="flex-1 flex items-center gap-2">
+                            <div>
+                                <h3 className="font-display font-semibold text-ink-900 flex items-center gap-2">
+                                    {day.title ?? format(new Date(day.date), 'EEEE', { locale: it })}
+                                </h3>
+                                <p className="text-xs text-ink-400">
+                                    {format(new Date(day.date), 'd MMMM yyyy', { locale: it })}
+                                </p>
+                            </div>
+                            <div className="flex gap-1 ml-auto">
+                                <button
+                                    aria-label="Modifica giorno"
+                                    onClick={() => { setActiveDay(day); setDrawerOpen(true); }}
+                                    className="p-1.5 rounded-lg text-ink-400 hover:text-terracotta-400 hover:bg-terracotta-50 transition-colors"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                    aria-label="Elimina giorno"
+                                    onClick={() => deleteDay(trip.id, day.id)}
+                                    className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -116,84 +149,170 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
                         {day.legs?.map((leg) => {
                             const Icon = LEG_ICONS[leg.type] ?? MapPin;
                             return (
-                                <div key={leg.id} className="card p-3 flex items-center gap-3 group">
-                                    <div className="w-8 h-8 bg-ink-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <Icon className="w-4 h-4 text-ink-500" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-ink-800 truncate">
-                                            {leg.from_name} → {leg.to_name}
-                                        </p>
-                                        {leg.carrier && (
-                                            <p className="text-xs text-ink-500 truncate">{leg.carrier}</p>
-                                        )}
-                                        {leg.departure_at && (
-                                            <p className="text-xs text-ink-400">
-                                                {format(new Date(leg.departure_at), 'HH:mm')}
-                                                {leg.arrival_at && ` → ${format(new Date(leg.arrival_at), 'HH:mm')}`}
+                                <div key={leg.id} className="card overflow-hidden group">
+                                    <div 
+                                        className="p-3 flex items-start gap-3 cursor-pointer hover:bg-ink-50/50 transition-colors"
+                                        onClick={() => toggleExpand(leg.id)}
+                                    >
+                                        <div className="w-8 h-8 mt-0.5 bg-ink-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <Icon className="w-4 h-4 text-ink-500" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-ink-800 truncate">
+                                                {leg.from_name} → {leg.to_name}
                                             </p>
+                                            {leg.carrier && (
+                                                <p className="text-xs text-ink-500 truncate">{leg.carrier}</p>
+                                            )}
+                                            {leg.departure_at && (
+                                                <p className="text-xs text-ink-400">
+                                                    {format(new Date(leg.departure_at), 'HH:mm')}
+                                                    {leg.arrival_at && ` → ${format(new Date(leg.arrival_at), 'HH:mm')}`}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {leg.cost && (
+                                            <span className="text-xs text-ink-500 whitespace-nowrap mt-1">
+                                                {leg.currency} {leg.cost}
+                                            </span>
                                         )}
-                                    </div>
-                                    {leg.cost && (
-                                        <span className="text-xs text-ink-500 whitespace-nowrap">
-                                            {leg.currency} {leg.cost}
-                                        </span>
-                                    )}
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {leg.type === 'flight' && leg.boarding_pass_url && (
+                                        <div className="flex gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                            {leg.type === 'flight' && leg.boarding_pass_url && (
+                                                <button
+                                                    aria-label="Vedi carta d'imbarco"
+                                                    onClick={(e) => { e.stopPropagation(); setBoardingPassLeg(leg); }}
+                                                    className="p-1.5 rounded-lg text-ink-400 hover:text-terracotta-400 hover:bg-terracotta-50 transition-colors"
+                                                >
+                                                    <Ticket className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
                                             <button
-                                                aria-label="Vedi carta d'imbarco"
-                                                onClick={() => setBoardingPassLeg(leg)}
+                                                aria-label="Modifica spostamento"
+                                                onClick={(e) => { e.stopPropagation(); setActiveDay(day); setEditingLeg(leg); setLegDrawerOpen(true); }}
                                                 className="p-1.5 rounded-lg text-ink-400 hover:text-terracotta-400 hover:bg-terracotta-50 transition-colors"
                                             >
-                                                <Ticket className="w-3.5 h-3.5" />
+                                                <Pencil className="w-3.5 h-3.5" />
                                             </button>
-                                        )}
-                                        <button
-                                            aria-label="Modifica spostamento"
-                                            onClick={() => { setActiveDay(day); setEditingLeg(leg); setLegDrawerOpen(true); }}
-                                            className="p-1.5 rounded-lg text-ink-400 hover:text-terracotta-400 hover:bg-terracotta-50 transition-colors"
-                                        >
-                                            <Pencil className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                            aria-label="Elimina spostamento"
-                                            onClick={() => deleteLeg(trip.id, day.id, leg.id)}
-                                            className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                            <button
+                                                aria-label="Elimina spostamento"
+                                                onClick={(e) => { e.stopPropagation(); deleteLeg(trip.id, day.id, leg.id); }}
+                                                className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
+                                    
+                                    {expandedItemId === leg.id && (
+                                        <div className="px-12 pb-4 pt-1 text-sm text-ink-600 bg-ink-50/30 border-t border-ink-100 space-y-2">
+                                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                                <div>
+                                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Da</span>
+                                                    <span className="font-medium">{leg.from_name}</span>
+                                                    {leg.departure_at && <span className="block text-xs">{format(new Date(leg.departure_at), 'd MMM HH:mm', { locale: it })}</span>}
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">A</span>
+                                                    <span className="font-medium">{leg.to_name}</span>
+                                                    {leg.arrival_at && <span className="block text-xs">{format(new Date(leg.arrival_at), 'd MMM HH:mm', { locale: it })}</span>}
+                                                </div>
+                                            </div>
+                                            
+                                            {(leg.carrier || leg.booking_ref || leg.duration_min) && (
+                                                <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2">
+                                                    {leg.carrier && (
+                                                        <div><span className="text-[10px] font-bold uppercase text-ink-400">Operatore:</span> <span className="font-medium">{leg.carrier}</span></div>
+                                                    )}
+                                                    {leg.booking_ref && (
+                                                        <div><span className="text-[10px] font-bold uppercase text-ink-400">Ref:</span> <span className="font-medium">{leg.booking_ref}</span></div>
+                                                    )}
+                                                    {leg.duration_min && (
+                                                        <div><span className="text-[10px] font-bold uppercase text-ink-400">Durata:</span> <span className="font-medium">{Math.floor(leg.duration_min / 60)}h {leg.duration_min % 60}m</span></div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            
+                                            {leg.notes && (
+                                                <div className="pt-2 border-t border-ink-100 mt-2">
+                                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
+                                                    <p className="whitespace-pre-wrap">{leg.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
 
                         {/* Accommodations */}
                         {day.accommodations?.map((acc) => (
-                            <div key={acc.id} className="card p-3 flex items-center gap-3 border-l-2 border-sage-300 group">
-                                <div className="w-8 h-8 bg-sage-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <Hotel className="w-4 h-4 text-sage-400" />
+                            <div key={acc.id} className="card overflow-hidden border-l-2 border-sage-300 group">
+                                <div 
+                                    className="p-3 flex items-start gap-3 cursor-pointer hover:bg-sage-50/30 transition-colors"
+                                    onClick={() => toggleExpand(acc.id)}
+                                >
+                                    <div className="w-8 h-8 mt-0.5 bg-sage-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Hotel className="w-4 h-4 text-sage-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-ink-800 truncate">{acc.name}</p>
+                                        {acc.address && <p className="text-xs text-ink-400 truncate">{acc.address}</p>}
+                                    </div>
+                                    {acc.cost && (
+                                        <span className="text-xs text-ink-500 whitespace-nowrap mt-1">
+                                            {acc.currency} {acc.cost}
+                                        </span>
+                                    )}
+                                    <div className="flex gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                        <button
+                                            aria-label="Modifica alloggio"
+                                            onClick={(e) => { e.stopPropagation(); setActiveDay(day); setEditingAcc(acc); setAccDrawerOpen(true); }}
+                                            className="p-1.5 rounded-lg text-ink-400 hover:text-terracotta-400 hover:bg-terracotta-50 transition-colors"
+                                        >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            aria-label="Elimina alloggio"
+                                            onClick={(e) => { e.stopPropagation(); deleteAcc(trip.id, day.id, acc.id); }}
+                                            className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-ink-800 truncate">{acc.name}</p>
-                                    {acc.address && <p className="text-xs text-ink-400 truncate">{acc.address}</p>}
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                        aria-label="Modifica alloggio"
-                                        onClick={() => { setActiveDay(day); setEditingAcc(acc); setAccDrawerOpen(true); }}
-                                        className="p-1.5 rounded-lg text-ink-400 hover:text-terracotta-400 hover:bg-terracotta-50 transition-colors"
-                                    >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                        aria-label="Elimina alloggio"
-                                        onClick={() => deleteAcc(trip.id, day.id, acc.id)}
-                                        className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
+                                
+                                {expandedItemId === acc.id && (
+                                    <div className="px-12 pb-4 pt-1 text-sm text-ink-600 bg-sage-50/20 border-t border-sage-100 space-y-2">
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                            <div>
+                                                <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Check-in</span>
+                                                <span className="font-medium">{acc.check_in ? format(new Date(acc.check_in), 'd MMM yyyy', { locale: it }) : '-'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Check-out</span>
+                                                <span className="font-medium">{acc.check_out ? format(new Date(acc.check_out), 'd MMM yyyy', { locale: it }) : '-'}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {(acc.address || acc.booking_ref) && (
+                                            <div className="flex flex-col gap-1 pt-2">
+                                                {acc.address && (
+                                                    <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Indirizzo:</span><span className="font-medium">{acc.address}</span></div>
+                                                )}
+                                                {acc.booking_ref && (
+                                                    <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Ref Prenotazione:</span><span className="font-medium">{acc.booking_ref}</span></div>
+                                                )}
+                                            </div>
+                                        )}
+                                        
+                                        {acc.notes && (
+                                            <div className="pt-2 border-t border-sage-100 mt-2">
+                                                <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
+                                                <p className="whitespace-pre-wrap">{acc.notes}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         ))}
 
@@ -224,10 +343,11 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
             <DayDrawer
                 tripId={trip.id}
                 open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                onSaved={fetchDays}
+                onClose={() => { setDrawerOpen(false); setActiveDay(null); }}
+                onSaved={() => { fetchDays(); onDataChange?.(); }}
                 tripStartDate={trip.start_date}
                 tripEndDate={trip.end_date}
+                initialData={activeDay ? { id: activeDay.id, date: activeDay.date, title: activeDay.title } : undefined}
             />
             
             <LegDrawer
@@ -236,7 +356,7 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
                 dayDate={activeDay?.date}
                 open={legDrawerOpen}
                 onClose={() => { setLegDrawerOpen(false); setActiveDay(null); setEditingLeg(null); }}
-                onSaved={fetchDays}
+                onSaved={() => { fetchDays(); onDataChange?.(); }}
                 initialData={editingLeg ?? undefined}
                 tripStartDate={trip.start_date}
                 tripEndDate={trip.end_date}
@@ -248,7 +368,7 @@ export default function ItineraryTab({ trip, onDaysChange }: ItineraryTabProps) 
                 dayDate={activeDay?.date}
                 open={accDrawerOpen}
                 onClose={() => { setAccDrawerOpen(false); setActiveDay(null); setEditingAcc(null); }}
-                onSaved={fetchDays}
+                onSaved={() => { fetchDays(); onDataChange?.(); }}
                 initialData={editingAcc ?? undefined}
                 tripStartDate={trip.start_date}
                 tripEndDate={trip.end_date}

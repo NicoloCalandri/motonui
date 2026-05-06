@@ -68,14 +68,18 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
     }, [open, initialData]);
 
     const onSubmit = async (values: FormValues) => {
-        if (!dayId) return;
         setSaving(true);
         setError(null);
 
         try {
-            const url = isEditing
-                ? `/api/trips/${tripId}/days/${dayId}/accommodations/${initialData!.id}`
-                : `/api/trips/${tripId}/days/${dayId}/accommodations`;
+            let url = '';
+            if (isEditing) {
+                url = `/api/trips/${tripId}/days/${dayId}/accommodations/${initialData!.id}`;
+            } else {
+                url = dayId 
+                    ? `/api/trips/${tripId}/days/${dayId}/accommodations` 
+                    : `/api/trips/${tripId}/accommodations`;
+            }
 
             const res = await fetch(url, {
                 method: isEditing ? 'PUT' : 'POST',

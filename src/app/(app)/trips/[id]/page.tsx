@@ -50,7 +50,7 @@ export default function TripPage() {
         setTrip((prev) => prev ? { ...prev, days } : prev);
     };
 
-    useEffect(() => {
+    const fetchTrip = () => {
         fetch(`/api/trips/${id}`)
             .then((r) => r.json())
             .then((data: TripWithDetails) => {
@@ -58,6 +58,10 @@ export default function TripPage() {
                 setLoading(false);
             })
             .catch(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchTrip();
     }, [id]);
 
     if (loading) {
@@ -135,10 +139,10 @@ export default function TripPage() {
 
             {/* Active Tab Content */}
             <div className="flex-1 pb-24 md:pb-8">
-                {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} />}
-                {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} />}
-                {activeTab === 'bookings' && <BookingsTab trip={trip} />}
-                {activeTab === 'wallet' && <TravelWallet trip={trip} />}
+                {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} onTripUpdate={(updates) => setTrip(prev => prev ? { ...prev, ...updates } : prev)} />}
+                {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} onDataChange={fetchTrip} />}
+                {activeTab === 'bookings' && <BookingsTab trip={trip} onDataChange={fetchTrip} />}
+                {activeTab === 'wallet' && <TravelWallet trip={trip} onDataChange={fetchTrip} />}
                 {activeTab === 'calendar' && <TripCalendar trip={trip} />}
                 {activeTab === 'expenses' && <ExpensesTab tripId={trip.id} tripStartDate={trip.start_date} tripEndDate={trip.end_date} />}
                 {activeTab === 'media' && <MediaTab tripId={trip.id} />}

@@ -14,6 +14,13 @@ const QuerySchema = z.object({
     sortDir:   z.enum(['asc', 'desc']).default('desc'),
 });
 
+const CreateUserSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+    displayName: z.string().min(1).optional(),
+    role: z.enum(['user', 'admin']).default('user'),
+});
+
 /** GET /api/admin/users — paginated list of all users with stats */
 export async function GET(request: Request) {
     const result = await requireAdmin();
@@ -95,4 +102,49 @@ function buildCountMap(rows: Array<Record<string, string>>, key: string): Record
         map[id] = (map[id] ?? 0) + 1;
     }
     return map;
+}
+
+/** POST /api/admin/users — create a new user */
+export async function POST(request: Request) {
+    const result = await requireAdmin();
+    if (result instanceof NextResponse) return result;
+
+    const body: unknown = await request.json();
+    const parsed = CreateUserSchema.safeParse(body);
+    if (!parsed.success) {
+        return NextResponse.json(
+            { error: 'Dati non validi.', code: 'VALIDATION_ERROR', status: 400 },
+            { status: 400 }
+        );
+    }
+
+    const supabase = await createAdminClient();
+
+    // Create user in Supabase Auth
+    const { data, error } = await supabase.auth.admin.createUser({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        email_confirm: true,
+        user_metadata: {
+            display_name: parsed.data.displayName,
+        }
+    });
+
+    if (error) {
+        console.error('[admin/users POST]', error.message);
+        return NextResponse.json(
+            { error: 'Errore nella creazione utente: ' + error.message, code: 'INTERNAL_ERROR', status: 500 },
+            { status: 500 }
+        );
+    }
+
+    // Update role and display_name in profiles (since auth triggers might have inserted it)
+    if (data.user) {
+        const updates: any = { role: parsed.data.role };
+        if (parsed.data.displayName) updates.display_name = parsed.data.displayName;
+
+        await supabase.from('profiles').update(updates).eq('id', data.user.id);
+    }
+
+    return ok({ user: data.user });
 }

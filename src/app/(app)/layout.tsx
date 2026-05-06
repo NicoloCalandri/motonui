@@ -27,6 +27,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const supabase = createClient();
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [userName, setUserName] = useState<string | null>(null);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +53,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             const data = await res.json();
             setUserEmail(data.email ?? null);
             setUserName(data.fullName || data.email?.split('@')[0] || 'Viaggiatore');
+            setAvatarUrl(data.avatarUrl ?? null);
         };
 
         checkUser();
@@ -142,8 +144,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                                     <p className="text-sm font-bold text-ink-900 leading-none">{userName}</p>
                                     <p className="text-[10px] font-medium text-ink-muted mt-1 uppercase">Trip Explorer</p>
                                 </div>
-                                <div className="w-10 h-10 rounded-full bg-white shadow-soft p-1 overflow-hidden border border-gray-100">
-                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-200 to-gray-400" />
+                                <div className="w-10 h-10 rounded-full bg-white shadow-soft p-1 overflow-hidden border border-gray-100 flex items-center justify-center">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-white text-[10px] font-bold">
+                                            {userName?.[0]?.toUpperCase()}
+                                        </div>
+                                    )}
                                 </div>
                             </button>
 

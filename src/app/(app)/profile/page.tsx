@@ -156,18 +156,24 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* Quick Settings */}
+                     {/* Quick Settings */}
                     <div className="bg-neutral-900 rounded-[40px] p-8 text-white space-y-6">
-                        <h3 className="text-sm font-black uppercase tracking-[0.2em] opacity-50">Quick Settings</h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] opacity-50">Quick Settings</h3>
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded-full text-white/40">In Progress</span>
+                        </div>
                         <nav className="space-y-2">
                             {[
                                 { icon: Shield, label: 'Privacy' },
                                 { icon: Bell, label: 'Notifiche' },
                                 { icon: Globe, label: 'Lingua' }
                             ].map((item, i) => (
-                                <button key={i} className="flex items-center gap-4 w-full p-4 hover:bg-white/10 rounded-2xl transition-all group">
-                                    <item.icon className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
-                                    <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                                <button key={i} className="flex items-center justify-between w-full p-4 hover:bg-white/10 rounded-2xl transition-all group opacity-50 cursor-not-allowed">
+                                    <div className="flex items-center gap-4">
+                                        <item.icon className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                                        <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-white/20">TODO</span>
                                 </button>
                             ))}
                         </nav>

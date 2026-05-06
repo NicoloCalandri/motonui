@@ -1,6 +1,16 @@
 {
-  "/api/profile/route": "app/api/profile/route.js",
-  "/api/trips/[id]/route": "app/api/trips/[id]/route.js",
+  "/api/trips/[id]/days/route": "app/api/trips/[id]/days/route.js",
+  "/api/trips/[id]/restaurants/route": "app/api/trips/[id]/restaurants/route.js",
+  "/api/trips/[id]/accommodations/route": "app/api/trips/[id]/accommodations/route.js",
+  "/api/trips/[id]/activities/route": "app/api/trips/[id]/activities/route.js",
+  "/api/trips/[id]/legs/route": "app/api/trips/[id]/legs/route.js",
   "/api/trips/[id]/stats/route": "app/api/trips/[id]/stats/route.js",
-  "/(app)/trips/[id]/page": "app/(app)/trips/[id]/page.js"
+  "/api/admin/stats/route": "app/api/admin/stats/route.js",
+  "/api/admin/users/route": "app/api/admin/users/route.js",
+  "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
+  "/(admin)/admin/page": "app/(admin)/admin/page.js",
+  "/(app)/trips/[id]/page": "app/(app)/trips/[id]/page.js",
+  "/(app)/profile/page": "app/(app)/profile/page.js",
+  "/(app)/trips/new/page": "app/(app)/trips/new/page.js",
+  "/(admin)/admin/users/page": "app/(admin)/admin/users/page.js"
 }

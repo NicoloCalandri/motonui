@@ -8,6 +8,11 @@ const DeleteSchema = z.object({
     confirmEmail: z.string().email(),
 });
 
+const UpdateSchema = z.object({
+    displayName: z.string().min(1).optional(),
+    role: z.enum(['user', 'admin']).optional(),
+});
+
 type Params = { params: Promise<{ id: string }> };
 
 async function writeAuditLog(
@@ -86,6 +91,51 @@ export async function GET(_req: Request, { params }: Params) {
         recentPosts: postsRes.data ?? [],
         expensesByCurrency,
     });
+}
+
+/** PUT /api/admin/users/[id] — update a user */
+export async function PUT(request: Request, { params }: Params) {
+    const { id } = await params;
+    const result = await requireAdmin();
+    if (result instanceof NextResponse) return result;
+    const { adminId } = result;
+
+    if (adminId === id) {
+        return NextResponse.json(
+            { error: 'Non puoi modificare il tuo stesso ruolo qui.', code: 'FORBIDDEN', status: 403 },
+            { status: 403 }
+        );
+    }
+
+    const body: unknown = await request.json();
+    const parsed = UpdateSchema.safeParse(body);
+    if (!parsed.success) {
+        return NextResponse.json(
+            { error: 'Dati non validi.', code: 'VALIDATION_ERROR', status: 400 },
+            { status: 400 }
+        );
+    }
+
+    const supabase = await createAdminClient();
+
+    const updates: Record<string, any> = {};
+    if (parsed.data.displayName !== undefined) updates.display_name = parsed.data.displayName;
+    if (parsed.data.role !== undefined) updates.role = parsed.data.role;
+
+    if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.from('profiles').update(updates).eq('id', id);
+        if (error) {
+            console.error('[admin/users PUT]', error.message);
+            return NextResponse.json(
+                { error: 'Errore durante l\'aggiornamento.', code: 'INTERNAL_ERROR', status: 500 },
+                { status: 500 }
+            );
+        }
+    }
+
+    await writeAuditLog(supabase, adminId, 'update_user', id, updates);
+
+    return ok({ updated: true });
 }
 
 /** DELETE /api/admin/users/[id] — delete a user (requires email confirmation) */

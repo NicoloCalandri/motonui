@@ -26,17 +26,6 @@ export async function middleware(request: NextRequest) {
 
     const { supabaseResponse: response, user } = await updateSession(request);
 
-    // ── Dev bypass — skip all auth checks in development ──────────────────
-    if (process.env.NODE_ENV === 'development') {
-        response.cookies.set('user_role', 'admin', {
-            httpOnly: false,
-            secure: false,
-            sameSite: 'lax',
-            path: '/',
-        });
-        return response;
-    }
-
     // ── Impersonation token handling ───────────────────────────────────────
     const impersonationToken = request.cookies.get('impersonation_token')?.value;
 

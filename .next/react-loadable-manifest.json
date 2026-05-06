@@ -11,6 +11,18 @@
       "static/chunks/_app-pages-browser_src_components_blog_BlogTab_tsx.js"
     ]
   },
+  "app\\(app)\\trips\\[id]\\page.tsx -> @/components/booking/BookingsTab": {
+    "id": "app\\(app)\\trips\\[id]\\page.tsx -> @/components/booking/BookingsTab",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_booking_BookingsTab_tsx.js"
+    ]
+  },
+  "app\\(app)\\trips\\[id]\\page.tsx -> @/components/calendar/TripCalendar": {
+    "id": "app\\(app)\\trips\\[id]\\page.tsx -> @/components/calendar/TripCalendar",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_calendar_TripCalendar_tsx.js"
+    ]
+  },
   "app\\(app)\\trips\\[id]\\page.tsx -> @/components/expense/ExpensesTab": {
     "id": "app\\(app)\\trips\\[id]\\page.tsx -> @/components/expense/ExpensesTab",
     "files": [
@@ -33,6 +45,12 @@
     "id": "app\\(app)\\trips\\[id]\\page.tsx -> @/components/trip/OverviewTab",
     "files": [
       "static/chunks/_app-pages-browser_src_components_trip_OverviewTab_tsx.js"
+    ]
+  },
+  "app\\(app)\\trips\\[id]\\page.tsx -> @/components/wallet/TravelWallet": {
+    "id": "app\\(app)\\trips\\[id]\\page.tsx -> @/components/wallet/TravelWallet",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_wallet_TravelWallet_tsx.js"
     ]
   },
   "components\\map\\TripMap.tsx -> mapbox-gl": {

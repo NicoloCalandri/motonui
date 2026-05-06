@@ -11,12 +11,13 @@ import { it } from 'date-fns/locale';
 interface OverviewTabProps {
     trip: TripWithDetails;
     onNavigate?: (tab: string) => void;
+    onTripUpdate?: (updates: Partial<TripWithDetails>) => void;
 }
 
 /**
  * Overview tab: Mapbox map of legs, quick stats, description.
  */
-export default function OverviewTab({ trip, onNavigate }: OverviewTabProps) {
+export default function OverviewTab({ trip, onNavigate, onTripUpdate }: OverviewTabProps) {
     const allLegs = trip.days?.flatMap((d) => d.legs ?? []) ?? [];
     const [currentBudget, setCurrentBudget] = useState<number | null>(trip.budget_eur ?? null);
     const [budgetInput, setBudgetInput] = useState<string>(
@@ -24,6 +25,32 @@ export default function OverviewTab({ trip, onNavigate }: OverviewTabProps) {
     );
     const [editingBudget, setEditingBudget] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    const [currentDates, setCurrentDates] = useState<{ start: string | null; end: string | null }>({
+        start: trip.start_date ?? null,
+        end: trip.end_date ?? null,
+    });
+    const [editingDates, setEditingDates] = useState(false);
+    const [datesInput, setDatesInput] = useState({
+        start: trip.start_date ? trip.start_date.split('T')[0] : '',
+        end: trip.end_date ? trip.end_date.split('T')[0] : '',
+    });
+    const [savingDates, setSavingDates] = useState(false);
+
+    async function saveDates() {
+        setSavingDates(true);
+        const start = datesInput.start || null;
+        const end = datesInput.end || null;
+        await fetch(`/api/trips/${trip.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ start_date: start, end_date: end }),
+        });
+        setCurrentDates({ start, end });
+        setEditingDates(false);
+        setSavingDates(false);
+        onTripUpdate?.({ start_date: start, end_date: end });
+    }
 
     async function saveBudget() {
         setSaving(true);
@@ -45,20 +72,70 @@ export default function OverviewTab({ trip, onNavigate }: OverviewTabProps) {
                 <p className="text-ink-600 leading-relaxed">{trip.description}</p>
             )}
 
-            {/* Date range info */}
-            {trip.start_date && trip.end_date && (
-                <div className="flex flex-wrap gap-4 text-sm text-ink-500">
-                    <span className="flex items-center gap-1.5">
+            {/* Date range info & Destination */}
+            <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-ink-500">
+                    <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-terracotta-400" />
-                        {format(new Date(trip.start_date), 'd MMM', { locale: it })} –{' '}
-                        {format(new Date(trip.end_date), 'd MMM yyyy', { locale: it })}
-                    </span>
+                        {editingDates ? (
+                            <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-sand-200">
+                                <input
+                                    type="date"
+                                    value={datesInput.start}
+                                    onChange={(e) => setDatesInput(prev => ({ ...prev, start: e.target.value }))}
+                                    className="bg-transparent border-none text-xs focus:ring-0 w-28 text-ink-900"
+                                />
+                                <span className="text-sand-300">–</span>
+                                <input
+                                    type="date"
+                                    value={datesInput.end}
+                                    onChange={(e) => setDatesInput(prev => ({ ...prev, end: e.target.value }))}
+                                    className="bg-transparent border-none text-xs focus:ring-0 w-28 text-ink-900"
+                                />
+                                <button
+                                    onClick={saveDates}
+                                    disabled={savingDates}
+                                    className="px-2 py-1 bg-ink-900 text-white text-[10px] font-bold rounded hover:bg-black transition-colors disabled:opacity-50"
+                                >
+                                    {savingDates ? '...' : 'Salva'}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setEditingDates(false);
+                                        setDatesInput({
+                                            start: currentDates.start ? currentDates.start.split('T')[0] : '',
+                                            end: currentDates.end ? currentDates.end.split('T')[0] : '',
+                                        });
+                                    }}
+                                    className="px-2 py-1 text-[10px] font-semibold text-ink-400 hover:text-ink-900 transition-colors"
+                                >
+                                    Annulla
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <span>
+                                    {currentDates.start && currentDates.end 
+                                        ? `${format(new Date(currentDates.start), 'd MMM', { locale: it })} – ${format(new Date(currentDates.end), 'd MMM yyyy', { locale: it })}`
+                                        : 'Date non impostate'
+                                    }
+                                </span>
+                                <button
+                                    onClick={() => setEditingDates(true)}
+                                    className="text-[10px] font-bold uppercase tracking-wider text-terracotta-400 hover:text-terracotta-600 transition-colors bg-terracotta-50 px-2 py-0.5 rounded-md"
+                                >
+                                    Modifica
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
                     <span className="flex items-center gap-1.5">
                         <MapPin className="w-4 h-4 text-terracotta-400" />
                         {trip.destination}
                     </span>
                 </div>
-            )}
+            </div>
 
             {/* Map */}
             {allLegs.length > 0 ? (

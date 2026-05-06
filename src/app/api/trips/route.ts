@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
 
@@ -40,8 +40,11 @@ export const GET = withErrorHandler(async () => {
 /** POST /api/trips — create a new trip */
 export const POST = withErrorHandler(async (request) => {
     const supabase = await createClient();
-
     const user = await getAuthUser(supabase);
+
+    // Use admin client for creation to ensure trip + owner member are created atomically 
+    // and bypass any restrictive RLS during the initialization phase.
+    const adminSupabase = await createAdminClient();
 
     const body: unknown = await request.json();
     const parsed = CreateTripSchema.safeParse(body);
@@ -50,7 +53,7 @@ export const POST = withErrorHandler(async (request) => {
     const input = parsed.data;
 
     // Create trip
-    const { data: trip, error: tripError } = await (supabase.from('trips') as any)
+    const { data: trip, error: tripError } = await (adminSupabase.from('trips') as any)
         .insert({ ...input, owner_id: user.id })
         .select()
         .single();
@@ -58,7 +61,7 @@ export const POST = withErrorHandler(async (request) => {
     if (tripError || !trip) throw new Error(`[motonui][trips][POST] ${tripError?.message}`);
 
     // Auto-add creator as owner member
-    const { error: memberError } = await (supabase.from('trip_members') as any).insert({
+    const { error: memberError } = await (adminSupabase.from('trip_members') as any).insert({
         trip_id: trip.id,
         user_id: user.id,
         role: 'owner',

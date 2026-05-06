@@ -13,13 +13,21 @@ const connectSrc = [
     ...(isDev ? ['http://127.0.0.1:54321', 'ws://127.0.0.1:54321'] : []),
 ].join(' ');
 
+const imgSrc = [
+    "'self'",
+    'data:',
+    'blob:',
+    'https:',
+    ...(isDev ? ['http://127.0.0.1:54321', 'http://localhost:54321'] : []),
+].join(' ');
+
 const securityHeaders = [
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'X-Frame-Options', value: 'DENY' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
     { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
     { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-    { key: 'Content-Security-Policy', value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src ${connectSrc}; worker-src blob:; child-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';` },
+    { key: 'Content-Security-Policy', value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src ${imgSrc}; font-src 'self' https://fonts.gstatic.com data:; connect-src ${connectSrc}; worker-src blob:; child-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';` },
 ];
 
 const nextConfig: NextConfig = {
@@ -35,6 +43,12 @@ const nextConfig: NextConfig = {
                 hostname: '*.supabase.co',
                 pathname: '/storage/v1/object/sign/**',
             },
+            ...(isDev ? [{
+                protocol: 'http',
+                hostname: '127.0.0.1',
+                port: '54321',
+                pathname: '/storage/v1/object/public/**',
+            } as const] : []),
         ],
     },
     serverExternalPackages: ['sharp', 'exifr'],

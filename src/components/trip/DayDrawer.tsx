@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,26 +20,42 @@ interface DayDrawerProps {
     onSaved: () => void;
     tripStartDate?: string | null;
     tripEndDate?: string | null;
+    initialData?: { id: string; date: string; title?: string | null };
 }
 
-export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDate, tripEndDate }: DayDrawerProps) {
+export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDate, tripEndDate, initialData }: DayDrawerProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: {
-            date: new Date().toISOString().split('T')[0],
+            date: initialData?.date ?? new Date().toISOString().split('T')[0],
+            title: initialData?.title ?? '',
         },
     });
+
+    useEffect(() => {
+        if (open) {
+            reset({
+                date: initialData?.date ?? new Date().toISOString().split('T')[0],
+                title: initialData?.title ?? '',
+            });
+        }
+    }, [open, initialData, reset]);
 
     const onSubmit = async (values: FormValues) => {
         setSaving(true);
         setError(null);
 
         try {
-            const res = await fetch(`/api/trips/${tripId}/days`, {
-                method: 'POST',
+            const url = initialData?.id 
+                ? `/api/trips/${tripId}/days/${initialData.id}` 
+                : `/api/trips/${tripId}/days`;
+            const method = initialData?.id ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(values),
             });
@@ -79,7 +95,9 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
 
                             {/* Header */}
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">Nuovo giorno</h2>
+                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">
+                                    {initialData?.id ? 'Modifica giorno' : 'Nuovo giorno'}
+                                </h2>
                                 <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
@@ -128,7 +146,7 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
                                         className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-[24px] font-bold text-lg transition-all duration-300 hover:shadow-panel active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                                     >
                                         {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : null}
-                                        {saving ? 'Aggiunta in corso...' : 'Aggiungi all\'itinerario'}
+                                        {saving ? 'Salvataggio...' : (initialData?.id ? 'Salva modifiche' : 'Aggiungi all\'itinerario')}
                                     </button>
                                 </div>
                             </form>

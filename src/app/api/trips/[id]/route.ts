@@ -46,7 +46,13 @@ export const GET = withErrorHandler(async (_req, { params }) => {
         .eq('id', id)
         .single();
 
-    if (error) throw Errors.notFound('Viaggio');
+  
+  if (error) {
+    console.error('Supabase GET trip error:', error);
+    // If supabase returns a 0 (no rows) treat as not found
+    throw Errors.notFound('Viaggio');
+  }
+
 
     return ok(trip);
 }, 'trips/[id] GET') as (req: Request, ctx: Params) => Promise<Response>;

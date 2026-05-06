@@ -169,7 +169,6 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
     };
 
     const onSubmit = async (values: FormValues) => {
-        if (!dayId) return;
         setSaving(true);
         setError(null);
 
@@ -189,7 +188,10 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                     return;
                 }
 
-                const res = await fetch(`/api/trips/${tripId}/days/${dayId}/legs`, {
+                const url = dayId 
+                    ? `/api/trips/${tripId}/days/${dayId}/legs` 
+                    : `/api/trips/${tripId}/legs`;
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -231,9 +233,14 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                     to_lng: toCoords?.lng ?? null,
                 };
 
-                const url = isEditing
-                    ? `/api/trips/${tripId}/days/${dayId}/legs/${initialData!.id}`
-                    : `/api/trips/${tripId}/days/${dayId}/legs`;
+                let url = '';
+                if (isEditing) {
+                    url = `/api/trips/${tripId}/days/${dayId}/legs/${initialData!.id}`;
+                } else {
+                    url = dayId 
+                        ? `/api/trips/${tripId}/days/${dayId}/legs` 
+                        : `/api/trips/${tripId}/legs`;
+                }
 
                 const res = await fetch(url, {
                     method: isEditing ? 'PUT' : 'POST',
