@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
+import { requireFeatureAccess } from '@/lib/premium/access';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 import type { InstagramGenerateResponse } from '@/lib/types';
 
@@ -24,6 +25,10 @@ export const POST = withErrorHandler(async (request) => {
     if (!parsed.success) throw Errors.validation(parsed.error.message);
 
     const { tripId, mediaIds, type, options, generateCaption, language } = parsed.data;
+
+    if (generateCaption) {
+        await requireFeatureAccess({ userId: user.id, feature: 'instagram_caption', allowAdminBypass: true });
+    }
 
     // Verify user is a trip member
     const { data: member } = await supabase

@@ -9,6 +9,7 @@ const QuerySchema = z.object({
     pageSize:  z.coerce.number().min(1).max(100).default(25),
     search:    z.string().optional(),
     role:      z.enum(['user', 'admin', 'all']).default('all'),
+    plan:      z.enum(['free', 'premium', 'all']).default('all'),
     suspended: z.enum(['true', 'false', 'all']).default('all'),
     sortBy:    z.enum(['created_at', 'last_sign_in_at', 'trips_count']).default('created_at'),
     sortDir:   z.enum(['asc', 'desc']).default('desc'),
@@ -19,6 +20,8 @@ const CreateUserSchema = z.object({
     password: z.string().min(6),
     displayName: z.string().min(1).optional(),
     role: z.enum(['user', 'admin']).default('user'),
+    plan: z.enum(['free', 'premium']).default('free'),
+    premiumUntil: z.string().datetime().nullable().optional(),
 });
 
 /** GET /api/admin/users — paginated list of all users with stats */
@@ -35,7 +38,7 @@ export async function GET(request: Request) {
         );
     }
 
-    const { page, pageSize, search, role, suspended, sortBy, sortDir } = parsed.data;
+    const { page, pageSize, search, role, plan, suspended, sortBy, sortDir } = parsed.data;
     const supabase = await createAdminClient();
 
     // Build query on the admin_user_view
@@ -46,6 +49,9 @@ export async function GET(request: Request) {
     }
     if (role !== 'all') {
         query = query.eq('role', role);
+    }
+    if (plan !== 'all') {
+        query = query.eq('plan', plan);
     }
     if (suspended === 'true') {
         query = query.not('suspended_at', 'is', null);
@@ -84,6 +90,8 @@ export async function GET(request: Request) {
         displayName: u.display_name ?? u.email?.split('@')[0] ?? '',
         avatarUrl: u.avatar_url ?? null,
         role: u.role,
+        plan: u.plan ?? 'free',
+        premiumUntil: u.premium_until ?? null,
         suspendedAt: u.suspended_at ?? null,
         tripsCount: tripsCount[u.id] ?? 0,
         expensesCount: expensesCount[u.id] ?? 0,
@@ -140,8 +148,13 @@ export async function POST(request: Request) {
 
     // Update role and display_name in profiles (since auth triggers might have inserted it)
     if (data.user) {
-        const updates: any = { role: parsed.data.role };
+        const updates: any = { role: parsed.data.role, plan: parsed.data.plan };
         if (parsed.data.displayName) updates.display_name = parsed.data.displayName;
+        if (parsed.data.plan === 'premium') {
+            updates.premium_enabled_at = new Date().toISOString();
+            updates.premium_until = parsed.data.premiumUntil ?? null;
+            updates.premium_enabled_by = result.adminId;
+        }
 
         await supabase.from('profiles').update(updates).eq('id', data.user.id);
     }

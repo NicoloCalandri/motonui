@@ -21,6 +21,7 @@ export default function AdminUsersPage() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
+    const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'premium'>('all');
     const [suspendedFilter, setSuspendedFilter] = useState<'all' | 'true' | 'false'>('all');
     const [sortBy, setSortBy] = useState<SortBy>('created_at');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -47,6 +48,7 @@ export default function AdminUsersPage() {
             sortBy,
             sortDir,
             role: roleFilter,
+            plan: planFilter,
             suspended: suspendedFilter,
         });
         if (debouncedSearch) params.set('search', debouncedSearch);
@@ -61,7 +63,7 @@ export default function AdminUsersPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, sortBy, sortDir, roleFilter, suspendedFilter, debouncedSearch]);
+    }, [page, sortBy, sortDir, roleFilter, planFilter, suspendedFilter, debouncedSearch]);
 
     useEffect(() => { loadUsers(); }, [loadUsers]);
 
@@ -118,6 +120,15 @@ export default function AdminUsersPage() {
                     <option value="admin">Admin</option>
                 </select>
                 <select
+                    value={planFilter}
+                    onChange={e => { setPlanFilter(e.target.value as typeof planFilter); setPage(1); }}
+                    className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none"
+                >
+                    <option value="all">Tutti i piani</option>
+                    <option value="free">Free</option>
+                    <option value="premium">Premium</option>
+                </select>
+                <select
                     value={suspendedFilter}
                     onChange={e => { setSuspendedFilter(e.target.value as typeof suspendedFilter); setPage(1); }}
                     className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none"
@@ -135,6 +146,7 @@ export default function AdminUsersPage() {
                         <tr>
                             <th className="px-4 py-3 text-left">Utente</th>
                             <th className="px-4 py-3 text-left">Ruolo</th>
+                            <th className="px-4 py-3 text-left">Piano</th>
                             <th className="px-4 py-3 text-right cursor-pointer" onClick={() => toggleSort('trips_count')}>
                                 Viaggi <SortIcon col="trips_count" />
                             </th>
@@ -152,7 +164,7 @@ export default function AdminUsersPage() {
                     <tbody className="divide-y divide-zinc-800">
                         {loading
                             ? Array.from({ length: 5 }).map((_, i) => (
-                                <tr key={i}><td colSpan={8} className="px-4 py-4"><div className="h-4 bg-zinc-800 rounded animate-pulse" /></td></tr>
+                                <tr key={i}><td colSpan={9} className="px-4 py-4"><div className="h-4 bg-zinc-800 rounded animate-pulse" /></td></tr>
                               ))
                             : users.map(user => (
                                 <tr key={user.id} className="hover:bg-zinc-800/40 transition-colors">
@@ -171,6 +183,11 @@ export default function AdminUsersPage() {
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-violet-900/60 text-violet-300' : 'bg-zinc-700 text-zinc-300'}`}>
                                             {user.role}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${user.plan === 'premium' ? 'bg-amber-900/60 text-amber-300' : 'bg-zinc-700 text-zinc-300'}`}>
+                                            {user.plan}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right text-zinc-300">{user.tripsCount}</td>

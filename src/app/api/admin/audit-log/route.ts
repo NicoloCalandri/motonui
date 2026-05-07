@@ -8,7 +8,7 @@ const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
     pageSize:  z.coerce.number().min(1).max(100).default(25),
     adminId:   z.string().uuid().optional(),
-    action:    z.enum(['impersonate', 'suspend', 'unsuspend', 'delete', 'view_profile', 'all']).default('all'),
+    action:    z.enum(['impersonate', 'suspend', 'unsuspend', 'delete', 'view_profile', 'update_user', 'premium_update', 'all']).default('all'),
     targetId:  z.string().uuid().optional(),
     dateFrom:  z.string().optional(),
     dateTo:    z.string().optional(),

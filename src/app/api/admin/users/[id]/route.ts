@@ -11,6 +11,15 @@ const DeleteSchema = z.object({
 const UpdateSchema = z.object({
     displayName: z.string().min(1).optional(),
     role: z.enum(['user', 'admin']).optional(),
+    plan: z.enum(['free', 'premium']).optional(),
+    premiumUntil: z.string().datetime().nullable().optional(),
+    premiumReason: z.string().max(500).optional(),
+    entitlements: z.array(z.object({
+        featureKey: z.enum(['ai_blog', 'ai_generate_post', 'ai_destination', 'instagram_caption', 'advanced_reminders']),
+        enabled: z.boolean().default(true),
+        dailyLimit: z.number().int().nonnegative().nullable().optional(),
+        monthlyLimit: z.number().int().nonnegative().nullable().optional(),
+    })).optional(),
 });
 
 type Params = { params: Promise<{ id: string }> };
@@ -82,6 +91,10 @@ export async function GET(_req: Request, { params }: Params) {
             displayName: userRow.display_name ?? '',
             avatarUrl: userRow.avatar_url ?? null,
             role: userRow.role,
+            plan: userRow.plan ?? 'free',
+            premiumUntil: userRow.premium_until ?? null,
+            premiumEnabledAt: userRow.premium_enabled_at ?? null,
+            premiumEnabledBy: userRow.premium_enabled_by ?? null,
             suspendedAt: userRow.suspended_at ?? null,
             suspendedReason: userRow.suspended_reason ?? null,
             createdAt: userRow.created_at,
@@ -90,6 +103,7 @@ export async function GET(_req: Request, { params }: Params) {
         recentTrips: tripsRes.data ?? [],
         recentPosts: postsRes.data ?? [],
         expensesByCurrency,
+        entitlements: await loadEntitlements(supabase, id),
     });
 }
 
@@ -121,6 +135,16 @@ export async function PUT(request: Request, { params }: Params) {
     const updates: Record<string, any> = {};
     if (parsed.data.displayName !== undefined) updates.display_name = parsed.data.displayName;
     if (parsed.data.role !== undefined) updates.role = parsed.data.role;
+    if (parsed.data.plan !== undefined) updates.plan = parsed.data.plan;
+    if (parsed.data.premiumUntil !== undefined) updates.premium_until = parsed.data.premiumUntil;
+
+    if (parsed.data.plan === 'premium') {
+        updates.premium_enabled_at = new Date().toISOString();
+        updates.premium_enabled_by = adminId;
+    }
+    if (parsed.data.plan === 'free') {
+        updates.premium_until = null;
+    }
 
     if (Object.keys(updates).length > 0) {
         const { error } = await supabase.from('profiles').update(updates).eq('id', id);
@@ -133,7 +157,33 @@ export async function PUT(request: Request, { params }: Params) {
         }
     }
 
-    await writeAuditLog(supabase, adminId, 'update_user', id, updates);
+    if (parsed.data.entitlements) {
+        for (const entitlement of parsed.data.entitlements) {
+            await (supabase.from('feature_entitlements') as any).upsert({
+                user_id: id,
+                feature_key: entitlement.featureKey,
+                enabled: entitlement.enabled,
+                daily_limit: entitlement.dailyLimit ?? null,
+                monthly_limit: entitlement.monthlyLimit ?? null,
+                updated_at: new Date().toISOString(),
+            });
+        }
+    }
+
+    const changedPremiumFields = parsed.data.plan !== undefined
+        || parsed.data.premiumUntil !== undefined
+        || parsed.data.entitlements !== undefined;
+    await writeAuditLog(
+        supabase,
+        adminId,
+        changedPremiumFields ? 'premium_update' : 'update_user',
+        id,
+        {
+            ...updates,
+            premiumReason: parsed.data.premiumReason ?? null,
+            entitlements: parsed.data.entitlements ?? null,
+        }
+    );
 
     return ok({ updated: true });
 }
@@ -197,4 +247,20 @@ export async function DELETE(request: Request, { params }: Params) {
     }
 
     return ok({ deleted: true });
+}
+
+async function loadEntitlements(
+    supabase: Awaited<ReturnType<typeof createAdminClient>>,
+    userId: string
+) {
+    const { data } = await (supabase.from('feature_entitlements') as any)
+        .select('feature_key, enabled, daily_limit, monthly_limit')
+        .eq('user_id', userId)
+        .order('feature_key', { ascending: true });
+    return (data ?? []).map((e: any) => ({
+        featureKey: e.feature_key,
+        enabled: Boolean(e.enabled),
+        dailyLimit: e.daily_limit ?? null,
+        monthlyLimit: e.monthly_limit ?? null,
+    }));
 }
