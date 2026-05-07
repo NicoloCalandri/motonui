@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { streamBlogAssistant, checkRateLimit } from '@/lib/ai/blog-assistant';
+import { requireFeatureAccess } from '@/lib/premium/access';
 import { Errors } from '@/lib/errors';
 
 const Schema = z.object({
@@ -18,6 +19,7 @@ const Schema = z.object({
 export async function POST(request: Request): Promise<Response> {
     const supabase = await createClient();
     const user = await getAuthUser(supabase);
+    await requireFeatureAccess({ userId: user.id, feature: 'ai_blog', allowAdminBypass: true });
 
     const body: unknown = await request.json();
     const parsed = Schema.safeParse(body);

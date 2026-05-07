@@ -696,6 +696,8 @@ export interface Reminder {
 // =============================================================================
 
 export type UserRole = 'user' | 'admin';
+export type UserPlan = 'free' | 'premium';
+export type PremiumFeatureKey = 'ai_blog' | 'ai_generate_post' | 'ai_destination' | 'instagram_caption' | 'advanced_reminders';
 
 /** Admin action types recorded in the audit log */
 export type AdminAction = 'impersonate' | 'suspend' | 'unsuspend' | 'delete' | 'view_profile';
@@ -708,8 +710,23 @@ export interface Profile {
   display_name: string | null;
   avatar_url: string | null;
   role: UserRole;
+  plan: UserPlan;
+  premium_until: string | null;
+  premium_enabled_by: string | null;
+  premium_enabled_at: string | null;
   suspended_at: string | null;
   suspended_reason: string | null;
+}
+
+export interface FeatureEntitlement {
+  id: string;
+  user_id: string;
+  feature_key: PremiumFeatureKey;
+  enabled: boolean;
+  daily_limit: number | null;
+  monthly_limit: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /** Admin audit log entry */
@@ -729,6 +746,8 @@ export interface AdminUserSummary {
   displayName: string;
   avatarUrl: string | null;
   role: UserRole;
+  plan: UserPlan;
+  premiumUntil: string | null;
   suspendedAt: string | null;
   tripsCount: number;
   expensesCount: number;

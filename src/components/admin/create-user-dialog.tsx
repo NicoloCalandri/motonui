@@ -12,6 +12,7 @@ export default function CreateUserDialog({ onClose, onSuccess }: Props) {
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [role, setRole] = useState<'user' | 'admin'>('user');
+    const [plan, setPlan] = useState<'free' | 'premium'>('free');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +25,7 @@ export default function CreateUserDialog({ onClose, onSuccess }: Props) {
             const res = await fetch(`/api/admin/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, displayName, role }),
+                body: JSON.stringify({ email, password, displayName, role, plan }),
             });
             const data = await res.json();
             if (!res.ok) { setError(data.error ?? 'Errore.'); return; }
@@ -85,6 +86,17 @@ export default function CreateUserDialog({ onClose, onSuccess }: Props) {
                         >
                             <option value="user">Utente normale</option>
                             <option value="admin">Amministratore</option>
+                        </select>
+                    </label>
+                    <label className="block">
+                        <span className="text-sm text-zinc-300 mb-1.5 block">Piano</span>
+                        <select
+                            value={plan}
+                            onChange={e => setPlan(e.target.value as 'free' | 'premium')}
+                            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-500"
+                        >
+                            <option value="free">Free</option>
+                            <option value="premium">Premium</option>
                         </select>
                     </label>
                 </div>

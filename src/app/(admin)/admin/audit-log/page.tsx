@@ -27,6 +27,8 @@ const ACTION_OPTIONS = [
     'impersonate',
     'delete',
     'view_profile',
+    'update_user',
+    'premium_update',
 ];
 
 const ACTION_COLORS: Record<string, string> = {
@@ -35,6 +37,8 @@ const ACTION_COLORS: Record<string, string> = {
     impersonate: 'bg-amber-100 text-amber-700',
     delete: 'bg-red-200 text-red-800',
     view_profile: 'bg-zinc-100 text-zinc-600',
+    update_user: 'bg-sky-100 text-sky-700',
+    premium_update: 'bg-amber-100 text-amber-700',
 };
 
 export default function AuditLogPage() {
