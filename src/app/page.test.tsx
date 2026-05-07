@@ -7,12 +7,18 @@ vi.mock('next/navigation', async (importActual) => {
     return { ...actual, redirect: redirectMock };
 });
 
+vi.mock('@/lib/supabase/server', () => ({
+    createClient: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/lib/auth/get-user', () => ({
+    getAuthUser: vi.fn(async () => ({ id: 'user-1' })),
+}));
+
 describe('RootPage', () => {
     it('redirects to /dashboard', async () => {
         const { default: RootPage } = await import('./page');
-        // The component calls redirect() synchronously during render;
-        // next/navigation.redirect throws in Next.js but the mock just records the call.
-        try { RootPage(); } catch { /* redirect throws in tests */ }
+        await RootPage();
         expect(redirectMock).toHaveBeenCalledWith('/dashboard');
     });
 });
