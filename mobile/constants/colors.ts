@@ -1,0 +1,56 @@
+const lightColors = {
+  primary: '#111111',
+  primaryForeground: '#FFFFFF',
+  background: '#F4F4F6',
+  surface: '#FFFFFF',
+  foreground: '#111111',
+  muted: '#E5E7EB',
+  mutedForeground: '#6B7280',
+  border: '#E5E7EB',
+  accent: '#F0EDE8',
+  accentForeground: '#111111',
+  destructive: '#EF4444',
+  destructiveForeground: '#FFFFFF',
+  card: '#FFFFFF',
+  cardForeground: '#111111',
+  tint: '#111111',
+  tabIconDefault: '#9CA3AF',
+  tabIconSelected: '#111111',
+  radius: 16,
+  shadow: 'rgba(0,0,0,0.06)',
+  overlay: 'rgba(0,0,0,0.5)',
+  success: '#10B981',
+  warning: '#F59E0B',
+};
+
+const darkColors = {
+  primary: '#FFFFFF',
+  primaryForeground: '#111111',
+  background: '#0A0A0A',
+  surface: '#1C1C1E',
+  foreground: '#FFFFFF',
+  muted: '#2C2C2E',
+  mutedForeground: '#8E8E93',
+  border: '#2C2C2E',
+  accent: '#2C2925',
+  accentForeground: '#FFFFFF',
+  destructive: '#FF453A',
+  destructiveForeground: '#FFFFFF',
+  card: '#1C1C1E',
+  cardForeground: '#FFFFFF',
+  tint: '#FFFFFF',
+  tabIconDefault: '#636366',
+  tabIconSelected: '#FFFFFF',
+  radius: 16,
+  shadow: 'rgba(0,0,0,0.3)',
+  overlay: 'rgba(0,0,0,0.7)',
+  success: '#30D158',
+  warning: '#FFD60A',
+};
+
+export type ColorScheme = typeof lightColors;
+
+export const colors = {
+  light: lightColors,
+  dark: darkColors,
+};

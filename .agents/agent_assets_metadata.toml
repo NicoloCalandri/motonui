@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Q1tahgIf9GHGXfbpQw89q"
+uri = "file://mobile/assets/images/icon.png"
+type = "image"
+title = "motonui app icon"
+
+[[generated]]
+id = "M4GGg4Eiwb1w-abn1S15g"
+uri = "file://mobile/assets/images/splash-icon.png"
+type = "image"
+title = "motonui splash"
