@@ -73,6 +73,7 @@ export default function NewTripScreen() {
   });
 
   const handleCreate = () => {
+    if (mutation.isPending) return;
     if (!title.trim() || !destination.trim()) {
       Alert.alert('Campi obbligatori', 'Inserisci il nome e la destinazione del viaggio.');
       return;
@@ -89,7 +90,7 @@ export default function NewTripScreen() {
         </TouchableOpacity>
         <Text style={styles.modalTitle}>Nuovo viaggio</Text>
         <TouchableOpacity
-          onPress={isCreateDisabled ? undefined : handleCreate}
+          onPress={handleCreate}
           accessibilityState={{ disabled: isCreateDisabled }}
           style={[styles.saveBtn, isCreateDisabled && styles.saveBtnDisabled, isCreateDisabled && styles.noPointerEvents]}
           activeOpacity={0.8}

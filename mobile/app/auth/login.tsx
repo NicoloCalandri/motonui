@@ -28,6 +28,7 @@ export default function LoginScreen() {
   };
 
   const sendOtp = async () => {
+    if (loading) return;
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       Alert.alert('Email mancante', 'Inserisci la tua email per ricevere il codice.');
@@ -53,6 +54,7 @@ export default function LoginScreen() {
   const isVerifyOtpDisabled = loading || otp.length < 6;
 
   const verifyOtp = async () => {
+    if (loading) return;
     if (!otp.trim()) return;
     setLoading(true);
     try {
@@ -117,7 +119,7 @@ export default function LoginScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.button, isSendOtpDisabled && styles.buttonDisabled, isSendOtpDisabled && styles.noPointerEvents]}
-                onPress={isSendOtpDisabled ? undefined : sendOtp}
+                onPress={sendOtp}
                 accessibilityState={{ disabled: isSendOtpDisabled }}
                 activeOpacity={0.8}
               >
@@ -156,7 +158,7 @@ export default function LoginScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.button, isVerifyOtpDisabled && styles.buttonDisabled, isVerifyOtpDisabled && styles.noPointerEvents]}
-                onPress={isVerifyOtpDisabled ? undefined : verifyOtp}
+                onPress={verifyOtp}
                 accessibilityState={{ disabled: isVerifyOtpDisabled }}
                 activeOpacity={0.8}
               >

@@ -564,6 +564,10 @@ function AddExpenseForm({ tripId, userId, colors, onClose, onSaved }: {
     onError: (err: Error) => Alert.alert('Errore', err.message),
   });
   const isSaveDisabled = !desc || !amount || mutation.isPending;
+  const handleSave = () => {
+    if (isSaveDisabled) return;
+    mutation.mutate();
+  };
 
   const styles = StyleSheet.create({
     form: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 12 },
@@ -613,7 +617,7 @@ function AddExpenseForm({ tripId, userId, colors, onClose, onSaved }: {
         <TouchableOpacity style={styles.btnSec} onPress={onClose}><Text style={styles.btnTxtSec}>Annulla</Text></TouchableOpacity>
         <TouchableOpacity
           style={[styles.btn, isSaveDisabled && styles.noPointerEvents]}
-          onPress={isSaveDisabled ? undefined : () => mutation.mutate()}
+          onPress={handleSave}
           accessibilityState={{ disabled: isSaveDisabled }}
         >
           {mutation.isPending ? <ActivityIndicator color={colors.primaryForeground} size="small" /> : <Text style={styles.btnTxt}>Salva</Text>}
