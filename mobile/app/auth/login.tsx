@@ -35,8 +35,7 @@ export default function LoginScreen() {
         setStep('otp');
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Impossibile inviare il codice. Riprova.';
-      Alert.alert('Errore', message);
+      Alert.alert('Errore', error instanceof Error ? error.message : 'Impossibile inviare il codice. Riprova.');
     } finally {
       setLoading(false);
     }
@@ -58,8 +57,7 @@ export default function LoginScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Impossibile verificare il codice. Riprova.';
-      Alert.alert('Errore', message);
+      Alert.alert('Errore', error instanceof Error ? error.message : 'Impossibile verificare il codice. Riprova.');
     } finally {
       setLoading(false);
     }
