@@ -79,6 +79,7 @@ export default function NewTripScreen() {
     }
     mutation.mutate({ title, destination, start_date: startDate, end_date: endDate, description });
   };
+  const isCreateDisabled = mutation.isPending || !title.trim() || !destination.trim();
 
   return (
     <View style={styles.container}>
@@ -88,9 +89,9 @@ export default function NewTripScreen() {
         </TouchableOpacity>
         <Text style={styles.modalTitle}>Nuovo viaggio</Text>
         <TouchableOpacity
-          style={[styles.saveBtn, (!title.trim() || !destination.trim()) && styles.saveBtnDisabled]}
-          onPress={handleCreate}
-          disabled={mutation.isPending || !title.trim() || !destination.trim()}
+          onPress={isCreateDisabled ? undefined : handleCreate}
+          accessibilityState={{ disabled: isCreateDisabled }}
+          style={[styles.saveBtn, (!title.trim() || !destination.trim()) && styles.saveBtnDisabled, { pointerEvents: isCreateDisabled ? 'none' : 'auto' }]}
           activeOpacity={0.8}
         >
           {mutation.isPending ? (

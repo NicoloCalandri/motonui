@@ -14,8 +14,10 @@ interface ButtonProps {
 export function Button({ title, onPress, variant = 'primary', loading, disabled, style }: ButtonProps) {
   const colors = useColors();
   const styles = makeStyles(colors);
+  const isDisabled = !!(disabled || loading);
 
   const handlePress = () => {
+    if (isDisabled) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
@@ -24,7 +26,8 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
     styles.base,
     variant === 'secondary' && styles.secondary,
     variant === 'destructive' && styles.destructive,
-    (disabled || loading) && styles.disabled,
+    isDisabled && styles.disabled,
+    { pointerEvents: isDisabled ? 'none' : 'auto' },
     style,
   ];
 
@@ -35,7 +38,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
   ];
 
   return (
-    <TouchableOpacity style={buttonStyle} onPress={handlePress} disabled={disabled || loading} activeOpacity={0.8}>
+    <TouchableOpacity style={buttonStyle} onPress={handlePress} activeOpacity={0.8} accessibilityState={{ disabled: isDisabled }}>
       {loading ? (
         <ActivityIndicator color={variant === 'secondary' ? colors.foreground : colors.primaryForeground} size="small" />
       ) : (

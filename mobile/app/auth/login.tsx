@@ -49,6 +49,9 @@ export default function LoginScreen() {
     }
   };
 
+  const isSendOtpDisabled = loading || !email.trim();
+  const isVerifyOtpDisabled = loading || otp.length < 6;
+
   const verifyOtp = async () => {
     if (!otp.trim()) return;
     setLoading(true);
@@ -113,9 +116,9 @@ export default function LoginScreen() {
                 />
               </View>
               <TouchableOpacity
-                style={[styles.button, (loading || !email.trim()) && styles.buttonDisabled]}
-                onPress={sendOtp}
-                disabled={loading || !email.trim()}
+                style={[styles.button, isSendOtpDisabled && styles.buttonDisabled, { pointerEvents: isSendOtpDisabled ? 'none' : 'auto' }]}
+                onPress={isSendOtpDisabled ? undefined : sendOtp}
+                accessibilityState={{ disabled: isSendOtpDisabled }}
                 activeOpacity={0.8}
               >
                 {loading ? (
@@ -152,9 +155,9 @@ export default function LoginScreen() {
                 />
               </View>
               <TouchableOpacity
-                style={[styles.button, (loading || otp.length < 6) && styles.buttonDisabled]}
-                onPress={verifyOtp}
-                disabled={loading || otp.length < 6}
+                style={[styles.button, isVerifyOtpDisabled && styles.buttonDisabled, { pointerEvents: isVerifyOtpDisabled ? 'none' : 'auto' }]}
+                onPress={isVerifyOtpDisabled ? undefined : verifyOtp}
+                accessibilityState={{ disabled: isVerifyOtpDisabled }}
                 activeOpacity={0.8}
               >
                 {loading ? (
