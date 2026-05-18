@@ -20,32 +20,46 @@ export default function LoginScreen() {
   const styles = makeStyles(colors, insets);
 
   const sendOtp = async () => {
-    if (!email.trim()) return;
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      Alert.alert('Email mancante', 'Inserisci la tua email per ricevere il codice.');
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
-    setLoading(false);
-    if (error) {
-      Alert.alert('Errore', error.message);
-    } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setStep('otp');
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email: trimmedEmail });
+      if (error) {
+        Alert.alert('Errore', error.message);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setStep('otp');
+      }
+    } catch {
+      Alert.alert('Errore', 'Impossibile inviare il codice. Riprova.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const verifyOtp = async () => {
     if (!otp.trim()) return;
     setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: otp.trim(),
-      type: 'email',
-    });
-    setLoading(false);
-    if (error) {
-      Alert.alert('Codice non valido', 'Controlla il codice e riprova.');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: 'email',
+      });
+      if (error) {
+        Alert.alert('Codice non valido', 'Controlla il codice e riprova.');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch {
+      Alert.alert('Errore', 'Impossibile verificare il codice. Riprova.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,7 +105,7 @@ export default function LoginScreen() {
                 />
               </View>
               <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
+                style={[styles.button, (loading || !email.trim()) && styles.buttonDisabled]}
                 onPress={sendOtp}
                 disabled={loading || !email.trim()}
                 activeOpacity={0.8}
@@ -130,7 +144,7 @@ export default function LoginScreen() {
                 />
               </View>
               <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
+                style={[styles.button, (loading || otp.length < 6) && styles.buttonDisabled]}
                 onPress={verifyOtp}
                 disabled={loading || otp.length < 6}
                 activeOpacity={0.8}
