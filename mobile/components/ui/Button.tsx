@@ -14,7 +14,7 @@ interface ButtonProps {
 export function Button({ title, onPress, variant = 'primary', loading, disabled, style }: ButtonProps) {
   const colors = useColors();
   const styles = makeStyles(colors);
-  const isDisabled = !!(disabled || loading);
+  const isDisabled = disabled || loading;
 
   const handlePress = () => {
     if (isDisabled) return;
