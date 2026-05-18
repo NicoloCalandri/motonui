@@ -51,7 +51,7 @@ export default function LoginScreen() {
   };
 
   const isSendOtpDisabled = loading || !email.trim();
-  const isVerifyOtpDisabled = loading || otp.length < 6;
+  const isVerifyOtpDisabled = loading || otp.trim().length < 6;
 
   const verifyOtp = async () => {
     if (isVerifyOtpDisabled) return;
