@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Android (Expo)",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "android",
+      "cwd": "${workspaceFolder}/mobile"
+    },
+    {
+      "name": "Debug iOS (Expo)",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "ios",
+      "cwd": "${workspaceFolder}/mobile"
+    },
+    {
+      "name": "Attach to Expo packager",
+      "type": "reactnative",
+      "request": "attach",
+      "cwd": "${workspaceFolder}/mobile"
+    }
+  ]
+}
