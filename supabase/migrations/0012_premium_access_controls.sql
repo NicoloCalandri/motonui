@@ -79,6 +79,7 @@ on conflict (feature_key) do nothing;
 -- -----------------------------------------------------------------------------
 -- Admin user view: expose premium fields
 -- -----------------------------------------------------------------------------
+drop view if exists public.admin_user_view;
 create or replace view public.admin_user_view as
   select
     au.id,

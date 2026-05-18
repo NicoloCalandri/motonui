@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plane, Mail, Lock, User, Eye, EyeOff, Loader2, Github, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
 //import { getAuthUser } from '@/lib/auth/get-user';
 
 /**
@@ -39,7 +40,7 @@ export default function LoginPage() {
             password,
         });
 
-        if (!isDev && authError) {
+        if (authError) {
             setError(authError.message);
             setLoading(false);
             return;
@@ -72,7 +73,7 @@ export default function LoginPage() {
             password: 'password123',
         });
 
-        if (!isDev && authError) {
+        if (authError) {
             setError('Errore Dev Login: ' + authError.message);
             setLoading(false);
             return;
@@ -151,7 +152,7 @@ export default function LoginPage() {
                                     <input type="checkbox" className="rounded border-gray-300" />
                                     <span>Remember me</span>
                                 </label>
-                                <button type="button">Forgot password?</button>
+                                <Link href="/auth/forgot-password">Password dimenticata?</Link>
                             </div>
 
                             <button

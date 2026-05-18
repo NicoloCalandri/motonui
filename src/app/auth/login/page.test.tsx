@@ -46,9 +46,9 @@ describe('LoginPage', () => {
         expect(screen.getByText(/Remember me/i)).toBeDefined();
     });
 
-    it('renders the "Forgot password?" button', () => {
+    it('renders the "Password dimenticata?" link', () => {
         render(<LoginPage />);
-        expect(screen.getByText(/Forgot password/i)).toBeDefined();
+        expect(screen.getByText(/Password dimenticata/i)).toBeDefined();
     });
 
     it('allows typing in the email field', async () => {

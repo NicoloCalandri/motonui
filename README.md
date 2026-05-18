@@ -67,6 +67,20 @@ npm run db:start
 npm run dev
 ```
 
+## 📧 Email & Authentication
+
+For the "Forgot Password" functionality, you need to configure an SMTP provider in your Supabase Dashboard. 
+
+**Recommended: [Mailtrap](https://mailtrap.io/) (Sandbox)**
+
+1.  In Supabase, go to `Settings > Auth > SMTP`.
+2.  Set the following values:
+    *   **Host**: `sandbox.smtp.mailtrap.io`
+    *   **Port**: `2525`
+    *   **User/Password**: (Copy from your Mailtrap Inbox SMTP Settings)
+3.  Ensure **Sender email** is set (e.g., `noreply@motonui.com`).
+4.  Save changes (if you get an API error, double-check the port is `2525`).
+
 ---
 
 *Point Nemo coordinates: 48°52.6′S 123°23.6′W — the loneliest place on Earth.*
