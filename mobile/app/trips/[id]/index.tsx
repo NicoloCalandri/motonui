@@ -573,6 +573,7 @@ function AddExpenseForm({ tripId, userId, colors, onClose, onSaved }: {
     splitRow: { flexDirection: 'row' as const, alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     actions: { flexDirection: 'row' as const, gap: 8 },
     btn: { flex: 1, backgroundColor: colors.primary, borderRadius: 10, height: 44, alignItems: 'center' as const, justifyContent: 'center' as const },
+    noPointerEvents: { pointerEvents: 'none' as const },
     btnSec: { flex: 1, backgroundColor: colors.muted, borderRadius: 10, height: 44, alignItems: 'center' as const, justifyContent: 'center' as const },
     btnTxt: { color: colors.primaryForeground, fontFamily: 'DMSans_700Bold', fontSize: 14 },
     btnTxtSec: { color: colors.foreground, fontFamily: 'DMSans_700Bold', fontSize: 14 },
@@ -611,7 +612,7 @@ function AddExpenseForm({ tripId, userId, colors, onClose, onSaved }: {
       <View style={styles.actions}>
         <TouchableOpacity style={styles.btnSec} onPress={onClose}><Text style={styles.btnTxtSec}>Annulla</Text></TouchableOpacity>
         <TouchableOpacity
-          style={[styles.btn, { pointerEvents: isSaveDisabled ? 'none' : 'auto' }]}
+          style={[styles.btn, isSaveDisabled && styles.noPointerEvents]}
           onPress={isSaveDisabled ? undefined : () => mutation.mutate()}
           accessibilityState={{ disabled: isSaveDisabled }}
         >

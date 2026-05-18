@@ -27,7 +27,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
     variant === 'secondary' && styles.secondary,
     variant === 'destructive' && styles.destructive,
     isDisabled && styles.disabled,
-    { pointerEvents: isDisabled ? 'none' : 'auto' },
+    isDisabled && styles.noPointerEvents,
     style,
   ];
 
@@ -68,6 +68,9 @@ function makeStyles(colors: ReturnType<typeof import('@/hooks/useColors').useCol
     },
     disabled: {
       opacity: 0.5,
+    },
+    noPointerEvents: {
+      pointerEvents: 'none',
     },
     text: {
       color: colors.primaryForeground,

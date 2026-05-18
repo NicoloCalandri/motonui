@@ -116,7 +116,7 @@ export default function LoginScreen() {
                 />
               </View>
               <TouchableOpacity
-                style={[styles.button, isSendOtpDisabled && styles.buttonDisabled, { pointerEvents: isSendOtpDisabled ? 'none' : 'auto' }]}
+                style={[styles.button, isSendOtpDisabled && styles.buttonDisabled, isSendOtpDisabled && styles.noPointerEvents]}
                 onPress={isSendOtpDisabled ? undefined : sendOtp}
                 accessibilityState={{ disabled: isSendOtpDisabled }}
                 activeOpacity={0.8}
@@ -155,7 +155,7 @@ export default function LoginScreen() {
                 />
               </View>
               <TouchableOpacity
-                style={[styles.button, isVerifyOtpDisabled && styles.buttonDisabled, { pointerEvents: isVerifyOtpDisabled ? 'none' : 'auto' }]}
+                style={[styles.button, isVerifyOtpDisabled && styles.buttonDisabled, isVerifyOtpDisabled && styles.noPointerEvents]}
                 onPress={isVerifyOtpDisabled ? undefined : verifyOtp}
                 accessibilityState={{ disabled: isVerifyOtpDisabled }}
                 activeOpacity={0.8}
@@ -269,6 +269,9 @@ function makeStyles(colors: ReturnType<typeof import('@/hooks/useColors').useCol
     },
     buttonDisabled: {
       opacity: 0.5,
+    },
+    noPointerEvents: {
+      pointerEvents: 'none',
     },
     buttonText: {
       color: colors.primaryForeground,

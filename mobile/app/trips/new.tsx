@@ -91,7 +91,7 @@ export default function NewTripScreen() {
         <TouchableOpacity
           onPress={isCreateDisabled ? undefined : handleCreate}
           accessibilityState={{ disabled: isCreateDisabled }}
-          style={[styles.saveBtn, (!title.trim() || !destination.trim()) && styles.saveBtnDisabled, { pointerEvents: isCreateDisabled ? 'none' : 'auto' }]}
+          style={[styles.saveBtn, isCreateDisabled && styles.saveBtnDisabled, isCreateDisabled && styles.noPointerEvents]}
           activeOpacity={0.8}
         >
           {mutation.isPending ? (
@@ -227,6 +227,9 @@ function makeStyles(colors: ReturnType<typeof import('@/hooks/useColors').useCol
     },
     saveBtnDisabled: {
       opacity: 0.4,
+    },
+    noPointerEvents: {
+      pointerEvents: 'none',
     },
     saveBtnText: {
       color: colors.primaryForeground,
