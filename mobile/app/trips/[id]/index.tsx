@@ -565,7 +565,7 @@ function AddExpenseForm({ tripId, userId, colors, onClose, onSaved }: {
   });
   const isSaveDisabled = !desc || !amount || mutation.isPending;
   const handleSave = () => {
-    if (isSaveDisabled) return;
+    if (!desc || !amount || mutation.isPending) return;
     mutation.mutate();
   };
 

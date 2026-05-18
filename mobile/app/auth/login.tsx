@@ -54,8 +54,7 @@ export default function LoginScreen() {
   const isVerifyOtpDisabled = loading || otp.length < 6;
 
   const verifyOtp = async () => {
-    if (loading) return;
-    if (!otp.trim()) return;
+    if (isVerifyOtpDisabled) return;
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
