@@ -19,7 +19,12 @@ export default function LoginScreen() {
 
   const styles = makeStyles(colors, insets);
   const notify = (type: Haptics.NotificationFeedbackType) => {
-    void Haptics.notificationAsync(type).catch(() => undefined);
+    void Haptics.notificationAsync(type).catch((error) => {
+      if (__DEV__) {
+        const message = error instanceof Error ? error.message : 'unknown error';
+        console.warn(`[auth][haptics] notification failed: ${message}`);
+      }
+    });
   };
 
   const sendOtp = async () => {
