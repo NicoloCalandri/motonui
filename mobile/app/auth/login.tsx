@@ -18,6 +18,14 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const styles = makeStyles(colors, insets);
+  const notify = (type: Haptics.NotificationFeedbackType) => {
+    void Haptics.notificationAsync(type).catch((error) => {
+      if (__DEV__) {
+        const message = error instanceof Error ? error.message : 'unknown error';
+        console.warn(`[auth][haptics] notification failed: ${message}`);
+      }
+    });
+  };
 
   const sendOtp = async () => {
     const trimmedEmail = email.trim();
@@ -31,7 +39,7 @@ export default function LoginScreen() {
       if (error) {
         Alert.alert('Errore', error.message);
       } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        notify(Haptics.NotificationFeedbackType.Success);
         setStep('otp');
       }
     } catch (error) {
@@ -52,9 +60,9 @@ export default function LoginScreen() {
       });
       if (error) {
         Alert.alert('Codice non valido', 'Controlla il codice e riprova.');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        notify(Haptics.NotificationFeedbackType.Error);
       } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        notify(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
       Alert.alert('Errore', error instanceof Error ? error.message : 'Impossibile verificare il codice. Riprova.');
