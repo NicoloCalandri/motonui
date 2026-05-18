@@ -67,6 +67,47 @@ npm run db:start
 npm run dev
 ```
 
+## 📱 Debug Mobile App (VS Code)
+
+### Prerequisiti
+
+1. Installa l'estensione **[React Native Tools](https://marketplace.visualstudio.com/items?itemName=msjsdiag.vscode-react-native)** (`ms-vscode.vscode-react-native`) in VS Code.
+2. Assicurati di avere **Node.js**, **Expo CLI** e un emulatore Android / simulatore iOS già configurati.
+
+### Avviare il server Expo in modalità debug
+
+```bash
+cd mobile
+npx expo start --dev-client   # oppure: npx expo start
+```
+
+Tieni il terminale aperto: il bundler Metro deve rimanere attivo durante il debug.
+
+### Configurazione `launch.json`
+
+Il file `.vscode/launch.json` nella root del progetto contiene già tre configurazioni pronte:
+
+| Configurazione | Descrizione |
+|---|---|
+| `Debug Android (Expo)` | Avvia l'app su emulatore / dispositivo Android |
+| `Debug iOS (Expo)` | Avvia l'app su simulatore / dispositivo iOS |
+| `Attach to Expo packager` | Si aggancia a un packager già in esecuzione |
+
+### Passi per il debug
+
+1. Apri il progetto in VS Code dalla cartella radice `motonui/`.
+2. Avvia il server Expo dal terminale (vedi sopra).
+3. Apri il pannello **Run and Debug** (`Ctrl+Shift+D` / `⌘⇧D`).
+4. Seleziona la configurazione desiderata dal menu a tendina (es. `Debug Android (Expo)`).
+5. Premi **▶ Start Debugging** (o `F5`).
+6. VS Code si connette al packager e i **breakpoint** nel codice TypeScript/TSX diventano attivi.
+
+> **Tip – Attach**: se vuoi agganciarti a un'app già aperta su dispositivo fisico, usa `Attach to Expo packager` dopo aver avviato `npx expo start`.
+
+> **Hermes DevTools**: con Expo SDK 52 il motore JS è Hermes. Puoi aprire i DevTools nativi premendo `j` nel terminale del packager oppure collegandoti a `chrome://inspect` nel browser.
+
+---
+
 ## 📧 Email & Authentication
 
 For the "Forgot Password" functionality, you need to configure an SMTP provider in your Supabase Dashboard. 
