@@ -65,8 +65,10 @@ export default function ProfileScreen() {
             await signOut();
             router.replace('/auth/login');
           } catch (error) {
-            const message = error instanceof Error ? error.message : 'Impossibile effettuare il logout.';
-            Alert.alert('Logout non riuscito', message);
+            if (__DEV__) {
+              console.warn('[profile][logout] sign out failed', error);
+            }
+            Alert.alert('Logout non riuscito', 'Riprova tra qualche secondo.');
           }
         },
       },
