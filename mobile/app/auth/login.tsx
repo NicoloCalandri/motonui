@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { useColors } from '@/hooks/useColors';
 
 const OTP_LENGTH = 8;
+const normalizeOtp = (value: string) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -52,7 +53,7 @@ export default function LoginScreen() {
   };
 
   const verifyOtp = async () => {
-    const normalizedOtp = otp.replace(/\D/g, '');
+    const normalizedOtp = normalizeOtp(otp);
     if (normalizedOtp.length !== OTP_LENGTH) {
       Alert.alert('Codice non valido', `Inserisci un codice di ${OTP_LENGTH} cifre.`);
       return;
@@ -149,7 +150,7 @@ export default function LoginScreen() {
                   placeholder={`Codice a ${OTP_LENGTH} cifre`}
                   placeholderTextColor={colors.mutedForeground}
                   value={otp}
-                  onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
+                  onChangeText={(value) => setOtp(normalizeOtp(value))}
                   keyboardType="number-pad"
                   maxLength={OTP_LENGTH}
                   autoFocus
