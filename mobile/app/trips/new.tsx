@@ -44,7 +44,10 @@ async function createTrip(data: NewTripData, userId: string) {
     role: 'owner',
   });
   if (memberError) {
-    await supabase.from('trips').delete().eq('id', trip.id);
+    const { error: rollbackError } = await supabase.from('trips').delete().eq('id', trip.id);
+    if (rollbackError && __DEV__) {
+      console.warn(`[trips][create] rollback failed: ${rollbackError.message}`);
+    }
     throw new Error(`Impossibile aggiungere il creatore al viaggio: ${memberError.message}`);
   }
 
