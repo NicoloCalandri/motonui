@@ -21,10 +21,21 @@ interface NewTripData {
   description: string;
 }
 
+function generateUuidV4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = char === 'x' ? random : Math.floor(Math.random() * 4) + 8;
+    return value.toString(16);
+  });
+}
+
 async function createTrip(data: NewTripData, userId: string) {
-  const { data: trip, error } = await supabase
+  const tripId = generateUuidV4();
+
+  const { error } = await supabase
     .from('trips')
     .insert({
+      id: tripId,
       title: data.title,
       destination: data.destination,
       start_date: data.start_date || null,
@@ -32,24 +43,29 @@ async function createTrip(data: NewTripData, userId: string) {
       description: data.description || null,
       owner_id: userId,
       status: 'planning',
-    })
-    .select()
-    .single();
+    });
   if (error) throw error;
-  if (!trip) throw new Error('Impossibile creare il viaggio.');
 
   const { error: memberError } = await supabase.from('trip_members').insert({
-    trip_id: trip.id,
+    trip_id: tripId,
     user_id: userId,
     role: 'owner',
   });
   if (memberError) {
-    const { error: rollbackError } = await supabase.from('trips').delete().eq('id', trip.id);
+    const { error: rollbackError } = await supabase.from('trips').delete().eq('id', tripId);
     if (rollbackError && __DEV__) {
       console.warn(`[trips][create] rollback failed: ${rollbackError.message}`);
     }
     throw new Error(`Impossibile aggiungere il creatore al viaggio: ${memberError.message}`);
   }
+
+  const { data: trip, error: tripFetchError } = await supabase
+    .from('trips')
+    .select('*')
+    .eq('id', tripId)
+    .single();
+  if (tripFetchError) throw tripFetchError;
+  if (!trip) throw new Error('Impossibile recuperare il viaggio creato.');
 
   return trip;
 }
