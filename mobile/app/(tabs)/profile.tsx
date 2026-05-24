@@ -5,6 +5,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +36,7 @@ async function fetchStats(userId: string) {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, signOut } = useAuth();
 
   const { data: profile } = useQuery({
@@ -58,8 +60,14 @@ export default function ProfileScreen() {
         text: 'Esci',
         style: 'destructive',
         onPress: async () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          await signOut();
+          try {
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+            await signOut();
+            router.replace('/auth/login');
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Impossibile effettuare il logout.';
+            Alert.alert('Logout non riuscito', message);
+          }
         },
       },
     ]);
