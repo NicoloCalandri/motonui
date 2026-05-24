@@ -36,12 +36,17 @@ async function createTrip(data: NewTripData, userId: string) {
     .select()
     .single();
   if (error) throw error;
+  if (!trip) throw new Error('Impossibile creare il viaggio.');
 
-  await supabase.from('trip_members').insert({
+  const { error: memberError } = await supabase.from('trip_members').insert({
     trip_id: trip.id,
     user_id: userId,
     role: 'owner',
   });
+  if (memberError) {
+    await supabase.from('trips').delete().eq('id', trip.id);
+    throw memberError;
+  }
 
   return trip;
 }
@@ -50,7 +55,7 @@ export default function NewTripScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
@@ -63,8 +68,9 @@ export default function NewTripScreen() {
   const mutation = useMutation({
     mutationFn: (data: NewTripData) => createTrip(data, user!.id),
     onSuccess: (trip) => {
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.id] });
+      queryClient.setQueryData(['trip', trip.id], trip);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       router.replace(`/trips/${trip.id}` as any);
     },
     onError: (err: Error) => {
@@ -73,6 +79,10 @@ export default function NewTripScreen() {
   });
 
   const handleCreate = () => {
+    if (loading || !user?.id) {
+      Alert.alert('Attendi', 'Stiamo ancora caricando il tuo account. Riprova tra un attimo.');
+      return;
+    }
     if (!title.trim() || !destination.trim()) {
       Alert.alert('Campi obbligatori', 'Inserisci il nome e la destinazione del viaggio.');
       return;
@@ -88,9 +98,9 @@ export default function NewTripScreen() {
         </TouchableOpacity>
         <Text style={styles.modalTitle}>Nuovo viaggio</Text>
         <TouchableOpacity
-          style={[styles.saveBtn, (!title.trim() || !destination.trim()) && styles.saveBtnDisabled]}
+          style={[styles.saveBtn, (loading || !user?.id || !title.trim() || !destination.trim()) && styles.saveBtnDisabled]}
           onPress={handleCreate}
-          disabled={mutation.isPending || !title.trim() || !destination.trim()}
+          disabled={loading || mutation.isPending || !user?.id || !title.trim() || !destination.trim()}
           activeOpacity={0.8}
         >
           {mutation.isPending ? (
