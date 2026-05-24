@@ -24,7 +24,7 @@ interface NewTripData {
 function generateUuidV4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
     const random = Math.floor(Math.random() * 16);
-    const value = char === 'x' ? random : (random & 0x3) | 0x8;
+    const value = char === 'x' ? random : [8, 9, 10, 11][Math.floor(Math.random() * 4)];
     return value.toString(16);
   });
 }
@@ -67,7 +67,6 @@ async function createTrip(data: NewTripData, userId: string) {
   if (tripFetchError) {
     throw new Error(`Viaggio creato ma non recuperabile: ${tripFetchError.message}`);
   }
-  if (!trip) throw new Error('Viaggio creato ma non trovato durante il recupero.');
 
   return trip;
 }
