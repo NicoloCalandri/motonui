@@ -9,6 +9,9 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '@/lib/supabase';
 import { useColors } from '@/hooks/useColors';
 
+const OTP_LENGTH = 8;
+const normalizeOtp = (value: string) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
+
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -50,12 +53,16 @@ export default function LoginScreen() {
   };
 
   const verifyOtp = async () => {
-    if (!otp.trim()) return;
+    const normalizedOtp = normalizeOtp(otp);
+    if (normalizedOtp.length !== OTP_LENGTH) {
+      Alert.alert('Codice non valido', `Inserisci un codice di ${OTP_LENGTH} cifre.`);
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
         email: email.trim(),
-        token: otp.trim(),
+        token: normalizedOtp,
         type: 'email',
       });
       if (error) {
@@ -140,21 +147,21 @@ export default function LoginScreen() {
                 <Ionicons name="key-outline" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, styles.otpInput]}
-                  placeholder="Codice a 6 cifre"
+                  placeholder={`Codice a ${OTP_LENGTH} cifre`}
                   placeholderTextColor={colors.mutedForeground}
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(value) => setOtp(normalizeOtp(value))}
                   keyboardType="number-pad"
-                  maxLength={6}
+                  maxLength={OTP_LENGTH}
                   autoFocus
                   returnKeyType="done"
                   onSubmitEditing={verifyOtp}
                 />
               </View>
               <TouchableOpacity
-                style={[styles.button, (loading || otp.length < 6) && styles.buttonDisabled]}
+                style={[styles.button, (loading || otp.length < OTP_LENGTH) && styles.buttonDisabled]}
                 onPress={verifyOtp}
-                disabled={loading || otp.length < 6}
+                disabled={loading || otp.length < OTP_LENGTH}
                 activeOpacity={0.8}
               >
                 {loading ? (
