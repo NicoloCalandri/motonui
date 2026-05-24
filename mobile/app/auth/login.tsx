@@ -8,10 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { AUTHENTICATED_ROUTE } from '@/constants/routes';
 import { useColors } from '@/hooks/useColors';
 
 const OTP_LENGTH = 8;
-const AUTHENTICATED_ROUTE = '/(tabs)/trips';
 const normalizeOtp = (value: string) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
 
 export default function LoginScreen() {
