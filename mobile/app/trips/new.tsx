@@ -45,7 +45,7 @@ async function createTrip(data: NewTripData, userId: string) {
   });
   if (memberError) {
     await supabase.from('trips').delete().eq('id', trip.id);
-    throw memberError;
+    throw new Error(`Impossibile aggiungere il creatore al viaggio: ${memberError.message}`);
   }
 
   return trip;
@@ -70,7 +70,12 @@ export default function NewTripScreen() {
     onSuccess: (trip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.id] });
       queryClient.setQueryData(['trip', trip.id], trip);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch((error) => {
+        if (__DEV__) {
+          const message = error instanceof Error ? error.message : 'unknown error';
+          console.warn(`[trips][create][haptics] notification failed: ${message}`);
+        }
+      });
       router.replace(`/trips/${trip.id}` as any);
     },
     onError: (err: Error) => {
