@@ -61,7 +61,7 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
             await signOut();
             router.replace('/auth/login');
           } catch (error) {
