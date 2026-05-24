@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { useColors } from '@/hooks/useColors';
 
 const OTP_LENGTH = 8;
+const AUTHENTICATED_ROUTE = '/(tabs)/trips';
 const normalizeOtp = (value: string) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
 
 export default function LoginScreen() {
@@ -72,7 +73,7 @@ export default function LoginScreen() {
         notify(Haptics.NotificationFeedbackType.Error);
       } else {
         notify(Haptics.NotificationFeedbackType.Success);
-        router.replace('/(tabs)/trips');
+        router.replace(AUTHENTICATED_ROUTE);
       }
     } catch (error) {
       Alert.alert('Errore', error instanceof Error ? error.message : 'Impossibile verificare il codice. Riprova.');
