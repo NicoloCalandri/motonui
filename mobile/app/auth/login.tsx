@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useColors } from '@/hooks/useColors';
 
@@ -15,6 +16,7 @@ const normalizeOtp = (value: string) => value.replace(/\D/g, '').slice(0, OTP_LE
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'email' | 'otp'>('email');
@@ -70,6 +72,7 @@ export default function LoginScreen() {
         notify(Haptics.NotificationFeedbackType.Error);
       } else {
         notify(Haptics.NotificationFeedbackType.Success);
+        router.replace('/(tabs)/trips');
       }
     } catch (error) {
       Alert.alert('Errore', error instanceof Error ? error.message : 'Impossibile verificare il codice. Riprova.');
