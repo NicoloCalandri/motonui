@@ -61,7 +61,13 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+            if (Platform.OS !== 'web') {
+              try {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+              } catch {
+                // no-op: haptics unavailable in current runtime
+              }
+            }
             await signOut();
             router.replace('/auth/login');
           } catch (error) {

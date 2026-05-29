@@ -21,6 +21,62 @@ interface NewTripData {
   description: string;
 }
 
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function sanitizeTextInput(value: string, maxLength: number): string {
+  return value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, maxLength);
+}
+
+function normalizeOptionalDate(value: string): string {
+  return value.trim();
+}
+
+function parseDateInput(value: string): number | null {
+  if (!DATE_REGEX.test(value)) return null;
+  const timestamp = Date.parse(`${value}T00:00:00Z`);
+  if (Number.isNaN(timestamp)) return null;
+  return timestamp;
+}
+
+function validateTripInput(data: NewTripData): NewTripData {
+  const title = sanitizeTextInput(data.title, 200);
+  const destination = sanitizeTextInput(data.destination, 200);
+  const description = sanitizeTextInput(data.description, 2000);
+  const start_date = normalizeOptionalDate(data.start_date);
+  const end_date = normalizeOptionalDate(data.end_date);
+
+  if (!title) {
+    throw new Error('Inserisci il nome del viaggio.');
+  }
+
+  if (!destination) {
+    throw new Error('Inserisci la destinazione del viaggio.');
+  }
+
+  const startTs = start_date ? parseDateInput(start_date) : null;
+  const endTs = end_date ? parseDateInput(end_date) : null;
+
+  if (start_date && startTs === null) {
+    throw new Error('Data inizio non valida. Usa il formato AAAA-MM-GG.');
+  }
+
+  if (end_date && endTs === null) {
+    throw new Error('Data fine non valida. Usa il formato AAAA-MM-GG.');
+  }
+
+  if (startTs !== null && endTs !== null && endTs < startTs) {
+    throw new Error('La data di fine non puo essere precedente alla data di inizio.');
+  }
+
+  return {
+    title,
+    destination,
+    start_date,
+    end_date,
+    description,
+  };
+}
+
 function generateUuidV4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
     const random = Math.floor(Math.random() * 16);
@@ -86,16 +142,25 @@ export default function NewTripScreen() {
   const styles = makeStyles(colors, insets);
 
   const mutation = useMutation({
-    mutationFn: (data: NewTripData) => createTrip(data, user!.id),
+    mutationFn: (data: NewTripData) => createTrip(validateTripInput(data), user!.id),
     onSuccess: (trip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.id] });
       queryClient.setQueryData(['trip', trip.id], trip);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch((error) => {
-        if (__DEV__) {
-          const message = error instanceof Error ? error.message : 'unknown error';
-          console.warn(`[trips][create][haptics] notification failed: ${message}`);
+      if (Platform.OS !== 'web') {
+        try {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch((error) => {
+            if (__DEV__) {
+              const message = error instanceof Error ? error.message : 'unknown error';
+              console.warn(`[trips][create][haptics] notification failed: ${message}`);
+            }
+          });
+        } catch (error) {
+          if (__DEV__) {
+            const message = error instanceof Error ? error.message : 'unknown error';
+            console.warn(`[trips][create][haptics] notification failed: ${message}`);
+          }
         }
-      });
+      }
       router.replace(`/trips/${trip.id}` as any);
     },
     onError: (err: Error) => {
@@ -108,11 +173,22 @@ export default function NewTripScreen() {
       Alert.alert('Attendi', 'Stiamo ancora caricando il tuo account. Riprova tra un attimo.');
       return;
     }
-    if (!title.trim() || !destination.trim()) {
-      Alert.alert('Campi obbligatori', 'Inserisci il nome e la destinazione del viaggio.');
-      return;
+
+    const payload: NewTripData = {
+      title,
+      destination,
+      start_date: startDate,
+      end_date: endDate,
+      description,
+    };
+
+    try {
+      const validated = validateTripInput(payload);
+      mutation.mutate(validated);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Dati non validi.';
+      Alert.alert('Dati non validi', message);
     }
-    mutation.mutate({ title, destination, start_date: startDate, end_date: endDate, description });
   };
 
   return (

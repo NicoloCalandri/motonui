@@ -33,6 +33,7 @@ export interface Profile {
   avatar_url: string | null;
   role: string;
   plan: string;
+  suspended_at?: string | null;
 }
 
 export interface Day {
@@ -145,6 +146,7 @@ export interface Post {
   title: string;
   slug: string;
   cover_image: string | null;
+  content_json?: unknown;
   status: PostStatus;
   published_at: string | null;
   reading_time: number | null;

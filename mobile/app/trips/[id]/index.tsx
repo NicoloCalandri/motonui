@@ -65,6 +65,24 @@ function formatTime(d: string | null) {
   return new Date(d).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 }
 
+function safeSelectionHaptic() {
+  if (Platform.OS === 'web') return;
+  try {
+    void Haptics.selectionAsync().catch(() => undefined);
+  } catch {
+    // expo-haptics may be unavailable in some native/runtime combinations
+  }
+}
+
+function safeNotificationHaptic(type: Haptics.NotificationFeedbackType) {
+  if (Platform.OS === 'web') return;
+  try {
+    void Haptics.notificationAsync(type).catch(() => undefined);
+  } catch {
+    // expo-haptics may be unavailable in some native/runtime combinations
+  }
+}
+
 async function fetchTrip(id: string): Promise<Trip | null> {
   const { data, error } = await supabase.from('trips').select('*').eq('id', id).single();
   if (error) return null;
@@ -123,6 +141,65 @@ async function fetchActivities(tripId: string): Promise<Activity[]> {
     .order('date', { ascending: true });
   if (error) return [];
   return data ?? [];
+}
+
+async function requireTripMember(tripId: string, userId: string): Promise<void> {
+  if (!tripId || !userId) {
+    throw new Error('Sessione non valida. Riapri il viaggio e riprova.');
+  }
+
+  const { data, error } = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error('Non hai i permessi per modificare questo viaggio.');
+  }
+}
+
+function sanitizeTextInput(value: string): string {
+  return value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+}
+
+async function convertCurrencyToEur(amount: number, currency: string): Promise<number> {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Importo non valido per la conversione.');
+  }
+
+  if (currency === 'EUR') {
+    return Math.round(amount * 100) / 100;
+  }
+
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('currency_rates')
+    .select('rates,fetched_at')
+    .gte('fetched_at', oneDayAgo)
+    .order('fetched_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.rates) {
+    // Graceful fallback aligned with web behavior when rates are unavailable.
+    return Math.round(amount * 100) / 100;
+  }
+
+  const rates = data.rates as Record<string, number>;
+  const fromRate = rates[currency];
+
+  if (!fromRate || fromRate <= 0) {
+    return Math.round(amount * 100) / 100;
+  }
+
+  const converted = amount / fromRate;
+  return Math.round(converted * 100) / 100;
 }
 
 export default function TripDetailScreen() {
@@ -224,7 +301,7 @@ export default function TripDetailScreen() {
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => {
-              Haptics.selectionAsync();
+              safeSelectionHaptic();
               setActiveTab(tab.key);
             }}
             activeOpacity={0.7}
@@ -543,22 +620,42 @@ function AddExpenseForm({ tripId, userId, colors, onClose, onSaved }: {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const description = sanitizeTextInput(desc);
+      const numericAmount = Number.parseFloat(amount);
+      const normalizedCurrency = currency.trim().toUpperCase();
+
+      if (!description) {
+        throw new Error('Inserisci una descrizione valida.');
+      }
+
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        throw new Error('Inserisci un importo maggiore di zero.');
+      }
+
+      if (!/^[A-Z]{3}$/.test(normalizedCurrency)) {
+        throw new Error('Valuta non valida. Usa un codice a 3 lettere (es. EUR).');
+      }
+
+      // Enforce app-level authorization before insert; payer is the current user on mobile.
+      await requireTripMember(tripId, userId);
+      const amountInEur = await convertCurrencyToEur(numericAmount, normalizedCurrency);
+
       const { error } = await supabase.from('expenses').insert({
         trip_id: tripId,
-        description: desc,
-        amount: parseFloat(amount),
-        currency,
+        description,
+        amount: numericAmount,
+        currency: normalizedCurrency,
         category,
         paid_by: userId,
         split,
         date: new Date().toISOString().split('T')[0],
-        amount_eur: currency === 'EUR' ? parseFloat(amount) : null,
+        amount_eur: amountInEur,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onSaved();
     },
     onError: (err: Error) => Alert.alert('Errore', err.message),

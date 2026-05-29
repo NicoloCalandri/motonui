@@ -1,4 +1,4 @@
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 
@@ -16,7 +16,13 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
   const styles = makeStyles(colors);
 
   const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') {
+      try {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+      } catch {
+        // no-op: haptics unavailable in current runtime
+      }
+    }
     onPress();
   };
 
