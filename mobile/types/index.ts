@@ -93,6 +93,17 @@ export interface Expense {
   notes: string | null;
 }
 
+export interface Settlement {
+  from_user_id: string;
+  to_user_id: string;
+  amount_eur: number;
+}
+
+export interface SplitResult {
+  settlements: Settlement[];
+  is_even: boolean;
+}
+
 export interface Media {
   id: string;
   trip_id: string;

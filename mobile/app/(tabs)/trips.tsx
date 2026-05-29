@@ -18,6 +18,7 @@ async function fetchTrips(userId: string): Promise<Trip[]> {
     .from('trips')
     .select('*, trip_members!inner(user_id)')
     .eq('trip_members.user_id', userId)
+    .neq('status', 'archived')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data ?? [];

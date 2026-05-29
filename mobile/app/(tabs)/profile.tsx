@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useColors } from '@/hooks/useColors';
+import { usePreferences } from '@/hooks/usePreferences';
 import { Profile } from '@/types';
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
@@ -38,6 +39,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { themePreference, language, notifications } = usePreferences();
 
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -138,6 +140,7 @@ export default function ProfileScreen() {
             label="Dati personali"
             sublabel={user?.email ?? ''}
             colors={colors}
+            onPress={() => router.push('/profile/personal')}
           />
           <View style={styles.divider} />
           <MenuItem
@@ -145,13 +148,15 @@ export default function ProfileScreen() {
             label="Sicurezza"
             sublabel="Password e accesso"
             colors={colors}
+            onPress={() => router.push('/profile/security')}
           />
           <View style={styles.divider} />
           <MenuItem
             icon="notifications-outline"
             label="Notifiche"
-            sublabel="Promemoria e avvisi"
+            sublabel={notifications.tripReminders ? 'Promemoria attivi' : 'Promemoria disattivati'}
             colors={colors}
+            onPress={() => router.push('/profile/notifications')}
           />
         </View>
       </View>
@@ -162,15 +167,17 @@ export default function ProfileScreen() {
           <MenuItem
             icon="color-palette-outline"
             label="Aspetto"
-            sublabel="Tema chiaro / scuro"
+            sublabel={themePreference === 'system' ? 'Tema di sistema' : themePreference === 'dark' ? 'Tema scuro' : 'Tema chiaro'}
             colors={colors}
+            onPress={() => router.push('/profile/appearance')}
           />
           <View style={styles.divider} />
           <MenuItem
             icon="language-outline"
             label="Lingua"
-            sublabel="Italiano"
+            sublabel={language === 'it' ? 'Italiano' : 'English'}
             colors={colors}
+            onPress={() => router.push('/profile/language')}
           />
         </View>
       </View>
@@ -185,10 +192,11 @@ export default function ProfileScreen() {
   );
 }
 
-function MenuItem({ icon, label, sublabel, colors }: { icon: string; label: string; sublabel: string; colors: any }) {
+function MenuItem({ icon, label, sublabel, colors, onPress }: { icon: string; label: string; sublabel: string; colors: any; onPress: () => void }) {
   return (
     <TouchableOpacity
       style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, gap: 12 }}
+      onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center' }}>
