@@ -21,6 +21,7 @@ const DOC_TYPE_CONFIG: Record<DocumentType, { label: string; icon: React.Element
 
 interface TravelWalletProps {
     trip: TripWithDetails;
+    onDataChange?: () => void;
 }
 
 /**
