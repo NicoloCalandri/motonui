@@ -11,5 +11,17 @@ const compat = new FlatCompat({
 });
 
 export default defineConfig([
+  {
+    ignores: [".next/**"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-require-imports": "warn",
+      "@typescript-eslint/triple-slash-reference": "warn",
+      "react/no-unescaped-entities": "warn",
+      "prefer-const": "warn",
+    },
+  },
 ]);
