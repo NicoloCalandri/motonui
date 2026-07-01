@@ -14,7 +14,7 @@ async function checkAdminAccess() {
         const user = await getAuthUser(supabase);
     if (!user) redirect('/auth/login');
 
-    const { data: profile } = await (supabase.from('profiles') as any)
+    const { data: profile } = await supabase.from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();

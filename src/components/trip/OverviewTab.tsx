@@ -146,13 +146,13 @@ export default function OverviewTab({ trip, onNavigate, onTripUpdate }: Overview
                 <div className="rounded-2xl border border-dashed border-sand-300 bg-sand-50 p-8 flex flex-col items-center gap-3 text-center">
                     <Route className="w-10 h-10 text-sand-300" />
                     <p className="font-display text-base font-semibold text-ink-700">Nessuno spostamento aggiunto</p>
-                    <p className="text-sm text-ink-400">Aggiungi gli spostamenti nell'itinerario per vedere la mappa del viaggio.</p>
+                    <p className="text-sm text-ink-400">Aggiungi gli spostamenti nell&apos;itinerario per vedere la mappa del viaggio.</p>
                     {onNavigate && (
                         <button
                             onClick={() => onNavigate('itinerary')}
                             className="mt-1 px-4 py-2 bg-neutral-900 text-white text-sm font-bold rounded-2xl hover:bg-black transition-colors shadow-panel"
                         >
-                            Vai all'itinerario
+                            Vai all&apos;itinerario
                         </button>
                     )}
                 </div>

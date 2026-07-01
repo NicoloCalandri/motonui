@@ -75,10 +75,11 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ avatarUrl });
-    } catch (e: any) {
+    } catch (e: unknown) {
+        const error = e as Partial<{ message: string; code: string; status: number }>;
         return NextResponse.json(
-            { error: e.message ?? 'Errore server.', code: e.code ?? 'INTERNAL_ERROR' },
-            { status: e.status ?? 500 }
+            { error: error.message ?? 'Errore server.', code: error.code ?? 'INTERNAL_ERROR' },
+            { status: error.status ?? 500 }
         );
     }
 }

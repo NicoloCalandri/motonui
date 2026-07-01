@@ -109,7 +109,7 @@ export async function checkRateLimit(
 ): Promise<boolean> {
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: usage } = await (supabase.from('ai_usage') as any)
+    const { data: usage } = await supabase.from('ai_usage')
         .select('tokens')
         .eq('user_id', userId)
         .eq('call_type', model)
@@ -120,7 +120,7 @@ export async function checkRateLimit(
     if (currentCount >= DAILY_LIMITS[model]) return false;
 
     // Upsert usage
-    await (supabase.from('ai_usage') as any).upsert(
+    await supabase.from('ai_usage').upsert(
         { 
             user_id: userId, 
             call_type: model, 

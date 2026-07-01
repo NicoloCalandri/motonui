@@ -45,7 +45,7 @@ describe('requireAdmin', () => {
         const result = await requireAdmin();
 
         expect(result).toMatchObject({ status: 401 });
-        expect((result as any).body).toMatchObject({ code: 'UNAUTHORIZED' });
+        expect((result as { body: unknown }).body).toMatchObject({ code: 'UNAUTHORIZED' });
     });
 
     it('returns 403 when user exists but has no profile', async () => {
@@ -55,7 +55,7 @@ describe('requireAdmin', () => {
         const result = await requireAdmin();
 
         expect(result).toMatchObject({ status: 403 });
-        expect((result as any).body).toMatchObject({ code: 'FORBIDDEN' });
+        expect((result as { body: unknown }).body).toMatchObject({ code: 'FORBIDDEN' });
     });
 
     it('returns 403 when user has role "user" (not admin)', async () => {

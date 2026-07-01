@@ -23,7 +23,7 @@ export async function POST(request: Request): Promise<Response> {
     const now = new Date().toISOString();
 
     // Fetch all unsent due reminders
-    const { data: reminders, error: fetchError } = await (supabase as any)
+    const { data: reminders, error: fetchError } = await supabase
         .from('reminders')
         .select(`
             *,
@@ -114,7 +114,7 @@ export async function POST(request: Request): Promise<Response> {
             await sendEmail({ to: email, subject, html });
 
             // Mark as sent
-            await (supabase as any)
+            await supabase
                 .from('reminders')
                 .update({ sent_at: now })
                 .eq('id', reminder.id);

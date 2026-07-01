@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         .select('display_name')
         .eq('id', user.id)
         .single();
-    const firstName = profile?.display_name || (user as any).email?.split('@')[0] || 'Viaggiatore';
+    const firstName = profile?.display_name || user.email?.split('@')[0] || 'Viaggiatore';
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">

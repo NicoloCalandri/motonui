@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     const { page, pageSize, adminId, action, targetId, dateFrom, dateTo, export: exportFormat } = parsed.data;
     const supabase = await createAdminClient();
 
-    let query = (supabase.from('admin_audit_log') as any)
+    let query = supabase.from('admin_audit_log')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
         );
     }
 
-    const entries = (data ?? []).map((row: any) => ({
+    const entries = (data ?? []).map((row) => ({
         id: row.id,
         admin_id: row.admin_id,
         admin_email: row.admin_email ?? null,

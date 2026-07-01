@@ -42,7 +42,15 @@ export default function EditUserDialog({ user, onClose, onSuccess }: Props) {
             try {
                 const res = await fetch(`/api/admin/users/${user.id}`);
                 if (!res.ok) return;
-                const payload = await res.json();
+                const payload: {
+                    user?: { plan?: 'free' | 'premium'; premiumUntil?: string | null };
+                    entitlements?: Array<{
+                        featureKey: string;
+                        enabled?: boolean;
+                        dailyLimit?: number | null;
+                        monthlyLimit?: number | null;
+                    }>;
+                } = await res.json();
                 if (!mounted) return;
                 const detailUser = payload.user;
                 if (detailUser?.plan) setPlan(detailUser.plan);
@@ -51,7 +59,7 @@ export default function EditUserDialog({ user, onClose, onSuccess }: Props) {
                 }
                 if (Array.isArray(payload.entitlements)) {
                     setEntitlements(PREMIUM_FEATURES.map((feature) => {
-                        const existing = payload.entitlements.find((e: any) => e.featureKey === feature.key);
+                        const existing = payload.entitlements.find((e) => e.featureKey === feature.key);
                         return {
                             featureKey: feature.key,
                             enabled: existing ? Boolean(existing.enabled) : (detailUser?.plan === 'premium'),

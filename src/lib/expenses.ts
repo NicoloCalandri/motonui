@@ -15,7 +15,7 @@ async function getCachedRates(): Promise<Record<string, number>> {
     const supabase = await createClient();
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: cached } = await (supabase.from('currency_rates') as any)
+    const { data: cached } = await supabase.from('currency_rates')
         .select('rates, fetched_at')
         .gte('fetched_at', oneDayAgo)
         .order('fetched_at', { ascending: false })
@@ -45,7 +45,7 @@ async function getCachedRates(): Promise<Record<string, number>> {
     const rates = json.conversion_rates;
 
     // Store in Supabase (upsert by truncating old rows first — simple approach for personal app)
-    await (supabase.from('currency_rates') as any).insert({
+    await supabase.from('currency_rates').insert({
         base_currency: BASE_CURRENCY,
         rates,
         fetched_at: new Date().toISOString(),
@@ -103,7 +103,7 @@ export async function convertCurrency(
 export async function getTripExpenseSummary(tripId: string): Promise<ExpenseSummary> {
     const supabase = await createClient();
 
-    const { data: expenses, error } = await (supabase.from('expenses') as any)
+    const { data: expenses, error } = await supabase.from('expenses')
         .select('*')
         .eq('trip_id', tripId)
         .order('date', { ascending: true });

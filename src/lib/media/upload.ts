@@ -35,14 +35,14 @@ export async function uploadMedia(file: File, tripId: string): Promise<UploadRes
         height = imgMeta.height ?? 0;
 
         // Convert to WebP for storage efficiency
-        originalBuffer = await img.webp({ quality: 90 }).toBuffer() as any;
+        originalBuffer = await img.webp({ quality: 90 }).toBuffer();
 
         // Thumbnail: 400×400 cover crop
         const thumbBuffer = await sharp(buffer)
             .rotate()
             .resize(400, 400, { fit: 'cover', position: 'attention' })
             .webp({ quality: 80 })
-            .toBuffer() as any;
+            .toBuffer();
 
         // Upload thumbnail
         const thumbPath = `trips/${tripId}/thumbs/${fileId}.webp`;

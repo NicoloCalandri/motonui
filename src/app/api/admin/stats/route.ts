@@ -21,17 +21,17 @@ export async function GET() {
         postsRes,
         aiCallsRes,
     ] = await Promise.all([
-        (supabase.from('profiles') as any).select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.auth.admin.listUsers(),
-        (supabase.from('trips') as any).select('id', { count: 'exact', head: true }),
-        (supabase.from('expenses') as any).select('id', { count: 'exact', head: true }),
-        (supabase.from('posts') as any).select('id', { count: 'exact', head: true }),
-        (supabase.from('ai_usage') as any).select('id', { count: 'exact', head: true }),
+        supabase.from('trips').select('id', { count: 'exact', head: true }),
+        supabase.from('expenses').select('id', { count: 'exact', head: true }),
+        supabase.from('posts').select('id', { count: 'exact', head: true }),
+        supabase.from('ai_usage').select('id', { count: 'exact', head: true }),
     ]);
 
     // Count users active in last 30 days
     const activeUsersLast30Days = (activeUsersRes.data?.users ?? []).filter(
-        (u: any) => u.last_sign_in_at && u.last_sign_in_at >= thirtyDaysAgo
+        (u) => u.last_sign_in_at && u.last_sign_in_at >= thirtyDaysAgo
     ).length;
 
     const stats: PlatformStats = {

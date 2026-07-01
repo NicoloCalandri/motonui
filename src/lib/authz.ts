@@ -1,8 +1,8 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { Errors } from '@/lib/errors';
+import type { AppDatabase } from '@/lib/supabase/server';
 
-interface SupabaseLike {
-  from: (table: string) => any;
-}
+type SupabaseLike = SupabaseClient<AppDatabase>;
 
 /**
  * Confirms that the current user belongs to the requested trip.

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '../supabase/database.types';
+import type { Database, Json } from '../supabase/database.types';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -20,7 +20,7 @@ export async function getDestinationBriefing(
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Check cache
-    const { data: cached } = await (supabase.from('destination_cache') as any)
+    const { data: cached } = await supabase.from('destination_cache')
         .select('briefing, fetched_at')
         .eq('destination', cacheKey)
         .gte('fetched_at', sevenDaysAgo)
@@ -34,10 +34,10 @@ export async function getDestinationBriefing(
     const briefing = await generateBriefing(destination, language);
 
     // Store in cache
-    await (supabase.from('destination_cache') as any)
+    await supabase.from('destination_cache')
         .upsert({ 
             destination: cacheKey, 
-            briefing: briefing as any, 
+            briefing: briefing as Json,
             fetched_at: new Date().toISOString() 
         });
 

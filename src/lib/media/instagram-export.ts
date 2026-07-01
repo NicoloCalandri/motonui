@@ -74,18 +74,18 @@ export async function generateExport(input: GenerateExportInput): Promise<Genera
         let buffer = Buffer.from(await res.arrayBuffer() as ArrayBuffer);
 
         // Crop to correct aspect ratio
-        buffer = await cropToAspect(buffer, config.ratio) as any;
+        buffer = await cropToAspect(buffer, config.ratio);
 
         // Apply filter
         const filter = exportOptions.filter ?? 'none';
 
         // applyFilter returns a Buffer but needs to accept our filter type
         const { applyFilter: filterFn } = await import('@/lib/media/process');
-        buffer = await filterFn(buffer, filter) as any;
+        buffer = await filterFn(buffer, filter);
 
         // Optional text overlay
         if (exportOptions.textOverlay) {
-            buffer = await overlayText(buffer, exportOptions.textOverlay) as any;
+            buffer = await overlayText(buffer, exportOptions.textOverlay);
         }
 
         processedBuffers.push(buffer);

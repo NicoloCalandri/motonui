@@ -26,7 +26,7 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     const { id } = await params;
     await requireTripMember(supabase, id, user.id);
 
-    const { data: trip, error } = await (supabase.from('trips') as any)
+    const { data: trip, error } = await supabase.from('trips')
         .select(`
       *,
       trip_members (
@@ -69,7 +69,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     const parsed = UpdateTripSchema.safeParse(body);
     if (!parsed.success) throw Errors.validation(parsed.error.message);
 
-    const { data: trip, error } = await (supabase.from('trips') as any)
+    const { data: trip, error } = await supabase.from('trips')
         .update(parsed.data)
         .eq('id', id)
         .select()
@@ -88,7 +88,7 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
 
     const { id } = await params;
 
-    const { error } = await (supabase.from('trips') as any)
+    const { error } = await supabase.from('trips')
         .update({ status: 'archived' })
         .eq('id', id)
         .eq('owner_id', user.id); // only owner can archive

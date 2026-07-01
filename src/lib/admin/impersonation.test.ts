@@ -15,6 +15,8 @@ class MockNextResponse {
     }
 }
 
+type MockOkResponse = { _ok: boolean; data?: { token?: string } };
+
 vi.mock('next/server', () => ({ NextResponse: MockNextResponse }));
 
 // Mock jose so we don't need Web Crypto in jsdom
@@ -78,7 +80,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
 
-        expect((result as any).status).toBe(500);
+        expect((result as MockNextResponse).status).toBe(500);
     });
 
     it('returns 500 when secret is shorter than 32 chars', async () => {
@@ -90,7 +92,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
 
-        expect((result as any).status).toBe(500);
+        expect((result as MockNextResponse).status).toBe(500);
     });
 
     it('returns 401 when not authenticated', async () => {
@@ -104,7 +106,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
 
-        expect((result as any).status).toBe(401);
+        expect((result as MockNextResponse).status).toBe(401);
     });
 
     it('returns 404 when target user does not exist', async () => {
@@ -116,7 +118,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: 'nonexistent' }) });
 
-        expect((result as any).status).toBe(404);
+        expect((result as MockNextResponse).status).toBe(404);
     });
 
     it('returns token when target user exists', async () => {
@@ -128,8 +130,8 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
 
-        expect((result as any)._ok).toBe(true);
-        expect((result as any).data).toHaveProperty('token');
+        expect((result as MockOkResponse)._ok).toBe(true);
+        expect((result as MockOkResponse).data).toHaveProperty('token');
     });
 
     it('stores token in impersonation_tokens table', async () => {

@@ -9,7 +9,15 @@ vi.mock('@/lib/supabase/server', () => ({
     createAdminClient: createAdminClientMock,
 }));
 
-type Row = Record<string, any>;
+type Row = Record<string, unknown>;
+
+type QueryApi = {
+    select: () => QueryApi;
+    eq: (key: string, value: unknown) => QueryApi;
+    maybeSingle: () => Promise<{ data: Row | null; error: null }>;
+    single: () => Promise<{ data: Row | null; error: { message: string } | null }>;
+    upsert: (payload: Row) => Promise<{ data: Row; error: null }>;
+};
 
 function createMockSupabase(seed?: {
     profiles?: Row[];
@@ -27,15 +35,15 @@ function createMockSupabase(seed?: {
     const build = (table: keyof typeof db) => {
         let rows = [...db[table]];
 
-        const api: any = {
+        const api: QueryApi = {
             select: () => api,
-            eq: (key: string, value: any) => {
+            eq: (key: string, value: unknown) => {
                 rows = rows.filter((r) => r[key] === value);
                 return api;
             },
             maybeSingle: async () => ({ data: rows[0] ?? null, error: null }),
             single: async () => ({ data: rows[0] ?? null, error: rows[0] ? null : { message: 'not found' } }),
-            upsert: async (payload: any) => {
+            upsert: async (payload: Row) => {
                 if (table === 'usage_counters') {
                     const idx = db.usage_counters.findIndex((r) =>
                         r.user_id === payload.user_id &&

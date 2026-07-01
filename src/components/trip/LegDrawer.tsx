@@ -296,7 +296,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                             <button
                                                 key={id}
                                                 type="button"
-                                                onClick={() => setValue('type', id as any)}
+                                                onClick={() => setValue('type', id as FormValues['type'])}
                                                 className={`flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 ${selectedType === id
                                                     ? 'bg-neutral-900 text-white shadow-panel scale-95 ring-2 ring-neutral-900 ring-offset-2'
                                                     : 'bg-neutral-50/80 text-neutral-600 hover:bg-neutral-100'
@@ -565,7 +565,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                         </div>
                                         {isEditing && (
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d'imbarco</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d&apos;imbarco</label>
                                                 {boardingPassUrl ? (
                                                     <div className="flex items-center gap-3 p-4 bg-sage-50 rounded-2xl">
                                                         <Ticket className="w-5 h-5 text-sage-500 flex-shrink-0" />

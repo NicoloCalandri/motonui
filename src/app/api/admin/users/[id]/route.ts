@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, type AppDatabase } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
 
 const DeleteSchema = z.object({
@@ -23,6 +23,7 @@ const UpdateSchema = z.object({
 });
 
 type Params = { params: Promise<{ id: string }> };
+type ProfileUpdate = AppDatabase['public']['Tables']['profiles']['Update'];
 
 async function writeAuditLog(
     supabase: Awaited<ReturnType<typeof createAdminClient>>,
@@ -31,7 +32,7 @@ async function writeAuditLog(
     targetId: string,
     metadata?: Record<string, unknown>
 ) {
-    await (supabase.from('admin_audit_log') as any).insert({
+    await supabase.from('admin_audit_log').insert({
         admin_id: adminId,
         action,
         target_id: targetId,
@@ -48,7 +49,7 @@ export async function GET(_req: Request, { params }: Params) {
 
     const supabase = await createAdminClient();
 
-    const { data: userRow, error } = await (supabase.from('admin_user_view') as any)
+    const { data: userRow, error } = await supabase.from('admin_user_view')
         .select('*')
         .eq('id', id)
         .single();
@@ -61,17 +62,17 @@ export async function GET(_req: Request, { params }: Params) {
     }
 
     const [tripsRes, postsRes, expensesRes] = await Promise.all([
-        (supabase.from('trips') as any)
+        supabase.from('trips')
             .select('id, title, destination, status, start_date, end_date')
             .eq('owner_id', id)
             .order('created_at', { ascending: false })
             .limit(5),
-        (supabase.from('posts') as any)
+        supabase.from('posts')
             .select('id, title, status, published_at')
             .eq('author_id', id)
             .order('created_at', { ascending: false })
             .limit(5),
-        (supabase.from('expenses') as any)
+        supabase.from('expenses')
             .select('amount_eur, currency')
             .eq('paid_by', id),
     ]);
@@ -132,7 +133,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     const supabase = await createAdminClient();
 
-    const updates: Record<string, any> = {};
+    const updates: ProfileUpdate = {};
     if (parsed.data.displayName !== undefined) updates.display_name = parsed.data.displayName;
     if (parsed.data.role !== undefined) updates.role = parsed.data.role;
     if (parsed.data.plan !== undefined) updates.plan = parsed.data.plan;
@@ -159,7 +160,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     if (parsed.data.entitlements) {
         for (const entitlement of parsed.data.entitlements) {
-            await (supabase.from('feature_entitlements') as any).upsert({
+            await supabase.from('feature_entitlements').upsert({
                 user_id: id,
                 feature_key: entitlement.featureKey,
                 enabled: entitlement.enabled,
@@ -214,7 +215,7 @@ export async function DELETE(request: Request, { params }: Params) {
     const supabase = await createAdminClient();
 
     // Fetch target user email to verify confirmation
-    const { data: userRow } = await (supabase.from('admin_user_view') as any)
+    const { data: userRow } = await supabase.from('admin_user_view')
         .select('email')
         .eq('id', id)
         .single();
@@ -253,11 +254,11 @@ async function loadEntitlements(
     supabase: Awaited<ReturnType<typeof createAdminClient>>,
     userId: string
 ) {
-    const { data } = await (supabase.from('feature_entitlements') as any)
+    const { data } = await supabase.from('feature_entitlements')
         .select('feature_key, enabled, daily_limit, monthly_limit')
         .eq('user_id', userId)
         .order('feature_key', { ascending: true });
-    return (data ?? []).map((e: any) => ({
+    return (data ?? []).map((e) => ({
         featureKey: e.feature_key,
         enabled: Boolean(e.enabled),
         dailyLimit: e.daily_limit ?? null,

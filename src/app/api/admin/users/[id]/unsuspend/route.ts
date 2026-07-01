@@ -14,7 +14,7 @@ export async function POST(_req: Request, { params }: Params) {
 
     const supabase = await createAdminClient();
 
-    const { error: updateError } = await (supabase.from('profiles') as any)
+    const { error: updateError } = await supabase.from('profiles')
         .update({ suspended_at: null, suspended_reason: null })
         .eq('id', id);
 
@@ -26,7 +26,7 @@ export async function POST(_req: Request, { params }: Params) {
         );
     }
 
-    await (supabase.from('admin_audit_log') as any).insert({
+    await supabase.from('admin_audit_log').insert({
         admin_id: adminId,
         action: 'unsuspend',
         target_id: id,

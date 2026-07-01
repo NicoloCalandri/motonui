@@ -56,9 +56,9 @@ export async function getTripStats(tripId: string): Promise<TripStats> {
 
     // Fetch trip, legs, and expenses in parallel
     const [tripResult, legsResult, expensesResult] = await Promise.all([
-        (supabase.from('trips') as any).select('start_date, end_date, budget_eur').eq('id', tripId).single(),
-        (supabase.from('legs') as any).select('*').eq('trip_id', tripId),
-        (supabase.from('expenses') as any)
+        supabase.from('trips').select('start_date, end_date, budget_eur').eq('id', tripId).single(),
+        supabase.from('legs').select('*').eq('trip_id', tripId),
+        supabase.from('expenses')
             .select('amount_eur, amount')
             .eq('trip_id', tripId),
     ]);
@@ -116,7 +116,7 @@ export async function getTripStats(tripId: string): Promise<TripStats> {
     }
 
     // Total spent in EUR
-    const totalSpentEur = (expensesResult.data ?? []).reduce((sum: number, exp: any) => {
+    const totalSpentEur = (expensesResult.data ?? []).reduce((sum: number, exp) => {
         return sum + (exp.amount_eur ?? exp.amount);
     }, 0);
 

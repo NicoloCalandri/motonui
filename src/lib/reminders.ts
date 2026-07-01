@@ -28,7 +28,7 @@ export async function upsertReminder(
     }
 ): Promise<void> {
     // Always delete the old reminder first so we don't accumulate stale rows
-    await (supabase as any)
+    await supabase
         .from('reminders')
         .delete()
         .eq('entity_id', opts.entityId)
@@ -36,7 +36,7 @@ export async function upsertReminder(
 
     if (!opts.remindAt || opts.remindAt < new Date()) return;
 
-    await (supabase as any).from('reminders').insert({
+    await supabase.from('reminders').insert({
         trip_id: opts.tripId,
         user_id: opts.userId,
         entity_type: opts.entityType,

@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
                                     onClick={() => setSuccess(false)}
                                     className="text-neutral-900 font-bold text-sm underline underline-offset-4"
                                 >
-                                    Non hai ricevuto l'email? Riprova
+                                    Non hai ricevuto l&apos;email? Riprova
                                 </button>
                             </div>
                         ) : (

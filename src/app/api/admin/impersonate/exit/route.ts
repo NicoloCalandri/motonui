@@ -18,7 +18,7 @@ export async function POST(request: Request) {
         const supabase = await createAdminClient();
 
         // Remove the token from the DB
-        await (supabase.from('impersonation_tokens') as any)
+        await supabase.from('impersonation_tokens')
             .delete()
             .eq('token', token);
     }

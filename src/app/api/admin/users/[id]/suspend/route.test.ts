@@ -15,6 +15,8 @@ class MockNextResponse {
     }
 }
 
+type MockOkResponse = { _ok: boolean; data?: unknown };
+
 vi.mock('next/server', () => ({ NextResponse: MockNextResponse }));
 
 const ADMIN_ID = 'admin-aaa';
@@ -73,7 +75,7 @@ describe('POST /api/admin/users/[id]/suspend', () => {
         const req = makeRequest({ reason: 'test' });
         const result = await POST(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(401);
+        expect((result as MockNextResponse).status).toBe(401);
     });
 
     it('returns 403 when admin tries to suspend themselves', async () => {
@@ -81,8 +83,8 @@ describe('POST /api/admin/users/[id]/suspend', () => {
         const req = makeRequest({ reason: 'self-test' });
         const result = await POST(req, { params: Promise.resolve({ id: ADMIN_ID }) });
 
-        expect((result as any).status).toBe(403);
-        expect((result as any).body).toMatchObject({ code: 'FORBIDDEN' });
+        expect((result as MockNextResponse).status).toBe(403);
+        expect((result as MockNextResponse).body).toMatchObject({ code: 'FORBIDDEN' });
     });
 
     it('returns 400 when reason is missing', async () => {
@@ -90,8 +92,8 @@ describe('POST /api/admin/users/[id]/suspend', () => {
         const req = makeRequest({});
         const result = await POST(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(400);
-        expect((result as any).body).toMatchObject({ code: 'VALIDATION_ERROR' });
+        expect((result as MockNextResponse).status).toBe(400);
+        expect((result as MockNextResponse).body).toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('returns 400 when reason is empty string', async () => {
@@ -99,7 +101,7 @@ describe('POST /api/admin/users/[id]/suspend', () => {
         const req = makeRequest({ reason: '' });
         const result = await POST(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(400);
+        expect((result as MockNextResponse).status).toBe(400);
     });
 
     it('returns 500 when database update fails', async () => {
@@ -114,13 +116,13 @@ describe('POST /api/admin/users/[id]/suspend', () => {
             return { insert: vi.fn() };
         });
         const { createAdminClient } = await import('@/lib/supabase/server');
-        vi.mocked(createAdminClient).mockResolvedValueOnce({ from: badFrom } as any);
+        vi.mocked(createAdminClient).mockResolvedValueOnce({ from: badFrom } as unknown as Awaited<ReturnType<typeof createAdminClient>>);
 
         const { POST } = await import('@/app/api/admin/users/[id]/suspend/route');
         const req = makeRequest({ reason: 'violation' });
         const result = await POST(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(500);
+        expect((result as MockNextResponse).status).toBe(500);
     });
 
     it('suspends successfully and writes audit log', async () => {
@@ -140,13 +142,13 @@ describe('POST /api/admin/users/[id]/suspend', () => {
             return {};
         });
         const { createAdminClient } = await import('@/lib/supabase/server');
-        vi.mocked(createAdminClient).mockResolvedValueOnce({ from: goodFrom } as any);
+        vi.mocked(createAdminClient).mockResolvedValueOnce({ from: goodFrom } as unknown as Awaited<ReturnType<typeof createAdminClient>>);
 
         const { POST } = await import('@/app/api/admin/users/[id]/suspend/route');
         const req = makeRequest({ reason: 'Violazione delle norme' });
         const result = await POST(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any)._ok).toBe(true);
+        expect((result as MockOkResponse)._ok).toBe(true);
         expect(updateEq).toHaveBeenCalledWith('id', TARGET_ID);
         expect(auditInsert).toHaveBeenCalledWith(
             expect.objectContaining({

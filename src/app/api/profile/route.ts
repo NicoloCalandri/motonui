@@ -21,10 +21,11 @@ export async function GET() {
             fullName: profile?.display_name ?? '',
             avatarUrl: profile?.avatar_url ?? null,
         });
-    } catch (e: any) {
+    } catch (e: unknown) {
+        const error = e as Partial<{ message: string; code: string; status: number }>;
         return NextResponse.json(
-            { error: e.message ?? 'Errore server.', code: e.code ?? 'INTERNAL_ERROR', status: e.status ?? 500 },
-            { status: e.status ?? 500 }
+            { error: error.message ?? 'Errore server.', code: error.code ?? 'INTERNAL_ERROR', status: error.status ?? 500 },
+            { status: error.status ?? 500 }
         );
     }
 }
@@ -36,7 +37,8 @@ export async function PATCH(request: Request) {
         const user = await getAuthUser(supabase);
 
         const body: unknown = await request.json();
-        const fullName = typeof (body as any)?.fullName === 'string' ? (body as any).fullName.trim() : null;
+        const fullNameValue = typeof body === 'object' && body !== null ? (body as { fullName?: unknown }).fullName : undefined;
+        const fullName = typeof fullNameValue === 'string' ? fullNameValue.trim() : null;
 
         if (fullName === null) {
             return NextResponse.json(
@@ -58,10 +60,11 @@ export async function PATCH(request: Request) {
         }
 
         return ok({ fullName });
-    } catch (e: any) {
+    } catch (e: unknown) {
+        const error = e as Partial<{ message: string; code: string; status: number }>;
         return NextResponse.json(
-            { error: e.message ?? 'Errore server.', code: e.code ?? 'INTERNAL_ERROR', status: e.status ?? 500 },
-            { status: e.status ?? 500 }
+            { error: error.message ?? 'Errore server.', code: error.code ?? 'INTERNAL_ERROR', status: error.status ?? 500 },
+            { status: error.status ?? 500 }
         );
     }
 }

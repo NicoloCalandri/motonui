@@ -35,13 +35,13 @@ vi.mock('@/lib/supabase/client', () => ({
 
 // Mock Lucide icons (generic mock for all icons)
 vi.mock('lucide-react', async () => {
-  const actual = await vi.importActual('lucide-react');
-  return new Proxy(actual as any, {
+  const actual = await vi.importActual<Record<string, unknown>>('lucide-react');
+  return new Proxy(actual, {
     get: (target, prop) => {
       if (typeof prop === 'string' && /^[A-Z]/.test(prop)) {
         return () => `[Icon ${prop}]`;
       }
-      return target[prop];
+      return target[prop as keyof typeof target];
     },
   });
 });

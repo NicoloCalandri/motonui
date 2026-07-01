@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import type { Database } from './database.types';
+import type { AppDatabase } from './server';
 
 /**
  * Updates the Supabase session in middleware.
@@ -9,8 +9,13 @@ import type { Database } from './database.types';
  */
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
+    type CookieToSet = {
+        name: string;
+        value: string;
+        options?: Parameters<typeof request.cookies.set>[2];
+    };
 
-    const supabase = createServerClient<any>(
+    const supabase = createServerClient<AppDatabase>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
@@ -18,10 +23,10 @@ export async function updateSession(request: NextRequest) {
                 getAll() {
                     return request.cookies.getAll();
                 },
-                setAll(cookiesToSet: any[]) {
-                    cookiesToSet.forEach(({ name, value }: any) => request.cookies.set(name, value));
+                setAll(cookiesToSet: CookieToSet[]) {
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
                     supabaseResponse = NextResponse.next({ request });
-                    cookiesToSet.forEach(({ name, value, options }: any) =>
+                    cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
                     );
                 },
@@ -30,7 +35,7 @@ export async function updateSession(request: NextRequest) {
     );
 
     // Refresh session — IMPORTANT: do not remove this call.
-    let {
+    const {
         data: { user },
     } = await supabase.auth.getUser();
 

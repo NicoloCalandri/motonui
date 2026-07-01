@@ -45,7 +45,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
     const today = now.toISOString().slice(0, 10);
     const monthStart = `${today.slice(0, 7)}-01`;
 
-    const { data: profile, error: profileError } = await (supabase.from('profiles') as any)
+    const { data: profile, error: profileError } = await supabase.from('profiles')
         .select('role, plan, premium_until')
         .eq('id', userId)
         .single();
@@ -61,7 +61,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
     );
     const canBypass = isAdmin && allowAdminBypass;
 
-    const { data: control } = await (supabase.from('feature_controls') as any)
+    const { data: control } = await supabase.from('feature_controls')
         .select('enabled, hard_daily_cap, daily_usage, usage_date, alert_thresholds, alerted_thresholds')
         .eq('feature_key', feature)
         .single();
@@ -84,7 +84,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
     }
 
     if (!canBypass) {
-        const { data: entitlement } = await (supabase.from('feature_entitlements') as any)
+        const { data: entitlement } = await supabase.from('feature_entitlements')
             .select('enabled, daily_limit, monthly_limit')
             .eq('user_id', userId)
             .eq('feature_key', feature)
@@ -152,7 +152,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
         alertedThresholds
     );
 
-    await (supabase.from('feature_controls') as any)
+    await supabase.from('feature_controls')
         .upsert({
             feature_key: feature,
             enabled: controlRow.enabled ?? true,
@@ -209,7 +209,7 @@ async function enforceUserLimit(input: {
         errorMessage,
     } = input;
 
-    const { data: existing } = await (supabase.from('usage_counters') as any)
+    const { data: existing } = await supabase.from('usage_counters')
         .select('id, usage_count')
         .eq('user_id', userId)
         .eq('feature_key', feature)
@@ -223,7 +223,7 @@ async function enforceUserLimit(input: {
         throw new AppError(errorMessage, errorCode, 429);
     }
 
-    await (supabase.from('usage_counters') as any).upsert({
+    await supabase.from('usage_counters').upsert({
         user_id: userId,
         feature_key: feature,
         period_type: periodType,

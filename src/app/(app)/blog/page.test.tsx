@@ -2,8 +2,19 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import BlogIndexPage from './page';
 
+type MockPost = {
+    id: string;
+    title: string;
+    slug: string;
+    published_at: string;
+    reading_time: number;
+    seo_description: string | null;
+    cover_image: string | null;
+    trips: { destination: string } | null;
+};
+
 // Mutable so individual tests can control post data
-let mockPosts: any[] = [];
+let mockPosts: MockPost[] = [];
 
 vi.mock('@/lib/supabase/server', () => ({
     createClient: () =>

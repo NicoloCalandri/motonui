@@ -76,7 +76,7 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (error) throw Errors.notFound('Attività');
 
     // Clean up reminders
-    await (supabase as any)
+    await supabase
         .from('reminders')
         .delete()
         .eq('entity_id', activityId)

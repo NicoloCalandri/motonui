@@ -15,6 +15,8 @@ class MockNextResponse {
     }
 }
 
+type MockOkResponse = { _ok: boolean; data?: unknown };
+
 vi.mock('next/server', () => ({ NextResponse: MockNextResponse }));
 
 const ADMIN_ID = 'admin-ccc';
@@ -84,7 +86,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: TARGET_EMAIL });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(401);
+        expect((result as MockNextResponse).status).toBe(401);
     });
 
     it('returns 403 when admin tries to delete themselves', async () => {
@@ -92,8 +94,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: 'admin@example.com' });
         const result = await DELETE(req, { params: Promise.resolve({ id: ADMIN_ID }) });
 
-        expect((result as any).status).toBe(403);
-        expect((result as any).body).toMatchObject({ code: 'FORBIDDEN' });
+        expect((result as MockNextResponse).status).toBe(403);
+        expect((result as MockNextResponse).body).toMatchObject({ code: 'FORBIDDEN' });
     });
 
     it('returns 400 when confirmEmail is missing', async () => {
@@ -101,8 +103,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({});
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(400);
-        expect((result as any).body).toMatchObject({ code: 'VALIDATION_ERROR' });
+        expect((result as MockNextResponse).status).toBe(400);
+        expect((result as MockNextResponse).body).toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('returns 404 when target user does not exist', async () => {
@@ -112,8 +114,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: 'nobody@example.com' });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(404);
-        expect((result as any).body).toMatchObject({ code: 'NOT_FOUND' });
+        expect((result as MockNextResponse).status).toBe(404);
+        expect((result as MockNextResponse).body).toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('returns 400 when confirmEmail does not match', async () => {
@@ -121,8 +123,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: 'wrong@example.com' });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(400);
-        expect((result as any).body).toMatchObject({ code: 'VALIDATION_ERROR' });
+        expect((result as MockNextResponse).status).toBe(400);
+        expect((result as MockNextResponse).body).toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('returns 500 when deleteUser fails', async () => {
@@ -132,8 +134,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: TARGET_EMAIL });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(500);
-        expect((result as any).body).toMatchObject({ code: 'INTERNAL_ERROR' });
+        expect((result as MockNextResponse).status).toBe(500);
+        expect((result as MockNextResponse).body).toMatchObject({ code: 'INTERNAL_ERROR' });
     });
 
     it('deletes successfully when confirmEmail matches', async () => {
@@ -141,7 +143,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: TARGET_EMAIL });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any)._ok).toBe(true);
+        expect((result as MockOkResponse)._ok).toBe(true);
         expect(mockDeleteUser).toHaveBeenCalledWith(TARGET_ID);
     });
 

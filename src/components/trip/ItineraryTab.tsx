@@ -100,7 +100,7 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
                         onClick={() => setDrawerOpen(true)}
                         className="mt-6 px-4 py-2 bg-neutral-900 text-white font-bold rounded-2xl shadow-panel hover:bg-black"
                     >
-                        Inizia l'itinerario
+                        Inizia l&apos;itinerario
                     </button>
                 </div>
             ) : (

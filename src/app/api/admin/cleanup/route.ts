@@ -23,8 +23,8 @@ export async function POST(request: Request): Promise<Response> {
     const results: Record<string, number> = {};
 
     // 1. Delete expired Instagram exports
-    const { count: exportCount } = await (supabase
-        .from('instagram_exports') as any)
+    const { count: exportCount } = await supabase
+        .from('instagram_exports')
         .delete({ count: 'exact' })
         .lt('expires_at', new Date().toISOString())
         .eq('status', 'ready');
@@ -33,8 +33,8 @@ export async function POST(request: Request): Promise<Response> {
 
     // 2. Prune AI usage older than 90 days
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const { count: aiUsageCount } = await (supabase
-        .from('ai_usage') as any)
+    const { count: aiUsageCount } = await supabase
+        .from('ai_usage')
         .delete({ count: 'exact' })
         .lt('date', ninetyDaysAgo);
 
@@ -42,8 +42,8 @@ export async function POST(request: Request): Promise<Response> {
 
     // 3. Prune stale destination cache (older than 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { count: destCacheCount } = await (supabase
-        .from('destination_cache') as any)
+    const { count: destCacheCount } = await supabase
+        .from('destination_cache')
         .delete({ count: 'exact' })
         .lt('fetched_at', thirtyDaysAgo);
 
