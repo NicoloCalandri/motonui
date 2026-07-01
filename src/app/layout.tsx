@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Figtree, Playfair_Display } from 'next/font/google';
 import './globals.css';
+import { getAppBaseUrl } from '@/lib/url';
 
 const figtree = Figtree({
     subsets: ['latin'],
@@ -15,7 +16,7 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
     title: { default: 'motonui', template: '%s — motonui' },
     description: 'Il tuo compagno di viaggio di coppia. Pianifica, ricorda, condividi.',
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+    metadataBase: getAppBaseUrl(),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
