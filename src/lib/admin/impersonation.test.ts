@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 class MockNextResponse {
     body: unknown;
     status: number;
+    cookies = { set: vi.fn() };
     constructor(body: unknown, init?: { status?: number }) {
         this.body = body;
         this.status = init?.status ?? 200;
@@ -47,10 +48,6 @@ const mockSelectChain = {
     insert: mockInsert,
 };
 const mockFrom = vi.fn(() => mockSelectChain);
-
-vi.mock('@/lib/errors', () => ({
-    ok: vi.fn((data: unknown) => ({ _ok: true, data })),
-}));
 
 vi.mock('@/lib/supabase/server', () => ({
     createAdminClient: vi.fn(() => ({
@@ -119,17 +116,30 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         expect((result as any).status).toBe(404);
     });
 
-    it('returns token when target user exists', async () => {
+    it('starts impersonation and sets httpOnly cookies when target user exists', async () => {
         mockSelectSingle.mockResolvedValue({ data: { id: mockTargetId, display_name: 'Test User' }, error: null });
+        mockSign.mockResolvedValue('signed.jwt.token');
 
         const { POST } = await import('@/app/api/admin/users/[id]/impersonate/route');
         const req = new Request(`http://localhost/api/admin/users/${mockTargetId}/impersonate`, {
             method: 'POST',
         });
-        const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
+        const result = (await POST(req, { params: Promise.resolve({ id: mockTargetId }) })) as any;
 
-        expect((result as any)._ok).toBe(true);
-        expect((result as any).data).toHaveProperty('token');
+        expect(result.status).toBe(200);
+        expect(result.body).toEqual({ started: true });
+        expect(JSON.stringify(result.body)).not.toContain('signed.jwt.token');
+
+        expect(result.cookies.set).toHaveBeenCalledWith(
+            'impersonation_token',
+            'signed.jwt.token',
+            expect.objectContaining({ httpOnly: true })
+        );
+        expect(result.cookies.set).toHaveBeenCalledWith(
+            'impersonation_display_name',
+            'Test User',
+            expect.objectContaining({ httpOnly: false })
+        );
     });
 
     it('stores token in impersonation_tokens table', async () => {

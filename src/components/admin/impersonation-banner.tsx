@@ -3,13 +3,11 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-interface ImpersonationInfo {
-    targetName: string | null;
-}
-
 /**
  * Fixed banner shown at the top of all app pages when an admin is
- * impersonating another user. Fetches the display name from the JWT cookie.
+ * impersonating another user. Detects the active session from the
+ * non-sensitive display-name cookie (the token cookie is httpOnly and
+ * never touched by client-side JS).
  */
 export default function ImpersonationBanner() {
     const router = useRouter();
@@ -18,15 +16,13 @@ export default function ImpersonationBanner() {
     const [exiting, setExiting] = useState(false);
 
     useEffect(() => {
-        const hasToken = document.cookie.includes('impersonation_token=');
-        setVisible(hasToken);
+        const displayNameCookie = document.cookie
+            .split('; ')
+            .find(c => c.startsWith('impersonation_display_name='));
 
-        if (hasToken) {
-            // Decode the display name from the user_role cookie or use a generic label
-            const userRoleCookie = document.cookie
-                .split('; ')
-                .find(c => c.startsWith('impersonation_display_name='));
-            setTargetName(userRoleCookie ? decodeURIComponent(userRoleCookie.split('=')[1]) : 'questo utente');
+        if (displayNameCookie) {
+            setVisible(true);
+            setTargetName(decodeURIComponent(displayNameCookie.split('=')[1]));
         }
     }, []);
 
@@ -34,8 +30,7 @@ export default function ImpersonationBanner() {
         setExiting(true);
         try {
             await fetch('/api/admin/impersonate/exit', { method: 'POST' });
-            // Clear cookie client-side too
-            document.cookie = 'impersonation_token=; max-age=0; path=/';
+            setVisible(false);
             router.push('/admin/users');
         } catch {
             setExiting(false);

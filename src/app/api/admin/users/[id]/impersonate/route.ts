@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
-import { ok } from '@/lib/errors';
 
 type Params = { params: Promise<{ id: string }> };
 
 const IMPERSONATION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+const IMPERSONATION_DURATION_SECONDS = IMPERSONATION_DURATION_MS / 1000;
 
 /** POST /api/admin/users/[id]/impersonate */
 export async function POST(_req: Request, { params }: Params) {
@@ -69,5 +69,24 @@ export async function POST(_req: Request, { params }: Params) {
         metadata: { display_name: targetProfile.display_name },
     });
 
-    return ok({ token });
+    // The token itself never reaches client-side JS: it's set as an httpOnly
+    // cookie only. A separate, non-sensitive cookie carries the display name
+    // so the UI can show a banner without ever touching the token.
+    const response = NextResponse.json({ started: true });
+    response.cookies.set('impersonation_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: IMPERSONATION_DURATION_SECONDS,
+        path: '/',
+    });
+    response.cookies.set('impersonation_display_name', targetProfile.display_name ?? 'utente', {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: IMPERSONATION_DURATION_SECONDS,
+        path: '/',
+    });
+
+    return response;
 }

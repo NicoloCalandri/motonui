@@ -29,8 +29,7 @@ export default function ImpersonateConfirmDialog({ user, onClose }: Props) {
                 return;
             }
 
-            // Set the impersonation cookie and redirect
-            document.cookie = `impersonation_token=${data.token}; path=/; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Lax`;
+            // The server already set the impersonation cookies (httpOnly) on this response.
             router.push('/dashboard');
         } catch {
             setError('Errore di rete. Riprova.');
