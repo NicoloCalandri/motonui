@@ -2,10 +2,17 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from './database.types';
 
+export interface MiddlewareProfile {
+    role: string;
+    suspended_at: string | null;
+}
+
 /**
  * Updates the Supabase session in middleware.
  * Must be called in middleware.ts to keep auth tokens fresh.
- * Returns (request, response) with refreshed session cookies applied.
+ * Returns (request, response) with refreshed session cookies applied, plus the
+ * caller's own profile (role/suspension), fetched with the *authenticated*
+ * client so RLS (`auth.uid() = id`) actually scopes the row to the caller.
  */
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
@@ -34,5 +41,15 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    return { supabaseResponse, user };
+    let profile: MiddlewareProfile | null = null;
+    if (user) {
+        const { data } = await supabase
+            .from('profiles')
+            .select('role, suspended_at')
+            .eq('id', user.id)
+            .single();
+        profile = data ?? null;
+    }
+
+    return { supabaseResponse, user, profile };
 }

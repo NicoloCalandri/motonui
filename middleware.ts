@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/_next') ||
         pathname.startsWith('/favicon');
 
-    const { supabaseResponse: response, user } = await updateSession(request);
+    const { supabaseResponse: response, user, profile } = await updateSession(request);
 
     // ── Impersonation token handling ───────────────────────────────────────
     const impersonationToken = request.cookies.get('impersonation_token')?.value;
@@ -69,46 +69,24 @@ export async function middleware(request: NextRequest) {
     }
 
     if (user) {
-        // Fetch profile for role/suspension check
-        // We check role/suspension via the Supabase REST API to avoid circular imports.
-        // A lightweight inline check is done below using the anon key.
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-        const profileRes = await fetch(
-            `${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=role,suspended_at`,
-            {
-                headers: {
-                    apikey: anonKey,
-                    Authorization: `Bearer ${anonKey}`,
-                    'Content-Type': 'application/json',
-                },
+        if (profile) {
+            // Block suspended users everywhere except /suspended and /auth
+            if (profile.suspended_at && !pathname.startsWith('/suspended') && !pathname.startsWith('/auth')) {
+                return NextResponse.redirect(new URL('/suspended', request.url));
             }
-        );
 
-        if (profileRes.ok) {
-            const profiles = await profileRes.json() as Array<{ role: string; suspended_at: string | null }>;
-            const profile = profiles[0];
-
-            if (profile) {
-                // Block suspended users everywhere except /suspended and /auth
-                if (profile.suspended_at && !pathname.startsWith('/suspended') && !pathname.startsWith('/auth')) {
-                    return NextResponse.redirect(new URL('/suspended', request.url));
-                }
-
-                // Protect /admin routes — admin only
-                if (pathname.startsWith('/admin') && profile.role !== 'admin') {
-                    return NextResponse.redirect(new URL('/dashboard', request.url));
-                }
-
-                // Store role in a non-httpOnly cookie for client-side UI hints (not sensitive)
-                response.cookies.set('user_role', profile.role ?? 'user', {
-                    httpOnly: false,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax',
-                    path: '/',
-                });
+            // Protect /admin routes — admin only
+            if (pathname.startsWith('/admin') && profile.role !== 'admin') {
+                return NextResponse.redirect(new URL('/dashboard', request.url));
             }
+
+            // Store role in a non-httpOnly cookie for client-side UI hints (not sensitive)
+            response.cookies.set('user_role', profile.role ?? 'user', {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+            });
         }
 
         // Redirect authenticated users away from auth pages
