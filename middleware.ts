@@ -56,8 +56,9 @@ export async function middleware(request: NextRequest) {
             response.headers.set('x-impersonated-user-id', imp.targetId);
             response.headers.set('x-impersonating-admin-id', imp.adminId);
         } catch {
-            // Token expired or invalid — silently remove
+            // Token expired or invalid — silently remove both impersonation cookies
             response.cookies.delete('impersonation_token');
+            response.cookies.delete('impersonation_display_name');
         }
     }
 

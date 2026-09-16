@@ -43,11 +43,14 @@ export async function updateSession(request: NextRequest) {
 
     let profile: MiddlewareProfile | null = null;
     if (user) {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('profiles')
             .select('role, suspended_at')
             .eq('id', user.id)
             .single();
+        if (error) {
+            console.error('[motonui][middleware] profile lookup failed:', error.message);
+        }
         profile = data ?? null;
     }
 
