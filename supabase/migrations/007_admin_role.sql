@@ -1,2 +1,0 @@
--- This migration has been moved to 0007_admin_role.sql to follow the naming convention
--- and ensure it runs before dependent migrations like 0008 and 0012.
