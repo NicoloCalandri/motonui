@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type BaseSyntheticEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -168,9 +168,13 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
         setBoardingPassUrl(null);
     };
 
-    const onSubmit = async (values: FormValues) => {
+    const onSubmit = async (values: FormValues, event?: BaseSyntheticEvent) => {
         setSaving(true);
         setError(null);
+
+        const nativeEvent = event?.nativeEvent as SubmitEvent | undefined;
+        const submitter = nativeEvent?.submitter as HTMLButtonElement | null;
+        const submitMode = submitter?.getAttribute('data-submit-mode') === 'add-another' ? 'add-another' : 'save';
 
         try {
             const depDate = values.departure_date ?? dayDate ?? initialData?.departure_at?.slice(0, 10);
@@ -254,9 +258,21 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                 }
             }
 
-            reset();
-            onClose();
             onSaved();
+
+            if (isEditing || submitMode === 'save') {
+                reset();
+                onClose();
+                return;
+            }
+
+            reset({ type: values.type, currency: values.currency || 'EUR', departure_date: dayDate ?? undefined, arrival_date: dayDate ?? undefined });
+            setFromInitial('');
+            setToInitial('');
+            setFromCoords(null);
+            setToCoords(null);
+            setBoardingPassUrl(null);
+            setSegments([defaultSegment()]);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Errore imprevisto');
         } finally {
@@ -296,7 +312,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                             <button
                                                 key={id}
                                                 type="button"
-                                                onClick={() => setValue('type', id as any)}
+                                                onClick={() => setValue('type', id as FormValues['type'])}
                                                 className={`flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 ${selectedType === id
                                                     ? 'bg-neutral-900 text-white shadow-panel scale-95 ring-2 ring-neutral-900 ring-offset-2'
                                                     : 'bg-neutral-50/80 text-neutral-600 hover:bg-neutral-100'
@@ -565,7 +581,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                         </div>
                                         {isEditing && (
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d'imbarco</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d&apos;imbarco</label>
                                                 {boardingPassUrl ? (
                                                     <div className="flex items-center gap-3 p-4 bg-sage-50 rounded-2xl">
                                                         <Ticket className="w-5 h-5 text-sage-500 flex-shrink-0" />
@@ -600,15 +616,26 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                     </>
                                 )}
 
-                                <div className="pt-6">
+                                <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <button
                                         type="submit"
+                                        data-submit-mode="save"
                                         disabled={saving}
                                         className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-[24px] font-bold text-lg transition-all duration-300 hover:shadow-panel active:scale-95 disabled:opacity-50"
                                     >
                                         {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : null}
                                         {saving ? 'Salvataggio...' : isEditing ? 'Salva modifiche' : 'Aggiungi spostamento'}
                                     </button>
+                                    {!isEditing && (
+                                        <button
+                                            type="submit"
+                                            data-submit-mode="add-another"
+                                            disabled={saving}
+                                            className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 rounded-[24px] font-bold text-lg transition-all duration-300 active:scale-95 disabled:opacity-50"
+                                        >
+                                            Salva e aggiungi un altro
+                                        </button>
+                                    )}
                                 </div>
                             </form>
                         </div>

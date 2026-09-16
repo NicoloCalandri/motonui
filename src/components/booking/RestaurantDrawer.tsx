@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type BaseSyntheticEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -72,9 +72,13 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
         }
     }, [open, initialData, reset]);
 
-    const onSubmit = async (values: FormValues) => {
+    const onSubmit = async (values: FormValues, event?: BaseSyntheticEvent) => {
         setSaving(true);
         setError(null);
+
+        const nativeEvent = event?.nativeEvent as SubmitEvent | undefined;
+        const submitter = nativeEvent?.submitter as HTMLButtonElement | null;
+        const submitMode = submitter?.getAttribute('data-submit-mode') === 'add-another' ? 'add-another' : 'save';
 
         try {
             const url = isEditing
@@ -92,9 +96,15 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                 throw new Error(data.error ?? 'Errore nel salvataggio');
             }
 
-            reset();
-            onClose();
             onSaved();
+
+            if (isEditing || submitMode === 'save') {
+                reset();
+                onClose();
+                return;
+            }
+
+            reset({ currency: values.currency || 'EUR', covers: values.covers || 2 });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Errore imprevisto');
         } finally {
@@ -247,15 +257,26 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                     />
                                 </div>
 
-                                <div className="pt-6">
+                                <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <button
                                         type="submit"
+                                        data-submit-mode="save"
                                         disabled={saving}
                                         className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-[24px] font-bold text-lg transition-all duration-300 hover:shadow-panel active:scale-95 disabled:opacity-50"
                                     >
                                         {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : null}
                                         {saving ? 'Salvataggio...' : isEditing ? 'Salva modifiche' : 'Aggiungi ristorante'}
                                     </button>
+                                    {!isEditing && (
+                                        <button
+                                            type="submit"
+                                            data-submit-mode="add-another"
+                                            disabled={saving}
+                                            className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 rounded-[24px] font-bold text-lg transition-all duration-300 active:scale-95 disabled:opacity-50"
+                                        >
+                                            Salva e aggiungi un altro
+                                        </button>
+                                    )}
                                 </div>
                             </form>
                         </div>

@@ -114,6 +114,7 @@ const AIRPORTS: [string, string, string, string, number, number][] = [
     ['SDU', 'Rio de Janeiro', 'Santos Dumont', 'BR', -22.9105, -43.1632],
     ['BSB', 'Brasilia', 'Presidente Juscelino Kubitschek', 'BR', -15.8711, -47.9187],
     ['SSA', 'Salvador', 'Deputado Luís Eduardo Magalhães', 'BR', -12.9111, -38.3225],
+    ['SLZ', 'Sao Luiz', 'Marechal Cunha Machado', 'BR', -2.5854, -44.2341],
     ['FOR', 'Fortaleza', 'Pinto Martins', 'BR', -3.7763, -38.5326],
     ['REC', 'Recife', 'Guararapes', 'BR', -8.1265, -34.9234],
     ['MAO', 'Manaus', 'Eduardo Gomes', 'BR', -3.0386, -60.0497],

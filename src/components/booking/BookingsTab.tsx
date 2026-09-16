@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import {
@@ -23,6 +23,45 @@ const ACTIVITY_EMOJIS: Record<string, string> = {
 };
 
 type Section = 'flights' | 'hotels' | 'restaurants' | 'activities' | 'transports';
+
+function toTimestamp(value: string | null | undefined): number {
+    if (!value) return Number.POSITIVE_INFINITY;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+}
+
+function mergeDateTime(date: string | null | undefined, time: string | null | undefined): string | null {
+    if (!date) return null;
+    return `${date}T${time ?? '00:00'}:00`;
+}
+
+function compareLegByDate(a: Leg, b: Leg): number {
+    const aTs = toTimestamp(a.departure_at ?? a.arrival_at);
+    const bTs = toTimestamp(b.departure_at ?? b.arrival_at);
+    if (aTs !== bTs) return aTs - bTs;
+    return a.from_name.localeCompare(b.from_name);
+}
+
+function compareAccommodationByDate(a: Accommodation, b: Accommodation): number {
+    const aTs = toTimestamp(a.check_in ?? a.check_out);
+    const bTs = toTimestamp(b.check_in ?? b.check_out);
+    if (aTs !== bTs) return aTs - bTs;
+    return a.name.localeCompare(b.name);
+}
+
+function compareRestaurantByDate(a: Restaurant, b: Restaurant): number {
+    const aTs = toTimestamp(mergeDateTime(a.date, a.time));
+    const bTs = toTimestamp(mergeDateTime(b.date, b.time));
+    if (aTs !== bTs) return aTs - bTs;
+    return a.name.localeCompare(b.name);
+}
+
+function compareActivityByDate(a: Activity, b: Activity): number {
+    const aTs = toTimestamp(mergeDateTime(a.date, a.time));
+    const bTs = toTimestamp(mergeDateTime(b.date, b.time));
+    if (aTs !== bTs) return aTs - bTs;
+    return a.name.localeCompare(b.name);
+}
 
 interface BookingsTabProps {
     trip: TripWithDetails;
@@ -52,8 +91,13 @@ export default function BookingsTab({ trip, onDataChange }: BookingsTabProps) {
     const [legs, setLegs] = useState<Leg[]>([]);
     const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
 
-    const flights = legs.filter(l => l.type === 'flight');
-    const transports = legs.filter(l => l.type !== 'flight');
+    const sortedLegs = useMemo(() => [...legs].sort(compareLegByDate), [legs]);
+    const sortedAccommodations = useMemo(() => [...accommodations].sort(compareAccommodationByDate), [accommodations]);
+    const sortedRestaurants = useMemo(() => [...restaurants].sort(compareRestaurantByDate), [restaurants]);
+    const sortedActivities = useMemo(() => [...activities].sort(compareActivityByDate), [activities]);
+
+    const flights = sortedLegs.filter((l) => l.type === 'flight');
+    const transports = sortedLegs.filter((l) => l.type !== 'flight');
 
     const toggleSection = (section: Section) => {
         setExpandedSections(prev => {
@@ -134,9 +178,9 @@ export default function BookingsTab({ trip, onDataChange }: BookingsTabProps) {
 
     const SECTIONS: { id: Section; label: string; icon: React.ElementType; count: number; color: string }[] = [
         { id: 'flights', label: 'Voli', icon: Plane, count: flights.length, color: 'bg-blue-500' },
-        { id: 'hotels', label: 'Alloggi', icon: Hotel, count: accommodations.length, color: 'bg-emerald-500' },
-        { id: 'restaurants', label: 'Ristoranti', icon: Utensils, count: restaurants.length, color: 'bg-orange-500' },
-        { id: 'activities', label: 'Attività', icon: Ticket, count: activities.length, color: 'bg-purple-500' },
+        { id: 'hotels', label: 'Alloggi', icon: Hotel, count: sortedAccommodations.length, color: 'bg-emerald-500' },
+        { id: 'restaurants', label: 'Ristoranti', icon: Utensils, count: sortedRestaurants.length, color: 'bg-orange-500' },
+        { id: 'activities', label: 'Attività', icon: Ticket, count: sortedActivities.length, color: 'bg-purple-500' },
         { id: 'transports', label: 'Trasporti', icon: Bus, count: transports.length, color: 'bg-slate-500' },
     ];
 
@@ -215,10 +259,10 @@ export default function BookingsTab({ trip, onDataChange }: BookingsTabProps) {
                             {id === 'flights' && flights.map(leg => (
                                 <FlightCard key={leg.id} leg={leg} onEdit={() => { setEditingLeg(leg); setLegDrawerOpen(true); }} onDelete={() => deleteLeg(leg.id, leg.day_id)} />
                             ))}
-                            {id === 'hotels' && accommodations.map(acc => (
+                            {id === 'hotels' && sortedAccommodations.map(acc => (
                                 <AccommodationCard key={acc.id} accommodation={acc} onEdit={() => { setEditingAcc(acc); setAccDrawerOpen(true); }} onDelete={() => deleteAcc(acc.id, acc.day_id)} />
                             ))}
-                            {id === 'restaurants' && restaurants.map(rest => (
+                            {id === 'restaurants' && sortedRestaurants.map(rest => (
                                 <RestaurantCard
                                     key={rest.id}
                                     restaurant={rest}
@@ -226,7 +270,7 @@ export default function BookingsTab({ trip, onDataChange }: BookingsTabProps) {
                                     onDelete={() => deleteRestaurant(rest.id)}
                                 />
                             ))}
-                            {id === 'activities' && activities.map(act => (
+                            {id === 'activities' && sortedActivities.map(act => (
                                 <ActivityCard
                                     key={act.id}
                                     activity={act}
@@ -249,7 +293,7 @@ export default function BookingsTab({ trip, onDataChange }: BookingsTabProps) {
                                     </button>
                                 </EmptyState>
                             )}
-                            {id === 'hotels' && accommodations.length === 0 && (
+                            {id === 'hotels' && sortedAccommodations.length === 0 && (
                                 <EmptyState text="Nessun alloggio aggiunto">
                                     <button
                                         onClick={() => { setEditingAcc(null); setAccDrawerOpen(true); }}
@@ -259,7 +303,7 @@ export default function BookingsTab({ trip, onDataChange }: BookingsTabProps) {
                                     </button>
                                 </EmptyState>
                             )}
-                            {id === 'restaurants' && restaurants.length === 0 && (
+                            {id === 'restaurants' && sortedRestaurants.length === 0 && (
                                 <EmptyState text="Nessun ristorante aggiunto">
                                     <button
                                         onClick={() => { setEditingRestaurant(null); setRestaurantDrawerOpen(true); }}
@@ -269,7 +313,7 @@ export default function BookingsTab({ trip, onDataChange }: BookingsTabProps) {
                                     </button>
                                 </EmptyState>
                             )}
-                            {id === 'activities' && activities.length === 0 && (
+                            {id === 'activities' && sortedActivities.length === 0 && (
                                 <EmptyState text="Nessuna attività aggiunta">
                                     <button
                                         onClick={() => { setEditingActivity(null); setActivityDrawerOpen(true); }}

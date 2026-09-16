@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { ArrowLeft, MapPin, Calendar, Users, Map, DollarSign, Images, BookOpen, ClipboardList, Wallet, CalendarDays } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Users, Map, DollarSign, Images, BookOpen, ClipboardList, Wallet, CalendarDays, Backpack } from 'lucide-react';
 import type { TripWithDetails } from '@/lib/types';
 
 // Tab imports are lazy-loaded to reduce initial bundle
@@ -19,8 +19,9 @@ const BlogTab = dynamic(() => import('@/components/blog/BlogTab'));
 const BookingsTab = dynamic(() => import('@/components/booking/BookingsTab'));
 const TravelWallet = dynamic(() => import('@/components/wallet/TravelWallet'));
 const TripCalendar = dynamic(() => import('@/components/calendar/TripCalendar'));
+const PackingTab = dynamic(() => import('@/components/trip/PackingTab'));
 
-type TabId = 'overview' | 'itinerary' | 'bookings' | 'wallet' | 'calendar' | 'expenses' | 'media' | 'blog';
+type TabId = 'overview' | 'itinerary' | 'bookings' | 'wallet' | 'calendar' | 'expenses' | 'media' | 'blog' | 'packing';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'overview', label: 'Panoramica', icon: Map },
@@ -28,6 +29,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'bookings', label: 'Prenotazioni', icon: ClipboardList },
     { id: 'wallet', label: 'Wallet', icon: Wallet },
     { id: 'calendar', label: 'Calendario', icon: CalendarDays },
+    { id: 'packing', label: 'Bagagli', icon: Backpack },
     { id: 'expenses', label: 'Spese', icon: DollarSign },
     { id: 'media', label: 'Foto', icon: Images },
     { id: 'blog', label: 'Blog', icon: BookOpen },
@@ -144,6 +146,7 @@ export default function TripPage() {
                 {activeTab === 'bookings' && <BookingsTab trip={trip} onDataChange={fetchTrip} />}
                 {activeTab === 'wallet' && <TravelWallet trip={trip} onDataChange={fetchTrip} />}
                 {activeTab === 'calendar' && <TripCalendar trip={trip} />}
+                {activeTab === 'packing' && <PackingTab trip={trip} />}
                 {activeTab === 'expenses' && <ExpensesTab tripId={trip.id} tripStartDate={trip.start_date} tripEndDate={trip.end_date} />}
                 {activeTab === 'media' && <MediaTab tripId={trip.id} />}
                 {activeTab === 'blog' && <BlogTab tripId={trip.id} />}

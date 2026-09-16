@@ -12,7 +12,7 @@ const CreateDaySchema = z.object({
 
 type Params = { params: Promise<{ id: string }> };
 
-/** GET /api/trips/[id]/days — list days with legs + accommodations */
+/** GET /api/trips/[id]/days — list days with legs + accommodations + activities */
 export const GET = withErrorHandler(async (_req, { params }) => {
     const supabase = await createClient();
 
@@ -22,7 +22,7 @@ export const GET = withErrorHandler(async (_req, { params }) => {
 
     const { data, error } = await supabase
         .from('days')
-        .select(`*, legs(*), accommodations(*)`)
+        .select(`*, legs(*), accommodations(*), activities(*)`)
         .eq('trip_id', id)
         .order('date', { ascending: true });
 

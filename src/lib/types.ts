@@ -64,6 +64,8 @@ export type DocumentEntityType = 'leg' | 'accommodation' | 'restaurant' | 'activ
 
 export type DocumentFileType = 'pdf' | 'image';
 
+export type BaggageCategory = 'cabin_bag' | 'cabin_trolley' | 'checked' | 'other';
+
 // =============================================================================
 // DATABASE ROW TYPES (mirror Supabase schema)
 // =============================================================================
@@ -323,7 +325,7 @@ export interface UserProfile {
 /** Trip with additional aggregated data */
 export interface TripWithDetails extends Trip {
   members: (TripMember & { profile: UserProfile })[];
-  days: (Day & { legs: Leg[]; accommodations: Accommodation[] })[];
+  days: (Day & { legs: Leg[]; accommodations: Accommodation[]; activities?: Activity[] })[];
   restaurants: Restaurant[];
   activities: Activity[];
   documents: Document[];
@@ -692,12 +694,79 @@ export interface Reminder {
 }
 
 // =============================================================================
+// PACKING / BAGGAGE
+// =============================================================================
+
+/** A piece of luggage registered for a trip, optionally tied to a flight leg */
+export interface BaggageItem {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  trip_id: string;
+  leg_id: string | null;
+  category: BaggageCategory;
+  label: string | null;
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  notes: string | null;
+}
+
+/** Request body for creating/updating a baggage item */
+export interface CreateBaggageItemInput {
+  leg_id?: string | null;
+  category: BaggageCategory;
+  label?: string;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
+  weight_kg?: number;
+  notes?: string;
+}
+
+/** A single clothing/gear item within a packing checklist category */
+export interface PackingItem {
+  id: string;
+  category: string;
+  label: string;
+  qty: number;
+  note?: string;
+}
+
+/** A category grouping of packing items, as produced by the AI */
+export interface PackingCategoryGroup {
+  name: string;
+  items: PackingItem[];
+}
+
+/** Normalized daily weather forecast/climate-average entry */
+export interface DailyWeather {
+  date: string;             // ISO date string
+  temp_max_c: number;
+  temp_min_c: number;
+  precipitation_probability: number; // 0-100
+  condition: string;        // short human-readable summary (Italian)
+}
+
+/** AI-generated packing checklist for a trip */
+export interface PackingChecklist {
+  trip_id: string;
+  categories: PackingCategoryGroup[];
+  weather_snapshot: DailyWeather[] | null;
+  input_hash: string | null;
+  generated_at: string | null;
+  checked_item_ids: string[];
+  updated_at: string;
+}
+
+// =============================================================================
 // ADMIN TYPES
 // =============================================================================
 
 export type UserRole = 'user' | 'admin';
 export type UserPlan = 'free' | 'premium';
-export type PremiumFeatureKey = 'ai_blog' | 'ai_generate_post' | 'ai_destination' | 'instagram_caption' | 'advanced_reminders';
+export type PremiumFeatureKey = 'ai_blog' | 'ai_generate_post' | 'ai_destination' | 'instagram_caption' | 'advanced_reminders' | 'packing_checklist';
 
 /** Admin action types recorded in the audit log */
 export type AdminAction = 'impersonate' | 'suspend' | 'unsuspend' | 'delete' | 'view_profile';

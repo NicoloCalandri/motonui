@@ -7,6 +7,7 @@ export const FEATURE_KEYS = [
     'ai_destination',
     'instagram_caption',
     'advanced_reminders',
+    'packing_checklist',
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -17,6 +18,7 @@ const DEFAULT_LIMITS: Record<FeatureKey, { daily: number; monthly: number }> = {
     ai_destination: { daily: 20, monthly: 200 },
     instagram_caption: { daily: 20, monthly: 200 },
     advanced_reminders: { daily: 100, monthly: 2000 },
+    packing_checklist: { daily: 20, monthly: 200 },
 };
 
 interface RequireFeatureAccessInput {

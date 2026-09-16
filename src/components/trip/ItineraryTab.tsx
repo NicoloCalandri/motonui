@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Day, Leg, Accommodation } from '@/lib/types';
+import type { Day, Leg, Accommodation, Activity } from '@/lib/types';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Plane, Train, Car, Ship, PersonStanding, Bus, MapPin, Hotel, PlusCircle, Pencil, Trash2, Ticket } from 'lucide-react';
@@ -9,12 +9,15 @@ import DayDrawer from './DayDrawer';
 import LegDrawer from './LegDrawer';
 import AccommodationDrawer from './AccommodationDrawer';
 import BoardingPassViewer from './BoardingPassViewer';
+import ActivityDrawer from '@/components/booking/ActivityDrawer';
 
 const LEG_ICONS: Record<string, React.ElementType> = {
     flight: Plane, train: Train, car: Car, ferry: Ship, walk: PersonStanding, bus: Bus, other: MapPin,
 };
 
-type DayWithDetails = Day & { legs: Leg[]; accommodations: Accommodation[] };
+const getLegBorderClass = (type: Leg['type']) => (type === 'flight' ? 'border-l-2 border-blue-300' : 'border-l-2 border-slate-300');
+
+type DayWithDetails = Day & { legs: Leg[]; accommodations: Accommodation[]; activities?: Activity[] };
 
 interface ItineraryTabProps {
     trip: { id: string; days?: DayWithDetails[]; start_date?: string | null; end_date?: string | null };
@@ -33,8 +36,10 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
     const [activeDay, setActiveDay] = useState<DayWithDetails | null>(null);
     const [legDrawerOpen, setLegDrawerOpen] = useState(false);
     const [accDrawerOpen, setAccDrawerOpen] = useState(false);
+    const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
     const [editingLeg, setEditingLeg] = useState<Leg | null>(null);
     const [editingAcc, setEditingAcc] = useState<Accommodation | null>(null);
+    const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
     const [boardingPassLeg, setBoardingPassLeg] = useState<Leg | null>(null);
     const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
@@ -59,6 +64,13 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
     const deleteAcc = async (tripId: string, dayId: string, accId: string) => {
         if (!confirm('Eliminare questo alloggio?')) return;
         await fetch(`/api/trips/${tripId}/days/${dayId}/accommodations/${accId}`, { method: 'DELETE' });
+        fetchDays();
+        onDataChange?.();
+    };
+
+    const deleteActivity = async (tripId: string, activityId: string) => {
+        if (!confirm('Eliminare questa attività?')) return;
+        await fetch(`/api/trips/${tripId}/activities/${activityId}`, { method: 'DELETE' });
         fetchDays();
         onDataChange?.();
     };
@@ -100,7 +112,7 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
                         onClick={() => setDrawerOpen(true)}
                         className="mt-6 px-4 py-2 bg-neutral-900 text-white font-bold rounded-2xl shadow-panel hover:bg-black"
                     >
-                        Inizia l'itinerario
+                        Inizia l&apos;itinerario
                     </button>
                 </div>
             ) : (
@@ -149,7 +161,7 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
                         {day.legs?.map((leg) => {
                             const Icon = LEG_ICONS[leg.type] ?? MapPin;
                             return (
-                                <div key={leg.id} className="card overflow-hidden group">
+                                <div key={leg.id} className={`card overflow-hidden group ${getLegBorderClass(leg.type)}`}>
                                     <div 
                                         className="p-3 flex items-start gap-3 cursor-pointer hover:bg-ink-50/50 transition-colors"
                                         onClick={() => toggleExpand(leg.id)}
@@ -246,7 +258,7 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
 
                         {/* Accommodations */}
                         {day.accommodations?.map((acc) => (
-                            <div key={acc.id} className="card overflow-hidden border-l-2 border-sage-300 group">
+                            <div key={acc.id} className="card overflow-hidden border-l-2 border-emerald-300 group">
                                 <div 
                                     className="p-3 flex items-start gap-3 cursor-pointer hover:bg-sage-50/30 transition-colors"
                                     onClick={() => toggleExpand(acc.id)}
@@ -316,7 +328,77 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
                             </div>
                         ))}
 
-                        {day.legs?.length === 0 && day.accommodations?.length === 0 && (
+                        {/* Activities */}
+                        {day.activities?.map((activity) => (
+                            <div key={activity.id} className="card overflow-hidden border-l-2 border-violet-300 group">
+                                <div
+                                    className="p-3 flex items-start gap-3 cursor-pointer hover:bg-violet-50/30 transition-colors"
+                                    onClick={() => toggleExpand(activity.id)}
+                                >
+                                    <div className="w-8 h-8 mt-0.5 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Ticket className="w-4 h-4 text-violet-500" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-ink-800 truncate">{activity.name}</p>
+                                        <p className="text-xs text-ink-500 capitalize">{activity.type}</p>
+                                        {(activity.date || activity.time) && (
+                                            <p className="text-xs text-ink-400">
+                                                {activity.date ? format(new Date(activity.date), 'd MMM', { locale: it }) : ''}
+                                                {activity.time ? `${activity.date ? ' · ' : ''}${activity.time}` : ''}
+                                            </p>
+                                        )}
+                                    </div>
+                                    {activity.cost && (
+                                        <span className="text-xs text-ink-500 whitespace-nowrap mt-1">
+                                            {activity.currency} {activity.cost}
+                                        </span>
+                                    )}
+                                    <div className="flex gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                        <button
+                                            aria-label="Modifica attività"
+                                            onClick={(e) => { e.stopPropagation(); setActiveDay(day); setEditingActivity(activity); setActivityDrawerOpen(true); }}
+                                            className="p-1.5 rounded-lg text-ink-400 hover:text-violet-500 hover:bg-violet-50 transition-colors"
+                                        >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            aria-label="Elimina attività"
+                                            onClick={(e) => { e.stopPropagation(); deleteActivity(trip.id, activity.id); }}
+                                            className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {expandedItemId === activity.id && (
+                                    <div className="px-12 pb-4 pt-1 text-sm text-ink-600 bg-violet-50/20 border-t border-violet-100 space-y-2">
+                                        {(activity.address || activity.booking_ref || activity.duration_min) && (
+                                            <div className="flex flex-col gap-1 pt-2">
+                                                {activity.address && (
+                                                    <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Luogo:</span><span className="font-medium">{activity.address}</span></div>
+                                                )}
+                                                {activity.booking_ref && (
+                                                    <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Ref Prenotazione:</span><span className="font-medium">{activity.booking_ref}</span></div>
+                                                )}
+                                                {activity.duration_min && (
+                                                    <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Durata:</span><span className="font-medium">{activity.duration_min} min</span></div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {activity.notes && (
+                                            <div className="pt-2 border-t border-violet-100 mt-2">
+                                                <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
+                                                <p className="whitespace-pre-wrap">{activity.notes}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {day.legs?.length === 0 && day.accommodations?.length === 0 && day.activities?.length === 0 && (
                             <p className="text-xs text-ink-300 italic mb-2">Nessuna attività pianificata</p>
                         )}
                         
@@ -333,6 +415,12 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
                                 className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 rounded-xl text-xs font-bold transition-colors"
                             >
                                 <PlusCircle className="w-3.5 h-3.5" /> Alloggio
+                            </button>
+                            <button
+                                onClick={() => { setActiveDay(day); setEditingActivity(null); setActivityDrawerOpen(true); }}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 rounded-xl text-xs font-bold transition-colors"
+                            >
+                                <PlusCircle className="w-3.5 h-3.5" /> Attività
                             </button>
                         </div>
                     </div>
@@ -370,6 +458,17 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
                 onClose={() => { setAccDrawerOpen(false); setActiveDay(null); setEditingAcc(null); }}
                 onSaved={() => { fetchDays(); onDataChange?.(); }}
                 initialData={editingAcc ?? undefined}
+                tripStartDate={trip.start_date}
+                tripEndDate={trip.end_date}
+            />
+
+            <ActivityDrawer
+                tripId={trip.id}
+                open={activityDrawerOpen}
+                onClose={() => { setActivityDrawerOpen(false); setActiveDay(null); setEditingActivity(null); }}
+                onSaved={() => { fetchDays(); onDataChange?.(); }}
+                initialData={editingActivity ?? undefined}
+                dayContext={activeDay ? { id: activeDay.id, date: activeDay.date } : undefined}
                 tripStartDate={trip.start_date}
                 tripEndDate={trip.end_date}
             />

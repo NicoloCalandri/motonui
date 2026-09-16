@@ -76,6 +76,32 @@ export async function requireDayInTrip(
 }
 
 /**
+ * Confirms that a leg belongs to the expected trip.
+ */
+export async function requireLegInTrip(
+  supabase: SupabaseLike,
+  tripId: string,
+  legId: string | null | undefined
+): Promise<void> {
+  if (!legId) return;
+
+  const { data, error } = await supabase
+    .from('legs')
+    .select('id')
+    .eq('id', legId)
+    .eq('trip_id', tripId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`[motonui][authz][leg_in_trip] ${error.message}`);
+  }
+
+  if (!data) {
+    throw Errors.validation('Il volo selezionato non appartiene al viaggio richiesto.');
+  }
+}
+
+/**
  * Ensures that the payer is a member of the same trip.
  */
 export async function requireTripPayer(
