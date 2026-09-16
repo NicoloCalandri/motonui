@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextResponse } from 'next/server';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
@@ -86,5 +86,28 @@ describe('requireAdmin', () => {
         expect(mockFrom).toHaveBeenCalledWith('profiles');
         expect(mockSelectChain.select).toHaveBeenCalledWith('role');
         expect(mockSelectChain.eq).toHaveBeenCalledWith('id', 'u1');
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    it('does NOT bypass the admin check when NODE_ENV is "development" without ADMIN_AUTH_BYPASS', async () => {
+        vi.stubEnv('NODE_ENV', 'development');
+        mockGetUser.mockResolvedValue({ data: { user: null } });
+
+        const result = await requireAdmin();
+
+        expect(result).toMatchObject({ status: 401 });
+        expect(mockGetUser).toHaveBeenCalled();
+    });
+
+    it('bypasses the admin check when ADMIN_AUTH_BYPASS is "true"', async () => {
+        vi.stubEnv('ADMIN_AUTH_BYPASS', 'true');
+
+        const result = await requireAdmin();
+
+        expect(result).toEqual({ adminId: '00000000-0000-0000-0000-000000000001' });
+        expect(mockGetUser).not.toHaveBeenCalled();
     });
 });

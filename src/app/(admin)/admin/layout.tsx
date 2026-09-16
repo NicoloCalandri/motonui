@@ -9,8 +9,10 @@ interface AdminLayoutProps {
 
 /** Server-side admin role check — defence in depth beyond middleware */
 async function checkAdminAccess() {
-    if (process.env.NODE_ENV === 'development') return;
-        const supabase = await createClient();
+    // Explicit opt-in bypass for local development only.
+    // Must never be set outside a developer's own machine.
+    if (process.env.ADMIN_AUTH_BYPASS === 'true') return;
+    const supabase = await createClient();
         const user = await getAuthUser(supabase);
     if (!user) redirect('/auth/login');
 
