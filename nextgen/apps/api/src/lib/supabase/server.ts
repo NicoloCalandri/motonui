@@ -15,6 +15,20 @@ export function createUserClient(accessToken: string) {
 }
 
 /**
+ * Anon-key client with no user JWT attached, for genuinely public routes
+ * (e.g. GET /api/posts/:slug) — matches the anon-role RLS behavior the old
+ * Next.js app got from its cookie-bound server client when no session
+ * cookie was present. Deliberately NOT the admin client: using the service
+ * role key here would bypass RLS entirely and is a broader grant than the
+ * original route ever had.
+ */
+export function createAnonClient() {
+    return createSupabaseClient<Database>(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false },
+    });
+}
+
+/**
  * Admin client using the service role key. ONLY use server-side, never
  * expose the service role key to any client.
  */
