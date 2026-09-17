@@ -39,7 +39,7 @@ Se ricevi un task che appartiene a una fase successiva rispetto a dove siamo, se
 |---|---|
 | Framework | Next.js 15, App Router, TypeScript strict |
 | Database | Supabase (Postgres + RLS) |
-| Auth | Supabase Auth (magic link + Google OAuth) |
+| Auth | Supabase Auth (email + password + Google OAuth) |
 | Storage | Supabase Storage |
 | Styling | Tailwind CSS + shadcn/ui |
 | Mappe | Mapbox GL |
