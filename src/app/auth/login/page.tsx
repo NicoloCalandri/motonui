@@ -1,17 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plane, Mail, Lock, User, Eye, EyeOff, Loader2, Github, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 //import { getAuthUser } from '@/lib/auth/get-user';
 
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
+    );
+}
+
 /**
- * Auth login page — magic link + Google OAuth sign-in.
+ * Auth login form — email/password + Google OAuth sign-in.
  * Redirects to the /dashboard or the original requested page after auth.
  */
-export default function LoginPage() {
+function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
