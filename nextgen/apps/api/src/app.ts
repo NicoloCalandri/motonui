@@ -3,6 +3,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { cors } from 'hono/cors';
 import { handleImpersonation } from './middleware/impersonation';
 import { tripsRouter } from './routes/trips';
+import { profileRouter } from './routes/profile';
 import { env } from './lib/env';
 import type { AppEnv } from './types';
 
@@ -35,6 +36,7 @@ export function createApp() {
     app.get('/api/health', (c) => c.json({ ok: true }));
 
     app.route('/api/trips', tripsRouter);
+    app.route('/api/profile', profileRouter);
 
     return app;
 }
