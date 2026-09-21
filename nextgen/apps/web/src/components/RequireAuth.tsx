@@ -11,16 +11,23 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-export function RequireAdmin() {
-  const { profile, isLoading } = useAuth();
+export function RedirectIfAuthenticated() {
+  const { user, isLoading } = useAuth();
   if (isLoading) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}
+
+export function RequireAdmin() {
+  const { profile, isLoading, profileLoading } = useAuth();
+  if (isLoading || profileLoading) return null;
   if (profile?.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
 
 export function RequireNotSuspended() {
-  const { profile, isLoading } = useAuth();
-  if (isLoading) return null;
+  const { profile, isLoading, profileLoading } = useAuth();
+  if (isLoading || profileLoading) return null;
   if (profile?.suspended_at) return <Navigate to="/suspended" replace />;
   return <Outlet />;
 }

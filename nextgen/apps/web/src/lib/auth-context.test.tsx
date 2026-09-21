@@ -47,6 +47,11 @@ function SignOutProbe() {
   return <button onClick={signOut}>sign out</button>;
 }
 
+function ProfileLoadingProbe() {
+  const { profileLoading, profile } = useAuth();
+  return <span>{profileLoading ? 'profile-loading' : `profile-loaded:${profile?.id || 'null'}`}</span>;
+}
+
 it('resolves the initial session on mount', async () => {
   mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
   mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
@@ -103,4 +108,31 @@ it('sets profile to null when apiFetch rejects', async () => {
 
   render(<AuthProvider><ProfileProbe /></AuthProvider>);
   await waitFor(() => expect(screen.getByText('no-profile')).toBeInTheDocument());
+});
+
+it('sets profileLoading to false when session is null (short-circuit)', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: null } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+
+  render(<AuthProvider><ProfileLoadingProbe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('profile-loaded:null')).toBeInTheDocument());
+});
+
+it('resolves profileLoading to false after profile fetch succeeds', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  const mockProfile = { id: 'profile1', email: 'user@test.com' };
+  mockApiFetch.mockResolvedValueOnce(mockProfile);
+
+  render(<AuthProvider><ProfileLoadingProbe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('profile-loaded:profile1')).toBeInTheDocument());
+});
+
+it('resolves profileLoading to false when profile fetch fails', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  mockApiFetch.mockRejectedValueOnce(new Error('API error'));
+
+  render(<AuthProvider><ProfileLoadingProbe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('profile-loaded:null')).toBeInTheDocument());
 });
