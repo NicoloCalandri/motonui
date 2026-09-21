@@ -523,18 +523,110 @@ Each task below follows the same shape: read the listed Next.js source files, po
 
 - [ ] Port, apply touchpoint checklist (new-trip form: `react-hook-form` + Zod resolver, submit via `apiFetch` POST to `/api/trips`, `navigate()` to the created trip on success), type-check, smoke test (create a trip end-to-end), commit.
 
-### Task 4.9: Trip detail (largest task — split further if it exceeds ~300 lines per `docs/CLAUDE.md`'s file-size rule)
+### Task 4.9.0–4.9.9: Trip detail (split from the original single "Task 4.9" — see ledger ruling 2026-09-21)
+
+**Ruling (recorded during execution):** the source component graph, traced via `grep`/`Glob` against the actual repo, is much larger than the plan's original inventory assumed: the trip detail page has **9 tabs**, not 5, and their components range from 120 to 592 lines each (~3,200 lines total across tabs, before sub-drawers). A single task porting all of this would badly violate both `docs/CLAUDE.md`'s 300-line-per-file rule and this plan's own task-right-sizing goal (one task = one independently reviewable, revertable unit). Splitting into one task per tab — each with its own commit and its own review gate — mirrors exactly how Phase 1–3 was actually executed (one commit per route group, not one commit for the whole API). Confirmed full source inventory:
+
+| Tab | Source component(s) | Lines |
+|---|---|---|
+| Page shell | `src/app/(app)/trips/[id]/page.tsx`, `src/components/trip/DeleteTripButton.tsx` | 157 + small |
+| Overview | `src/components/trip/OverviewTab.tsx`, `src/components/trip/TripStatsCard.tsx`, `src/components/map/TripMap.tsx` | 239 |
+| Itinerary | `src/components/trip/ItineraryTab.tsx`, `DayDrawer.tsx`, `LegDrawer.tsx`, `AccommodationDrawer.tsx`, `AirportSearch.tsx`, `CarrierSearch.tsx`, `BoardingPassViewer.tsx`, `src/components/map/LocationSearch.tsx` | 491 + drawers |
+| Bookings | `src/components/booking/BookingsTab.tsx`, `ActivityDrawer.tsx`, `RestaurantDrawer.tsx` | 592 |
+| Wallet | `src/components/wallet/TravelWallet.tsx` | 472 |
+| Calendar | `src/components/calendar/TripCalendar.tsx` | 347 |
+| Packing | `src/components/trip/PackingTab.tsx` | 474 |
+| Expenses | `src/components/expense/ExpensesTab.tsx`, `ExpenseDrawer.tsx` | 270 |
+| Media | `src/components/media/MediaTab.tsx` | 191 |
+| Blog (in-trip list) | `src/components/blog/BlogTab.tsx`, `PostEditor.tsx` (note: `PostEditor.tsx` may overlap with Task 4.10's editor route — confirm before porting twice) | 120 |
+
+**Sequencing:** 4.9.0 must land first (it establishes the route and a placeholder per tab). 4.9.1–4.9.9 can then proceed in any order — each only touches its own tab's placeholder line in `TripDetailPage.tsx` plus its own new files, so they don't conflict with each other.
+
+#### Task 4.9.0: Trip detail page shell
 
 **Files:**
-- Create: `nextgen/apps/web/src/pages/TripDetailPage.tsx` plus one file per tab under `nextgen/apps/web/src/components/trip/` (mirror the tab structure found in the source)
-- Port from: `src/app/(app)/trips/[id]/page.tsx` and, per current inventory, the 11 files under `src/components/trip/`, plus whichever of `src/components/booking/` (3 files), `src/components/calendar/` (1), `src/components/expense/` (2), `src/components/map/` (2), `src/components/media/` (1), `src/components/wallet/` (1) that page actually imports (confirm via grep before starting — this is the largest single unknown in the plan)
+- Create: `nextgen/apps/web/src/pages/TripDetailPage.tsx`, `nextgen/apps/web/src/components/trip/DeleteTripButton.tsx`
+- Port from: `src/app/(app)/trips/[id]/page.tsx` (hero image/header, 9-tab tab-bar exactly as listed in the table above, tab-switching state, trip fetch), `src/components/trip/DeleteTripButton.tsx`
+- Modify: `nextgen/apps/web/src/router.tsx` (fill in the `/trips/:id` route)
 - Wire route: `/trips/:id`
 
-- [ ] **Step 1:** `grep -rn "from '@/components" src/app/\(app\)/trips/\[id\]/page.tsx src/components/trip/*.tsx` to get the exact, complete component dependency graph for this page.
-- [ ] **Step 2:** Port `TripDetailPage.tsx` (tab shell, uses `useParams()` for `:id`) and each dependency component one at a time, applying the standard touchpoint checklist to each. Map view (`src/components/map/`) needs a Mapbox token — confirm `VITE_MAPBOX_TOKEN` is in `apps/web/.env.example` before porting it.
-- [ ] **Step 3:** `npm run type-check` clean after every 2–3 components ported (don't let type errors accumulate across the whole task).
-- [ ] **Step 4:** Manual smoke test covering the acceptance criteria in `docs/CLAUDE.md`: add a day/leg/accommodation, add an expense and see the split, upload a photo and see it in the media grid, generate an Instagram export.
-- [ ] **Step 5:** Commit — split into multiple commits per tab (itinerary, expenses, media, etc.) rather than one giant commit, matching this repo's existing granularity.
+- [ ] Port the page shell. Apply the standard touchpoint checklist (Task 4 Phase intro): `useParams()` for `:id`, trip fetch via a TanStack Query `useQuery` calling `apiFetch` against the already-ported `GET /api/trips/:id`, `Link`/`useNavigate` swaps.
+- [ ] For each of the 9 tabs, render a `<div>Tab in arrivo — Task 4.9.N</div>` placeholder (Italian per Global Constraints) instead of the real component — Tasks 4.9.1–4.9.9 each replace exactly one placeholder.
+- [ ] `npm run type-check` clean.
+- [ ] Manual smoke test: navigate to a real trip's `/trips/:id`, confirm the hero renders, all 9 tabs are clickable and show their placeholder.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip detail page shell with tab placeholders"`
+
+#### Task 4.9.1: Overview tab
+
+**Files:** Create `nextgen/apps/web/src/components/trip/OverviewTab.tsx`, `TripStatsCard.tsx`, `nextgen/apps/web/src/components/map/TripMap.tsx`. Port from the three source files in the table above (239 lines total for the tab itself).
+- [ ] Port, apply touchpoint checklist. `TripMap` needs a Mapbox token — confirm `VITE_MAPBOX_TOKEN` exists in `apps/web/.env.example` (add it if Task 4.9.2, which also needs Mapbox via `LocationSearch`, hasn't already).
+- [ ] Replace the Overview placeholder in `TripDetailPage.tsx` with the real component.
+- [ ] `npm run type-check` clean. Manual smoke test: Overview tab renders trip stats and map for a real trip.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip overview tab"`
+
+#### Task 4.9.2: Itinerary tab
+
+**Files:** Create `nextgen/apps/web/src/components/trip/ItineraryTab.tsx`, `DayDrawer.tsx`, `LegDrawer.tsx`, `AccommodationDrawer.tsx`, `AirportSearch.tsx`, `CarrierSearch.tsx`, `BoardingPassViewer.tsx`, `nextgen/apps/web/src/components/map/LocationSearch.tsx`. Port from the source files in the table above (491-line tab plus its drawers — this is the largest single tab; if the ported result exceeds ~300 lines per file, split drawers into their own files as `docs/CLAUDE.md` requires, which the source already mostly does).
+- [ ] Port, apply touchpoint checklist. Confirm `VITE_MAPBOX_TOKEN` is set (see 4.9.1).
+- [ ] Replace the Itinerary placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean after every 2–3 files ported. Manual smoke test: add a day, add a leg (flight with airport/carrier search), add an accommodation, confirm they persist and render.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip itinerary tab"`
+
+#### Task 4.9.3: Bookings tab
+
+**Files:** Create `nextgen/apps/web/src/components/booking/BookingsTab.tsx`, `ActivityDrawer.tsx`, `RestaurantDrawer.tsx`. Port from the source files in the table above (592 lines — split into smaller files per `docs/CLAUDE.md`'s 300-line rule if the direct port would exceed it; the source doesn't already split this one, so use judgment on a natural boundary, e.g. activities vs. restaurants).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Bookings placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: add an activity and a restaurant booking, confirm they render and persist.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip bookings tab"`
+
+#### Task 4.9.4: Wallet tab
+
+**Files:** Create `nextgen/apps/web/src/components/wallet/TravelWallet.tsx`. Port from the source file in the table above (472 lines — split per the 300-line rule if a direct port would exceed it; read the source first to find a natural boundary, e.g. document list vs. document viewer).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Wallet placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test against real trip documents.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip wallet tab"`
+
+#### Task 4.9.5: Calendar tab
+
+**Files:** Create `nextgen/apps/web/src/components/calendar/TripCalendar.tsx`. Port from the source file in the table above (347 lines — split per the 300-line rule if needed).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Calendar placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip calendar tab"`
+
+#### Task 4.9.6: Packing tab
+
+**Files:** Create `nextgen/apps/web/src/components/trip/PackingTab.tsx`. Port from the source file in the table above (474 lines — split per the 300-line rule if needed).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Packing placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: add packing items, mark them packed.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip packing tab"`
+
+#### Task 4.9.7: Expenses tab
+
+**Files:** Create `nextgen/apps/web/src/components/expense/ExpensesTab.tsx`, `ExpenseDrawer.tsx`. Port from the source files in the table above (270 lines).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Expenses placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: add an expense in a foreign currency, confirm the EUR conversion and split calculation match the old app (per `docs/ARCHITECTURE.md`'s "Currency Strategy").
+- [ ] Commit: `git commit -m "feat(nextgen): port trip expenses tab"`
+
+#### Task 4.9.8: Media tab
+
+**Files:** Create `nextgen/apps/web/src/components/media/MediaTab.tsx`. Port from the source file in the table above (191 lines).
+- [ ] Port, apply touchpoint checklist. Photo upload calls the already-ported media routes in `apps/api/src/routes/trips-media.ts`.
+- [ ] Replace the Media placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: upload a photo, confirm it appears in the grid, generate an Instagram export.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip media tab"`
+
+#### Task 4.9.9: Blog tab (in-trip post list)
+
+**Files:** Create `nextgen/apps/web/src/components/blog/BlogTab.tsx`, `PostEditor.tsx`. Port from the source files in the table above (120 lines). **Before starting:** read both `src/components/blog/PostEditor.tsx` and Task 4.10's source files — if `PostEditor.tsx` is the same editor Task 4.10 ports for the dedicated `/trips/:id/posts/:postId/edit` route, port it once (in whichever of 4.9.9/4.10 runs first) and have the other task import it rather than duplicating it.
+- [ ] Port `BlogTab.tsx` (the in-trip list/entry point), reusing `PostEditor` per the note above.
+- [ ] Replace the Blog placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: see the trip's post list, navigate to edit one.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip blog tab"`
 
 ### Task 4.10: Blog post editor (Tiptap)
 
