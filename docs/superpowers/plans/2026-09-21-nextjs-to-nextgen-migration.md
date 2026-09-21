@@ -166,6 +166,8 @@ git commit -m "feat(nextgen): add typed API client and TanStack Query provider"
 
 ### Task 4.2: Supabase browser client + AuthProvider ✅ DONE (commits 0476f32..28387e0)
 
+**Post-completion amendment (from Task 4.3's fix round, commit 759d2ae):** `auth-context.tsx` was reopened and extended with a `profileLoading: boolean` field on `AuthValue` — `true` while the profile-fetch effect is in flight, `false` once it settles (success, error, or the `session === null` short-circuit). This exists because `isLoading` alone (session-loading only) let `RequireAdmin`/`RequireNotSuspended` (Task 4.3) evaluate `profile?.role`/`profile?.suspended_at` before the profile fetch had actually resolved. Any task reading `useAuth()`'s shape from this point on should treat it as `{ user, session, profile, isLoading, profileLoading, signOut }`, not the 5-field shape originally specified above.
+
 **Files:**
 - Create: `nextgen/apps/web/src/lib/supabase-client.ts`
 - Create: `nextgen/apps/web/src/lib/auth-context.tsx`
@@ -293,7 +295,9 @@ git add nextgen/apps/web/src/lib/supabase-client.ts nextgen/apps/web/src/lib/aut
 git commit -m "feat(nextgen): add Supabase browser client and AuthProvider"
 ```
 
-### Task 4.3: Router shell + route guards (replaces `middleware.ts`)
+### Task 4.3: Router shell + route guards (replaces `middleware.ts`) ✅ DONE (commits d4c96ca..759d2ae)
+
+**Post-review amendment:** the code blocks below are the original Step 3 reference (what was drafted before implementation). The task review found this reference itself dropped two of the five "port exactly" behaviors (auth-page redirect-when-logged-in; suspension check on public routes) and had a profile-loading race in `RequireAdmin`/`RequireNotSuspended`. All three were fixed in commit 759d2ae. The **actual, correct** shape adds a fourth guard (`RedirectIfAuthenticated`), restructures the router so `RequireNotSuspended` wraps the public routes too, and gates `RequireAdmin`/`RequireNotSuspended` on `isLoading || profileLoading` (see Task 4.2's post-completion amendment above for `profileLoading`). Read the actual files (`nextgen/apps/web/src/components/RequireAuth.tsx`, `nextgen/apps/web/src/router.tsx`) rather than trusting the code blocks below verbatim — they're kept for historical/TDD-step record, not as the current source of truth.
 
 **Files:**
 - Create: `nextgen/apps/web/src/router.tsx`
@@ -304,7 +308,7 @@ git commit -m "feat(nextgen): add Supabase browser client and AuthProvider"
 
 **Interfaces:**
 - Consumes: `useAuth()` from Task 4.2.
-- Produces: `<RequireAuth>` (redirects to `/auth/login?redirect=<path>` if unauthenticated, mirrors `middleware.ts:66-70`), `<RequireAdmin>` (redirects to `/dashboard` if `profile.role !== 'admin'`, mirrors `middleware.ts:80-82`), `<RequireNotSuspended>` (redirects to `/suspended` if `profile.suspended_at` set, mirrors `middleware.ts:75-77`).
+- Produces: `<RequireAuth>` (redirects to `/auth/login?redirect=<path>` if unauthenticated, mirrors `middleware.ts:66-70`), `<RequireAdmin>` (redirects to `/dashboard` if `profile.role !== 'admin'`, mirrors `middleware.ts:80-82`), `<RequireNotSuspended>` (redirects to `/suspended` if `profile.suspended_at` set, mirrors `middleware.ts:75-77`), and — added post-review — `<RedirectIfAuthenticated>` (redirects to `/dashboard` if `user` is set, mirrors `middleware.ts:94-96`, wraps the `/auth/*` routes).
 
 **Behavior to preserve from `middleware.ts` (do not reinterpret — port exactly):**
 1. Public, no-auth-required paths: `/`, `/suspended`, `/auth/*`, `/blog*` (public blog stays reachable without login).
@@ -313,7 +317,7 @@ git commit -m "feat(nextgen): add Supabase browser client and AuthProvider"
 4. `/admin/*` requires `profile.role === 'admin'`, else redirect to `/dashboard` (`middleware.ts:80-82`).
 5. Impersonation read-only enforcement (`middleware.ts:32-63`) is **already implemented API-side** in `apps/api/src/middleware/impersonation.ts` — do not duplicate it in the SPA; the API will 403 write requests during impersonation regardless of what the UI allows, so the UI only needs to *display* the impersonation banner (Task 4.4/5.x), not re-enforce it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // nextgen/apps/web/src/components/RequireAuth.test.tsx
@@ -351,12 +355,12 @@ it('renders the protected route when authenticated', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd nextgen/apps/web && npm test -- RequireAuth`
 Expected: FAIL — module does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement** (see post-review amendment above — final implementation differs from this reference)
 
 ```tsx
 // nextgen/apps/web/src/components/RequireAuth.tsx
@@ -429,12 +433,12 @@ export const router = createBrowserRouter([
 ]);
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd nextgen/apps/web && npm test -- RequireAuth`
-Expected: PASS.
+Expected: PASS. (Landed as 4 RequireAuth tests after the fix round added RedirectIfAuthenticated + profileLoading-gate coverage — see ledger.)
 
-- [ ] **Step 5: Wire into `main.tsx` and commit**
+- [x] **Step 5: Wire into `main.tsx` and commit**
 
 ```tsx
 // nextgen/apps/web/src/main.tsx
