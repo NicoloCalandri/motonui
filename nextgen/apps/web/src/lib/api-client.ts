@@ -13,21 +13,22 @@ export async function apiFetch<T>(
   init: RequestInit = {},
   accessToken?: string
 ): Promise<T> {
+  // Normalize headers using Headers constructor (handles array form and case-insensitivity)
+  const normalizedHeaders = new Headers(init.headers);
+
+  // Work with plain object to ensure test compatibility
   const headers: Record<string, string> = {};
 
-  // Copy existing headers
-  if (init.headers) {
-    if (init.headers instanceof Headers) {
-      init.headers.forEach((value, key) => {
-        headers[key] = value;
-      });
-    } else if (typeof init.headers === 'object') {
-      Object.assign(headers, init.headers);
-    }
-  }
+  // Copy normalized headers to plain object
+  normalizedHeaders.forEach((value, key) => {
+    headers[key] = value;
+  });
 
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-  if (init.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+
+  // Check for Content-Type case-insensitively
+  const hasContentType = Object.keys(headers).some(key => key.toLowerCase() === 'content-type');
+  if (init.body && !hasContentType) headers['Content-Type'] = 'application/json';
 
   const res = await fetch(path, { ...init, headers });
 
