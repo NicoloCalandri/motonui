@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { RequireAuth, RequireAdmin, RequireNotSuspended, RedirectIfAuthenticated } from './components/RequireAuth';
+import { AppShell } from './components/AppShell';
 
 export const router = createBrowserRouter([
   { path: '/suspended', /* Task 4.11 */ Component: undefined },
@@ -20,19 +21,24 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
-          { path: '/dashboard', /* Task 4.7 */ Component: undefined },
-          { path: '/trips', /* Task 4.8 */ Component: undefined },
-          { path: '/trips/new', Component: undefined },
-          { path: '/trips/:id', Component: undefined },
-          { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
-          { path: '/profile', /* Task 4.12 */ Component: undefined },
           {
-            path: '/admin',
-            element: <RequireAdmin />,
+            element: <AppShell />,
             children: [
-              { index: true, /* Task 4.13 */ Component: undefined },
-              { path: 'users', Component: undefined },
-              { path: 'audit-log', Component: undefined },
+              { path: '/dashboard', /* Task 4.7 */ Component: undefined },
+              { path: '/trips', /* Task 4.8 */ Component: undefined },
+              { path: '/trips/new', Component: undefined },
+              { path: '/trips/:id', Component: undefined },
+              { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
+              { path: '/profile', /* Task 4.12 */ Component: undefined },
+              {
+                path: '/admin',
+                element: <RequireAdmin />,
+                children: [
+                  { index: true, /* Task 4.13 */ Component: undefined },
+                  { path: 'users', Component: undefined },
+                  { path: 'audit-log', Component: undefined },
+                ],
+              },
             ],
           },
         ],

@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* CSS custom properties referenced by AppShell.tsx (ported from the old
+   app's src/app/globals.css :root block — only the subset actually used
+   here; the rest of that file's tokens belong to a future design-system
+   pass, not this task). */
+:root {
+  --color-bg: #F4F4F6;
+  --color-sidebar: #121212;
+  --shadow-soft: 0 4px 24px -1px rgba(0, 0, 0, 0.04);
+}
+
+@layer utilities {
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+}
