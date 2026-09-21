@@ -164,7 +164,7 @@ git add nextgen/apps/web/src/lib/api-client.ts nextgen/apps/web/src/lib/api-clie
 git commit -m "feat(nextgen): add typed API client and TanStack Query provider"
 ```
 
-### Task 4.2: Supabase browser client + AuthProvider
+### Task 4.2: Supabase browser client + AuthProvider ✅ DONE (commits 0476f32..28387e0)
 
 **Files:**
 - Create: `nextgen/apps/web/src/lib/supabase-client.ts`
@@ -177,7 +177,7 @@ git commit -m "feat(nextgen): add typed API client and TanStack Query provider"
 - Produces: `useAuth(): { user: User | null, session: Session | null, profile: Profile | null, isLoading: boolean, signOut: () => Promise<void> }`, consumed by every protected page and by the router guard in Task 4.3.
 - Produces: `<AuthProvider>` wrapping the app in `main.tsx`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // nextgen/apps/web/src/lib/auth-context.test.tsx
@@ -207,12 +207,12 @@ it('resolves the initial session on mount', async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd nextgen/apps/web && npm test -- auth-context`
 Expected: FAIL — module does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```typescript
 // nextgen/apps/web/src/lib/supabase-client.ts
@@ -279,12 +279,12 @@ export function useAuth(): AuthValue {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd nextgen/apps/web && npm test -- auth-context`
-Expected: PASS.
+Expected: PASS. (Landed as 6/6 after fix round 1 added getSession rejection handling + 5 more test cases — see ledger. Also required `vitest.setup.ts` + jsdom `test` config in `vite.config.ts`, not anticipated by this task's original file list but verified necessary by review.)
 
-- [ ] **Step 5: Add `.env.example` entries and commit**
+- [x] **Step 5: Add `.env.example` entries and commit**
 
 Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to `nextgen/apps/web/.env.example` (create the file), same values as the old `NEXT_PUBLIC_SUPABASE_*` vars.
 
