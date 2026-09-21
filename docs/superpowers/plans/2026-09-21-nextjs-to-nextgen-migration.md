@@ -50,7 +50,7 @@ These carry over from `docs/CLAUDE.md` and apply to every task below:
 
 ## Phase 4 — Web SPA: Foundations
 
-### Task 4.1: API client + TanStack Query setup
+### Task 4.1: API client + TanStack Query setup ✅ DONE (commits bb7c0fd..9d33297)
 
 **Files:**
 - Create: `nextgen/apps/web/src/lib/api-client.ts`
@@ -61,7 +61,7 @@ These carry over from `docs/CLAUDE.md` and apply to every task below:
 - Produces: `apiFetch<T>(path: string, init?: RequestInit): Promise<T>` — throws a typed `ApiError { message, code, status }` matching `apps/api/src/lib/errors.ts`'s response shape on non-2xx.
 - Produces: `queryClient` singleton exported for use in `main.tsx` and tests.
 
-- [ ] **Step 1: Write the failing test for error-shape parsing**
+- [x] **Step 1: Write the failing test for error-shape parsing**
 
 ```typescript
 // nextgen/apps/web/src/lib/api-client.test.ts
@@ -100,12 +100,12 @@ describe('apiFetch', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd nextgen/apps/web && npm test -- api-client`
 Expected: FAIL — `api-client.ts` does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```typescript
 // nextgen/apps/web/src/lib/api-client.ts
@@ -152,12 +152,12 @@ export const queryClient = new QueryClient({
 // wrap <App /> in <QueryClientProvider client={queryClient}>
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd nextgen/apps/web && npm test -- api-client`
-Expected: PASS, 3/3.
+Expected: PASS, 3/3. (Landed as 5/5 after fix round 1 added case-insensitive-header and array-form-header coverage — see ledger.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add nextgen/apps/web/src/lib/api-client.ts nextgen/apps/web/src/lib/api-client.test.ts nextgen/apps/web/src/main.tsx
