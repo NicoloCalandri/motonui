@@ -538,7 +538,7 @@ Each task below follows the same shape: read the listed Next.js source files, po
 | Packing | `src/components/trip/PackingTab.tsx` | 474 |
 | Expenses | `src/components/expense/ExpensesTab.tsx`, `ExpenseDrawer.tsx` | 270 |
 | Media | `src/components/media/MediaTab.tsx` | 191 |
-| Blog (in-trip list) | `src/components/blog/BlogTab.tsx`, `PostEditor.tsx` (note: `PostEditor.tsx` may overlap with Task 4.10's editor route — confirm before porting twice) | 120 |
+| Blog (in-trip list) | `src/components/blog/BlogTab.tsx` (confirmed read: a plain post list + links to `/trips/:id/posts/:postId/edit`, no Tiptap editor embedded — `PostEditor.tsx` belongs solely to Task 4.10) | 120 |
 
 **Sequencing:** 4.9.0 must land first (it establishes the route and a placeholder per tab). 4.9.1–4.9.9 can then proceed in any order — each only touches its own tab's placeholder line in `TripDetailPage.tsx` plus its own new files, so they don't conflict with each other.
 
@@ -622,8 +622,8 @@ Each task below follows the same shape: read the listed Next.js source files, po
 
 #### Task 4.9.9: Blog tab (in-trip post list)
 
-**Files:** Create `nextgen/apps/web/src/components/blog/BlogTab.tsx`, `PostEditor.tsx`. Port from the source files in the table above (120 lines). **Before starting:** read both `src/components/blog/PostEditor.tsx` and Task 4.10's source files — if `PostEditor.tsx` is the same editor Task 4.10 ports for the dedicated `/trips/:id/posts/:postId/edit` route, port it once (in whichever of 4.9.9/4.10 runs first) and have the other task import it rather than duplicating it.
-- [ ] Port `BlogTab.tsx` (the in-trip list/entry point), reusing `PostEditor` per the note above.
+**Files:** Create `nextgen/apps/web/src/components/blog/BlogTab.tsx`. Port from `src/components/blog/BlogTab.tsx` (120 lines — confirmed to be a plain post list with `Link`s to the edit route, no Tiptap editor embedded; no dependency on Task 4.10's `PostEditor.tsx`, so these two tasks can run in either order or in parallel without conflict).
+- [ ] Port `BlogTab.tsx`: post list, delete button (calls the already-ported `DELETE /api/trips/:id/posts/:postId`), links to `/trips/:id/posts/new/edit` (new post) and `/trips/:id/posts/:postId/edit` (edit existing) — both handled by Task 4.10's single route (`postId === 'new'` is the create case).
 - [ ] Replace the Blog placeholder in `TripDetailPage.tsx`.
 - [ ] `npm run type-check` clean. Manual smoke test: see the trip's post list, navigate to edit one.
 - [ ] Commit: `git commit -m "feat(nextgen): port trip blog tab"`
