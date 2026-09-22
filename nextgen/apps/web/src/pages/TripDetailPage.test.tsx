@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { TripDetailPage } from './TripDetailPage';
+import type { TripStats } from '@motonui/shared-types';
 
 const { mockApiFetch } = vi.hoisted(() => ({ mockApiFetch: vi.fn() }));
 
@@ -11,6 +12,15 @@ vi.mock('../lib/api-client', () => ({ apiFetch: mockApiFetch }));
 
 const mockUseAuth = vi.fn();
 vi.mock('../lib/auth-context', () => ({ useAuth: () => mockUseAuth() }));
+
+// TripMap (rendered by the real OverviewTab, now wired into the 'overview'
+// tab) dynamically imports mapbox-gl and drives WebGL/canvas APIs jsdom
+// doesn't provide. OverviewTab's own tests (components/trip/OverviewTab.test.tsx)
+// exercise it directly with the same stub; here it's irrelevant to what
+// this file is testing (shell/tab-switching), so it's stubbed out.
+vi.mock('../components/map/TripMap', () => ({
+  default: () => <div data-testid="trip-map" />,
+}));
 
 function renderTripDetail(initialPath = '/trips/trip-1') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -34,6 +44,18 @@ const makeTrip = (overrides: Partial<Record<string, unknown>> = {}) => ({
   start_date: '2025-04-01',
   end_date: '2025-04-15',
   members: [{ id: 'm1', user_id: 'user-1', role: 'owner' }],
+  days: [],
+  ...overrides,
+});
+
+const makeStats = (overrides: Partial<TripStats> = {}): TripStats => ({
+  total_days: 12,
+  total_km_traveled: 3450,
+  countries_visited: ['Giappone'],
+  total_spent_eur: 1800,
+  avg_per_day_eur: 150,
+  transport_breakdown: { flight: 3000, train: 450, car: 0, ferry: 0, walk: 0, bus: 0, other: 0 },
+  budget_eur: 2000,
   ...overrides,
 });
 
@@ -84,18 +106,24 @@ describe('TripDetailPage', () => {
   });
 
   it('renders the hero with trip data once loaded', async () => {
-    mockApiFetch.mockResolvedValueOnce(makeTrip());
+    mockApiFetch.mockResolvedValueOnce(makeTrip()); // trip
+    mockApiFetch.mockResolvedValueOnce(makeStats()); // OverviewTab's stats call (default tab)
 
     renderTripDetail();
 
     await waitFor(() => expect(screen.getByText('Avventura in Giappone')).toBeInTheDocument());
-    expect(screen.getByText('Tokyo, Giappone')).toBeInTheDocument();
-    expect(screen.getByText(/1 apr – 15 apr 2025/i)).toBeInTheDocument();
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/trips/trip-1', {}, 'token-1');
+    // "Tokyo, Giappone" now appears twice: once in the hero, once in the
+    // real OverviewTab (which renders by default) — both are expected.
+    expect(screen.getAllByText('Tokyo, Giappone').length).toBeGreaterThanOrEqual(1);
+    // Same reasoning: the hero and OverviewTab's editable date range use the
+    // same "d MMM – d MMM yyyy" format, so this text also appears twice.
+    expect(screen.getAllByText(/1 apr – 15 apr 2025/i).length).toBeGreaterThanOrEqual(1);
+    expect(mockApiFetch).toHaveBeenNthCalledWith(1, '/api/trips/trip-1', {}, 'token-1');
   });
 
-  it('renders all 9 tabs, defaults to the overview placeholder, and switches on click', async () => {
-    mockApiFetch.mockResolvedValueOnce(makeTrip());
+  it('renders all 9 tabs, defaults to the real Overview tab, and switches placeholders on click', async () => {
+    mockApiFetch.mockResolvedValueOnce(makeTrip()); // trip
+    mockApiFetch.mockResolvedValueOnce(makeStats()); // OverviewTab's stats call (default tab)
     const user = userEvent.setup();
 
     renderTripDetail();
@@ -103,14 +131,16 @@ describe('TripDetailPage', () => {
     await waitFor(() => expect(screen.getByText('Avventura in Giappone')).toBeInTheDocument());
 
     for (const label of TAB_LABELS) {
-      expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: new RegExp(`^${label}$`, 'i') })).toBeInTheDocument();
     }
 
-    expect(screen.getByText('Tab in arrivo — Task 4.9.1')).toBeInTheDocument();
+    // Overview (Task 4.9.1) now renders its real content by default, not a placeholder.
+    expect(screen.getByText('Nessuno spostamento aggiunto')).toBeInTheDocument();
+    expect(screen.queryByText(/Tab in arrivo/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /prenotazioni/i }));
     expect(screen.getByText('Tab in arrivo — Task 4.9.3')).toBeInTheDocument();
-    expect(screen.queryByText('Tab in arrivo — Task 4.9.1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nessuno spostamento aggiunto')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^blog$/i }));
     expect(screen.getByText('Tab in arrivo — Task 4.9.9')).toBeInTheDocument();

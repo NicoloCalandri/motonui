@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { it as itLocale } from 'date-fns/locale';
 import {
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 import { apiFetch } from '../lib/api-client';
+import OverviewTab from '../components/trip/OverviewTab';
 import type { TripWithDetails } from '@motonui/shared-types';
 
 const FALLBACK_COVER = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1';
@@ -60,11 +61,13 @@ function useTrip(id: string | undefined, token: string | undefined) {
  * placeholder for each tab's content. Ported from
  * src/app/(app)/trips/[id]/page.tsx (Task 4.9.0).
  *
- * This task ONLY ports the shell: hero, tab bar, tab-switching state, and
- * the trip fetch. Each tab currently renders a placeholder; Tasks
- * 4.9.1-4.9.9 each replace exactly one placeholder with its real component
+ * Task 4.9.0 ONLY ported the shell: hero, tab bar, tab-switching state, and
+ * the trip fetch, with every tab rendering a placeholder. Tasks 4.9.1-4.9.9
+ * each replace exactly one placeholder with its real component
  * (OverviewTab, ItineraryTab, BookingsTab, TravelWallet, TripCalendar,
- * PackingTab, ExpensesTab, MediaTab, BlogTab) — do not add tab content here.
+ * PackingTab, ExpensesTab, MediaTab, BlogTab) — do not add tab content
+ * beyond your own task's placeholder here. Task 4.9.1 wired in the real
+ * `OverviewTab` for the `overview` slot; the other 8 are still placeholders.
  *
  * Touchpoint changes from the old page:
  * - `useParams<{ id }>()` from `next/navigation` -> `react-router-dom`.
@@ -74,8 +77,10 @@ function useTrip(id: string | undefined, token: string | undefined) {
  *   refetch-after-mutation callback (passed to ItineraryTab/BookingsTab/
  *   TravelWallet as `onDataChange`) becomes each of those later tasks'
  *   responsibility to call `queryClient.invalidateQueries(['trips', id])`
- *   instead — there's nothing to wire here since no tab has real content
- *   yet.
+ *   instead. The old page's `onTripUpdate={(updates) => setTrip(prev => ({
+ *   ...prev, ...updates }))}` (passed only to `OverviewTab`) becomes
+ *   `queryClient.setQueryData(['trips', id], ...)` below, merged the same
+ *   way, so the hero/other tabs see the same cached trip object.
  * - `next/link`'s `Link` -> `react-router-dom`'s `Link`.
  * - The old page read the initial active tab from `useSearchParams().get('tab')`
  *   (set once, never written back to the URL); that one-way read is
@@ -102,6 +107,7 @@ export function TripDetailPage() {
   const [searchParams] = useSearchParams();
   const { session } = useAuth();
   const token = session?.access_token;
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabId>(
     (searchParams.get('tab') as TabId | null) ?? 'overview'
@@ -197,13 +203,30 @@ export function TripDetailPage() {
 
       {/* Active Tab Content */}
       <div className="flex-1 pb-24 md:pb-8">
-        {TABS.map(({ id: tabId, task }) =>
-          activeTab === tabId ? (
+        {TABS.map(({ id: tabId, task }) => {
+          if (activeTab !== tabId) return null;
+
+          if (tabId === 'overview') {
+            return (
+              <OverviewTab
+                key={tabId}
+                trip={trip}
+                onNavigate={(tab) => setActiveTab(tab as TabId)}
+                onTripUpdate={(updates) =>
+                  queryClient.setQueryData<TripWithDetails>(['trips', id], (old) =>
+                    old ? { ...old, ...updates } : old
+                  )
+                }
+              />
+            );
+          }
+
+          return (
             <div key={tabId} className="p-4 md:p-6 text-sm text-ink-400">
               Tab in arrivo — Task {task}
             </div>
-          ) : null
-        )}
+          );
+        })}
       </div>
     </div>
   );
