@@ -537,7 +537,7 @@ Each task below follows the same shape: read the listed Next.js source files, po
 
 - [x] Port, apply touchpoint checklist (new-trip form: `react-hook-form` + Zod resolver, submit via `apiFetch` POST to `/api/trips`, `navigate()` to the created trip on success), type-check, smoke test (create a trip end-to-end) — NOT run (no Supabase credentials in the execution sandbox); covered by 9 automated tests instead, commit.
 
-### Task 4.8a: CSS token parity (added mid-execution — see ledger ruling after Task 4.8's review)
+### Task 4.8a: CSS token parity (added mid-execution — see ledger ruling after Task 4.8's review) ✅ DONE (commits 57fa83a..06c44a1)
 
 **Why:** `.card`, `.shadow-panel`, and `--color-ink` (plus possibly other design tokens) are used by ported pages (`DashboardPage.tsx` from Task 4.7, `TripsListPage.tsx`/`NewTripPage.tsx` from Task 4.8) but were never ported into `nextgen/apps/web/src/index.css` — confirmed missing, purely cosmetic (unstyled, not broken) by two independent task reviews. Fixing once now prevents every remaining Phase 4 page task from re-discovering and re-flagging the same gap.
 
@@ -545,10 +545,10 @@ Each task below follows the same shape: read the listed Next.js source files, po
 - Modify: `nextgen/apps/web/src/index.css`
 - Reference: `src/app/globals.css` (old app's full design-token source — Task 4.4 already ported `--color-bg`/`--color-sidebar`/`--shadow-soft` from here; this task ports whatever's still missing)
 
-- [ ] Read `src/app/globals.css` in full and `nextgen/apps/web/src/index.css`'s current contents. Diff which CSS custom properties and utility classes (at minimum `.card`, `.shadow-panel`, `--color-ink`) exist in the old file but not the new one.
-- [ ] Port every missing token/class verbatim (values must match exactly — these are shared design tokens, not free to reinterpret).
-- [ ] `npm run type-check` clean (should be unaffected — this is a CSS-only change). Run the full test suite to confirm no test depends on the absence of these classes (unlikely, but verify).
-- [ ] Commit: `git commit -m "fix(nextgen): port missing CSS design tokens (.card, .shadow-panel, --color-ink)"`
+- [x] Read `src/app/globals.css` in full and `nextgen/apps/web/src/index.css`'s current contents. Diff which CSS custom properties and utility classes (at minimum `.card`, `.shadow-panel`, `--color-ink`) exist in the old file but not the new one.
+- [x] Port every missing token/class verbatim (values must match exactly — these are shared design tokens, not free to reinterpret).
+- [x] `npm run type-check` clean (should be unaffected — this is a CSS-only change). Run the full test suite to confirm no test depends on the absence of these classes (unlikely, but verify).
+- [x] Commit: `git commit -m "fix(nextgen): port missing CSS design tokens (.card, .shadow-panel, --color-ink)"`
 
 ### Task 4.9.0–4.9.9: Trip detail (split from the original single "Task 4.9" — see ledger ruling 2026-09-21)
 
