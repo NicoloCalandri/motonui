@@ -489,17 +489,19 @@ Each task below follows the same shape: read the listed Next.js source files, po
 - `revalidatePath`/`router.refresh()` → `queryClient.invalidateQueries()`.
 - Any `cookies()`/`headers()` read for auth → already handled globally by `AuthProvider` (Task 4.2); should not appear in ported page logic at all.
 
-### Task 4.5: Auth pages
+### Task 4.5: Auth pages ✅ DONE (commits 61f9f7b..b8bc3c7)
+
+**Post-review correction:** the controller's own dispatch to the implementer incorrectly said to preserve a "Google OAuth button" from the old login page. The old page defined a `handleGoogle` function but never rendered a button for it (dead code) — the first pass ported a real, working Google button that never existed in the old app's actual behavior, which also exposed a real bug (shared `loading` state across buttons meant a dev-mode OAuth failure could brick the whole form). Fixed in commit `b8bc3c7`: both the button and the function are removed entirely, restoring true behavioral parity. Preserved correctly: email/password login, the dev-only bypass button (`import.meta.env.DEV`, Vite's equivalent of the old `NODE_ENV === 'development'` check), forgot-password, reset-password.
 
 **Files:**
 - Create: `nextgen/apps/web/src/pages/auth/LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`
 - Port from: `src/app/auth/login/page.tsx`, `src/app/auth/forgot-password/page.tsx`, `src/app/auth/reset-password/page.tsx`
 - Wire routes: `/auth/login`, `/auth/forgot-password`, `/auth/reset-password` in `router.tsx`
 
-- [ ] Port each page applying the standard touchpoint checklist. Login calls `supabase.auth.signInWithPassword` directly (client-side Supabase call, not an API route — confirm this matches `src/app/auth/login/page.tsx`'s actual flow before assuming).
-- [ ] `npm run type-check` clean.
-- [ ] Manual smoke test: log in with a real dev-environment account, confirm redirect to `/dashboard` and that the `redirect` query param round-trips (part of `RequireAuth`'s contract from Task 4.3).
-- [ ] Commit: `git commit -m "feat(nextgen): port auth pages (login, forgot/reset password)"`
+- [x] Port each page applying the standard touchpoint checklist. Login calls `supabase.auth.signInWithPassword` directly (client-side Supabase call, not an API route — confirm this matches `src/app/auth/login/page.tsx`'s actual flow before assuming).
+- [x] `npm run type-check` clean.
+- [x] Manual smoke test: NOT run (no Supabase credentials in the execution sandbox, same as Task 4.4) — honestly reported as unrun. Automated tests cover the `redirect` query param round-trip and error paths with a mocked Supabase client instead. Real smoke test deferred to Task 5.1.
+- [x] Commit: `git commit -m "feat(nextgen): port auth pages (login, forgot/reset password)"`
 
 ### Task 4.6: Landing page
 
