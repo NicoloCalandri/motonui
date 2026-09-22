@@ -21,6 +21,7 @@ import { useAuth } from '../lib/auth-context';
 import { apiFetch } from '../lib/api-client';
 import OverviewTab from '../components/trip/OverviewTab';
 import ItineraryTab from '../components/trip/ItineraryTab';
+import BookingsTab from '../components/booking/BookingsTab';
 import type { TripWithDetails } from '@motonui/shared-types';
 
 const FALLBACK_COVER = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1';
@@ -69,8 +70,8 @@ function useTrip(id: string | undefined, token: string | undefined) {
  * PackingTab, ExpensesTab, MediaTab, BlogTab) — do not add tab content
  * beyond your own task's placeholder here. Task 4.9.1 wired in the real
  * `OverviewTab` for the `overview` slot; Task 4.9.2 wired in the real
- * `ItineraryTab` for the `itinerary` slot; the other 7 are still
- * placeholders.
+ * `ItineraryTab` for the `itinerary` slot; Task 4.9.3 wired in the real
+ * `BookingsTab` for the `bookings` slot; the other 6 are still placeholders.
  *
  * Touchpoint changes from the old page:
  * - `useParams<{ id }>()` from `next/navigation` -> `react-router-dom`.
@@ -227,6 +228,16 @@ export function TripDetailPage() {
           if (tabId === 'itinerary') {
             return (
               <ItineraryTab
+                key={tabId}
+                trip={trip}
+                onDataChange={() => queryClient.invalidateQueries({ queryKey: ['trips', id] })}
+              />
+            );
+          }
+
+          if (tabId === 'bookings') {
+            return (
+              <BookingsTab
                 key={tabId}
                 trip={trip}
                 onDataChange={() => queryClient.invalidateQueries({ queryKey: ['trips', id] })}

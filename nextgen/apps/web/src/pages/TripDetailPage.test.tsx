@@ -138,8 +138,17 @@ describe('TripDetailPage', () => {
     expect(screen.getByText('Nessuno spostamento aggiunto')).toBeInTheDocument();
     expect(screen.queryByText(/Tab in arrivo/)).not.toBeInTheDocument();
 
+    // Bookings (Task 4.9.3) now renders its real content too, not a placeholder.
+    // Mounting the real BookingsTab fires its four list GETs (restaurants,
+    // activities, legs, accommodations), in that order.
+    mockApiFetch.mockResolvedValueOnce([]); // restaurants
+    mockApiFetch.mockResolvedValueOnce([]); // activities
+    mockApiFetch.mockResolvedValueOnce([]); // legs
+    mockApiFetch.mockResolvedValueOnce([]); // accommodations
+
     await user.click(screen.getByRole('button', { name: /prenotazioni/i }));
-    expect(screen.getByText('Tab in arrivo — Task 4.9.3')).toBeInTheDocument();
+    expect(await screen.findByText('Nessun volo aggiunto')).toBeInTheDocument();
+    expect(screen.queryByText(/Tab in arrivo/)).not.toBeInTheDocument();
     expect(screen.queryByText('Nessuno spostamento aggiunto')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^blog$/i }));
