@@ -569,19 +569,21 @@ Each task below follows the same shape: read the listed Next.js source files, po
 
 **Sequencing:** 4.9.0 must land first (it establishes the route and a placeholder per tab). 4.9.1–4.9.9 can then proceed in any order — each only touches its own tab's placeholder line in `TripDetailPage.tsx` plus its own new files, so they don't conflict with each other.
 
-#### Task 4.9.0: Trip detail page shell
+#### Task 4.9.0: Trip detail page shell ✅ DONE (commits 0785b1e..9d78a6c)
+
+**Post-review notes:** `DeleteTripButton` was correctly NOT duplicated here — the old trip detail page never renders it; it belongs solely to `TripsListPage` (already ported in Task 4.8 at `nextgen/apps/web/src/components/DeleteTripButton.tsx`, no `trip/` subdirectory). Confirmed pre-existing, inherited bug ported as-is (out of scope to fix): `trip.members?.length` reads a `members` field the type declares but the API only returns nested `trip_members` — always renders 0/undefined, same in the old app.
 
 **Files:**
-- Create: `nextgen/apps/web/src/pages/TripDetailPage.tsx`, `nextgen/apps/web/src/components/trip/DeleteTripButton.tsx`
-- Port from: `src/app/(app)/trips/[id]/page.tsx` (hero image/header, 9-tab tab-bar exactly as listed in the table above, tab-switching state, trip fetch), `src/components/trip/DeleteTripButton.tsx`
+- Create: `nextgen/apps/web/src/pages/TripDetailPage.tsx`
+- Port from: `src/app/(app)/trips/[id]/page.tsx` (hero image/header, 9-tab tab-bar exactly as listed in the table above, tab-switching state, trip fetch)
 - Modify: `nextgen/apps/web/src/router.tsx` (fill in the `/trips/:id` route)
 - Wire route: `/trips/:id`
 
-- [ ] Port the page shell. Apply the standard touchpoint checklist (Task 4 Phase intro): `useParams()` for `:id`, trip fetch via a TanStack Query `useQuery` calling `apiFetch` against the already-ported `GET /api/trips/:id`, `Link`/`useNavigate` swaps.
-- [ ] For each of the 9 tabs, render a `<div>Tab in arrivo — Task 4.9.N</div>` placeholder (Italian per Global Constraints) instead of the real component — Tasks 4.9.1–4.9.9 each replace exactly one placeholder.
-- [ ] `npm run type-check` clean.
-- [ ] Manual smoke test: navigate to a real trip's `/trips/:id`, confirm the hero renders, all 9 tabs are clickable and show their placeholder.
-- [ ] Commit: `git commit -m "feat(nextgen): port trip detail page shell with tab placeholders"`
+- [x] Port the page shell. Apply the standard touchpoint checklist (Task 4 Phase intro): `useParams()` for `:id`, trip fetch via a TanStack Query `useQuery` calling `apiFetch` against the already-ported `GET /api/trips/:id`, `Link`/`useNavigate` swaps.
+- [x] For each of the 9 tabs, render a `<div>Tab in arrivo — Task 4.9.N</div>` placeholder (Italian per Global Constraints) instead of the real component — Tasks 4.9.1–4.9.9 each replace exactly one placeholder.
+- [x] `npm run type-check` clean.
+- [x] Manual smoke test — NOT run (no Supabase credentials in the execution sandbox); covered by 5 automated tests (loading/not-found/hero-data/all-9-tabs-switching/query-param-init) instead.
+- [x] Commit: `git commit -m "feat(nextgen): port trip detail page shell with tab placeholders"`
 
 #### Task 4.9.1: Overview tab
 
