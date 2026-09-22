@@ -585,13 +585,15 @@ Each task below follows the same shape: read the listed Next.js source files, po
 - [x] Manual smoke test — NOT run (no Supabase credentials in the execution sandbox); covered by 5 automated tests (loading/not-found/hero-data/all-9-tabs-switching/query-param-init) instead.
 - [x] Commit: `git commit -m "feat(nextgen): port trip detail page shell with tab placeholders"`
 
-#### Task 4.9.1: Overview tab
+#### Task 4.9.1: Overview tab ✅ DONE (commits 1fc2346..3217357)
+
+**Post-review notes:** `VITE_MAPBOX_TOKEN` added to `.env.example` (placeholder value, not the real-looking token from the root `.env.example`). `saveBudget` now also calls `onTripUpdate` (old app's `saveBudget` never did, only `saveDates` did) — kept as an intentional, tested consistency improvement, not strict port fidelity. Fix round added `try/catch/finally` around both `saveDates`/`saveBudget`'s `apiFetch` calls after review found the old bare-`fetch` code silently no-op'd on HTTP errors, while unguarded `apiFetch` would throw and leave the Save button permanently stuck — a real regression from the touchpoint swap, now fixed. Two pre-existing gaps ported as-is (confirmed inherited, not introduced): `trip.members` dead field (see Task 4.9.0), no user-facing error message on failed saves (explicitly out of scope). `mapbox-gl` adds ~772KB/221KB gzip to the single JS bundle since no route-level code-splitting exists anywhere yet in `router.tsx` — a pre-existing architectural gap, flagged for awareness, not fixed here.
 
 **Files:** Create `nextgen/apps/web/src/components/trip/OverviewTab.tsx`, `TripStatsCard.tsx`, `nextgen/apps/web/src/components/map/TripMap.tsx`. Port from the three source files in the table above (239 lines total for the tab itself).
-- [ ] Port, apply touchpoint checklist. `TripMap` needs a Mapbox token — confirm `VITE_MAPBOX_TOKEN` exists in `apps/web/.env.example` (add it if Task 4.9.2, which also needs Mapbox via `LocationSearch`, hasn't already).
-- [ ] Replace the Overview placeholder in `TripDetailPage.tsx` with the real component.
-- [ ] `npm run type-check` clean. Manual smoke test: Overview tab renders trip stats and map for a real trip.
-- [ ] Commit: `git commit -m "feat(nextgen): port trip overview tab"`
+- [x] Port, apply touchpoint checklist. `TripMap` needs a Mapbox token — confirm `VITE_MAPBOX_TOKEN` exists in `apps/web/.env.example` (add it if Task 4.9.2, which also needs Mapbox via `LocationSearch`, hasn't already).
+- [x] Replace the Overview placeholder in `TripDetailPage.tsx` with the real component.
+- [x] `npm run type-check` clean. Manual smoke test — NOT run (no Supabase/Mapbox credentials in the execution sandbox); Mapbox rendering itself remains unverified by any automated test (mocked in tests). Real smoke test deferred to Task 5.1.
+- [x] Commit: `git commit -m "feat(nextgen): port trip overview tab"`
 
 #### Task 4.9.2: Itinerary tab
 
