@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
-import type { Day, Leg, Accommodation, TripWithDetails } from '@motonui/shared-types';
-import { useAuth } from '../../lib/auth-context';
-import { apiFetch } from '../../lib/api-client';
+import type { Leg, Accommodation, Activity, TripWithDetails } from '@motonui/shared-types';
 import DayDrawer from './DayDrawer';
 import LegDrawer from './LegDrawer';
 import AccommodationDrawer from './AccommodationDrawer';
 import BoardingPassViewer from './BoardingPassViewer';
 import ItineraryLegCard from './ItineraryLegCard';
 import ItineraryAccommodationCard from './ItineraryAccommodationCard';
-
-type DayWithDetails = Day & { legs: Leg[]; accommodations: Accommodation[] };
+import ItineraryActivityCard from './ItineraryActivityCard';
+import ActivityDrawer from '../booking/ActivityDrawer';
+import { useItineraryDays, type DayWithDetails } from './useItineraryDays';
 
 interface ItineraryTabProps {
     trip: TripWithDetails;
@@ -24,100 +23,63 @@ interface ItineraryTabProps {
  * accommodations (alloggi), with add/edit/delete drawers for each. Ported
  * from src/components/trip/ItineraryTab.tsx (491 lines).
  *
- * Split into three files for docs/CLAUDE.md's 300-line rule (old file
- * wasn't split): this file (shell, fetch/mutation logic, drawer wiring) +
- * `ItineraryLegCard.tsx` + `ItineraryAccommodationCard.tsx` (per-item
+ * Split into five files for docs/CLAUDE.md's 300-line rule (old file wasn't
+ * split): this file (shell, drawer wiring), `useItineraryDays.ts`
+ * (fetch/delete logic, mirroring the `useLegDrawerForm.ts`/
+ * `useBookingsData.ts` hook-extraction pattern), and `ItineraryLegCard.tsx`
+ * + `ItineraryAccommodationCard.tsx` + `ItineraryActivityCard.tsx` (per-item
  * collapsed/expanded card markup, extracted verbatim, state lifted to props).
  *
  * Touchpoint changes:
  * - No `'use client'`. Types from `@motonui/shared-types`; `trip` prop is
  *   the full `TripWithDetails` (matches OverviewTab) instead of the old
  *   component's narrower ad-hoc shape.
- * - Raw `fetch(...)` (days refetch + the three deletes) -> `apiFetch(...,
- *   token)`, matching DayDrawer/LegDrawer/AccommodationDrawer. None of
- *   `fetchDays`/`deleteDay`/`deleteLeg`/`deleteAcc` has a loading/disabled
- *   UI state (the old component had none either), so there's no "stuck
- *   button" risk here — but the old delete handlers had NO error handling
- *   at all (a bare `await fetch(...)`), and `apiFetch` throws on non-2xx
- *   (unlike bare `fetch`), so unhandled-rejection risk went up. A
+ * - Raw `fetch(...)` (days refetch + the four deletes, now in
+ *   `useItineraryDays.ts`) -> `apiFetch(..., token)`, matching
+ *   DayDrawer/LegDrawer/AccommodationDrawer. None of
+ *   `fetchDays`/`deleteDay`/`deleteLeg`/`deleteAcc`/`deleteActivity` has a
+ *   loading/disabled UI state (the old component had none either), so
+ *   there's no "stuck button" risk here — but the old delete handlers had NO
+ *   error handling at all (a bare `await fetch(...)`), and `apiFetch` throws
+ *   on non-2xx (unlike bare `fetch`), so unhandled-rejection risk went up. A
  *   `try`/`catch` (console.error, no alert — old app had no error UI for
  *   these) was added around each as a disclosed safety deviation.
- * - `deleteDay`/`deleteLeg`/`deleteAcc` drop the old `tripId` param (already
- *   in scope via `trip.id`).
+ * - `deleteDay`/`deleteLeg`/`deleteAcc`/`deleteActivity` drop the old
+ *   `tripId` param (already in scope via `trip.id`).
  *
- * Disclosed scope omission — NOT a straight port: the old component also
- * rendered "Activities" (`day.activities`, "Aggiungi Attività" ->
- * `ActivityDrawer`). `ActivityDrawer` is scoped to Task 4.9.3 (Bookings
- * tab) per the plan's task table and this task's brief (its file list has
- * no `ActivityDrawer`). Since it doesn't exist in nextgen yet, the
- * Activities section (view/add/edit/delete) is omitted entirely rather than
- * half-built. `GET /api/trips/:id/days` still returns `activities`
- * unchanged, so 4.9.3 can add this back without a shape change here.
+ * Follow-up resolved in Task 4.9.3: Task 4.9.2 omitted the old component's
+ * "Activities" section (`day.activities`, "Aggiungi Attività" ->
+ * `ActivityDrawer`) entirely, disclosed as a scope gap, because
+ * `ActivityDrawer` didn't exist yet (it's scoped to Task 4.9.3's Bookings
+ * tab). Now that `ActivityDrawer` exists at
+ * `nextgen/apps/web/src/components/booking/ActivityDrawer.tsx`, this file
+ * wires the Activities section back in to match the old component's
+ * behavior exactly: view (via `ItineraryActivityCard`), add/edit (via
+ * `ActivityDrawer`, `dayContext` scoping new activities to the day), and
+ * delete (`deleteActivity`, top-level `DELETE /api/trips/:id/activities/:id`
+ * — activities have no day-nested delete route, same as the old component).
+ * `GET /api/trips/:id/days` already returned `activities` unchanged, so no
+ * API shape change was needed.
  */
 export default function ItineraryTab({ trip, onDataChange }: ItineraryTabProps) {
-    const { session } = useAuth();
-    const token = session?.access_token;
+    const { days, fetchDays, deleteDay, deleteLeg, deleteAcc, deleteActivity } =
+        useItineraryDays(trip.id, trip.days ?? [], onDataChange);
 
-    const [days, setDays] = useState<DayWithDetails[]>(trip.days ?? []);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
     // Drawers state for items
     const [activeDay, setActiveDay] = useState<DayWithDetails | null>(null);
     const [legDrawerOpen, setLegDrawerOpen] = useState(false);
     const [accDrawerOpen, setAccDrawerOpen] = useState(false);
+    const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
     const [editingLeg, setEditingLeg] = useState<Leg | null>(null);
     const [editingAcc, setEditingAcc] = useState<Accommodation | null>(null);
+    const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
     const [boardingPassLeg, setBoardingPassLeg] = useState<Leg | null>(null);
     const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
     const toggleExpand = (id: string) => {
         setExpandedItemId((prev) => (prev === id ? null : id));
-    };
-
-    const fetchDays = useCallback(async () => {
-        try {
-            const data = await apiFetch<DayWithDetails[]>(`/api/trips/${trip.id}/days`, {}, token);
-            setDays(data);
-        } catch (err) {
-            console.error('[motonui][ItineraryTab] failed to fetch days', err);
-        }
-    }, [trip.id, token]);
-
-    useEffect(() => {
-        fetchDays();
-    }, [fetchDays]);
-
-    const deleteDay = async (dayId: string) => {
-        if (!confirm('Sei sicuro di voler eliminare questo giorno e tutte le sue attività?')) return;
-        try {
-            await apiFetch(`/api/trips/${trip.id}/days/${dayId}`, { method: 'DELETE' }, token);
-            await fetchDays();
-            onDataChange?.();
-        } catch (err) {
-            console.error('[motonui][ItineraryTab] failed to delete day', err);
-        }
-    };
-
-    const deleteLeg = async (dayId: string, legId: string) => {
-        if (!confirm('Eliminare questo spostamento?')) return;
-        try {
-            await apiFetch(`/api/trips/${trip.id}/days/${dayId}/legs/${legId}`, { method: 'DELETE' }, token);
-            await fetchDays();
-            onDataChange?.();
-        } catch (err) {
-            console.error('[motonui][ItineraryTab] failed to delete leg', err);
-        }
-    };
-
-    const deleteAcc = async (dayId: string, accId: string) => {
-        if (!confirm('Eliminare questo alloggio?')) return;
-        try {
-            await apiFetch(`/api/trips/${trip.id}/days/${dayId}/accommodations/${accId}`, { method: 'DELETE' }, token);
-            await fetchDays();
-            onDataChange?.();
-        } catch (err) {
-            console.error('[motonui][ItineraryTab] failed to delete accommodation', err);
-        }
     };
 
     return (
@@ -213,7 +175,19 @@ export default function ItineraryTab({ trip, onDataChange }: ItineraryTabProps) 
                                 />
                             ))}
 
-                            {day.legs?.length === 0 && day.accommodations?.length === 0 && (
+                            {/* Activities */}
+                            {day.activities?.map((activity) => (
+                                <ItineraryActivityCard
+                                    key={activity.id}
+                                    activity={activity}
+                                    expanded={expandedItemId === activity.id}
+                                    onToggleExpand={() => toggleExpand(activity.id)}
+                                    onEdit={() => { setActiveDay(day); setEditingActivity(activity); setActivityDrawerOpen(true); }}
+                                    onDelete={() => deleteActivity(activity.id)}
+                                />
+                            ))}
+
+                            {day.legs?.length === 0 && day.accommodations?.length === 0 && day.activities?.length === 0 && (
                                 <p className="text-xs text-ink-300 italic mb-2">Nessuna attività pianificata</p>
                             )}
 
@@ -230,6 +204,12 @@ export default function ItineraryTab({ trip, onDataChange }: ItineraryTabProps) 
                                     className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 rounded-xl text-xs font-bold transition-colors"
                                 >
                                     <PlusCircle className="w-3.5 h-3.5" /> Alloggio
+                                </button>
+                                <button
+                                    onClick={() => { setActiveDay(day); setEditingActivity(null); setActivityDrawerOpen(true); }}
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 rounded-xl text-xs font-bold transition-colors"
+                                >
+                                    <PlusCircle className="w-3.5 h-3.5" /> Attività
                                 </button>
                             </div>
                         </div>
@@ -267,6 +247,17 @@ export default function ItineraryTab({ trip, onDataChange }: ItineraryTabProps) 
                 onClose={() => { setAccDrawerOpen(false); setActiveDay(null); setEditingAcc(null); }}
                 onSaved={() => { fetchDays(); onDataChange?.(); }}
                 initialData={editingAcc ?? undefined}
+                tripStartDate={trip.start_date}
+                tripEndDate={trip.end_date}
+            />
+
+            <ActivityDrawer
+                tripId={trip.id}
+                open={activityDrawerOpen}
+                onClose={() => { setActivityDrawerOpen(false); setActiveDay(null); setEditingActivity(null); }}
+                onSaved={() => { fetchDays(); onDataChange?.(); }}
+                initialData={editingActivity ?? undefined}
+                dayContext={activeDay ? { id: activeDay.id, date: activeDay.date } : undefined}
                 tripStartDate={trip.start_date}
                 tripEndDate={trip.end_date}
             />

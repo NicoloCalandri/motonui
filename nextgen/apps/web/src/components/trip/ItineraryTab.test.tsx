@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ItineraryTab from './ItineraryTab';
-import type { TripWithDetails, Day, Leg, Accommodation } from '@motonui/shared-types';
+import type { TripWithDetails, Day, Leg, Accommodation, Activity } from '@motonui/shared-types';
 
 const { mockApiFetch } = vi.hoisted(() => ({ mockApiFetch: vi.fn() }));
 vi.mock('../../lib/api-client', () => ({ apiFetch: mockApiFetch }));
@@ -81,6 +81,14 @@ const makeAcc = (overrides: Partial<Accommodation> = {}): Accommodation => ({
     ...overrides,
 });
 
+const makeActivity = (overrides: Partial<Activity> = {}): Activity => ({
+    id: 'activity-1', created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z',
+    trip_id: 'trip-1', day_id: 'day-1', name: 'Tour del Colosseo', type: 'tour',
+    address: null, lat: null, lng: null, date: '2025-04-01', time: null, duration_min: null,
+    cost: null, currency: 'EUR', booking_ref: null, ticket_url: null, notes: null, sort_order: 0,
+    ...overrides,
+});
+
 const makeTrip = (overrides: Partial<TripWithDetails> = {}): TripWithDetails => ({
     id: 'trip-1',
     created_at: '2025-01-01T00:00:00Z',
@@ -153,7 +161,7 @@ describe('ItineraryTab', () => {
     });
 
     it('adds a flight leg to an existing day using airport and carrier search', async () => {
-        const day = { ...makeDay(), legs: [], accommodations: [] };
+        const day = { ...makeDay(), legs: [], accommodations: [], activities: [] };
         mockApiFetch.mockResolvedValueOnce([day]); // initial fetchDays
         const user = userEvent.setup();
 
@@ -196,7 +204,7 @@ describe('ItineraryTab', () => {
     });
 
     it('adds an accommodation to an existing day, persisting it via apiFetch POST', async () => {
-        const day = { ...makeDay(), legs: [], accommodations: [] };
+        const day = { ...makeDay(), legs: [], accommodations: [], activities: [] };
         mockApiFetch.mockResolvedValueOnce([day]); // initial fetchDays
         const user = userEvent.setup();
 
@@ -220,6 +228,38 @@ describe('ItineraryTab', () => {
             expect(postCall).toBeTruthy();
             const body = JSON.parse((postCall![1] as RequestInit).body as string);
             expect(body.name).toBe('Hotel Test');
+        });
+    });
+
+    it('renders an existing activity and adds a new one via ActivityDrawer, persisting it via apiFetch POST', async () => {
+        const day = { ...makeDay(), legs: [], accommodations: [], activities: [makeActivity()] };
+        mockApiFetch.mockResolvedValueOnce([day]); // initial fetchDays
+        const user = userEvent.setup();
+
+        renderItinerary(makeTrip({ days: [day] }));
+        expect(await screen.findByText('Tour del Colosseo')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: /^attività$/i }));
+        expect(screen.getByText('Nuova attività')).toBeInTheDocument();
+
+        await user.type(screen.getByPlaceholderText('es. Tour del Colosseo'), 'Museo Egizio');
+        // duration_min: z.coerce.number().min(1) has no default, so "" (empty) -> 0 fails
+        // validation silently (pre-existing ActivityDrawer quirk) — must be filled in.
+        await user.type(screen.getByPlaceholderText('es. 120'), '90');
+
+        mockApiFetch.mockResolvedValueOnce({ id: 'activity-2' }); // POST /activities
+        mockApiFetch.mockResolvedValueOnce([{ ...day, activities: [makeActivity(), makeActivity({ id: 'activity-2', name: 'Museo Egizio' })] }]); // refetch
+
+        await user.click(screen.getByRole('button', { name: /^aggiungi attività$/i }));
+
+        await waitFor(() => {
+            const postCall = mockApiFetch.mock.calls.find(
+                (c) => c[0] === '/api/trips/trip-1/activities'
+            );
+            expect(postCall).toBeTruthy();
+            const body = JSON.parse((postCall![1] as RequestInit).body as string);
+            expect(body.name).toBe('Museo Egizio');
+            expect(body.day_id).toBe('day-1');
         });
     });
 
