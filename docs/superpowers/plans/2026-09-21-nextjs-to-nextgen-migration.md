@@ -503,14 +503,16 @@ Each task below follows the same shape: read the listed Next.js source files, po
 - [x] Manual smoke test: NOT run (no Supabase credentials in the execution sandbox, same as Task 4.4) — honestly reported as unrun. Automated tests cover the `redirect` query param round-trip and error paths with a mocked Supabase client instead. Real smoke test deferred to Task 5.1.
 - [x] Commit: `git commit -m "feat(nextgen): port auth pages (login, forgot/reset password)"`
 
-### Task 4.6: Landing page
+### Task 4.6: Landing page ✅ DONE (commits 5f8923d..0dc7346)
+
+**Post-review correction:** the source path in this plan (`src/app/(app)/landing-client.tsx`) was wrong — the real file is `src/components/landing-client.tsx` (confirmed via glob, only one `landing-client.tsx` exists in the repo). Review also confirmed `src/app/page.tsx` server-redirects already-authenticated users to `/dashboard` (`if (user) redirect('/dashboard')`), which the first pass correctly declined to replicate (dispatch forbade router.tsx guard changes) and a fix round then added: `/` is now nested `RequireNotSuspended → RedirectIfAuthenticated → LandingPage`. The two Google OAuth buttons in the old landing page ARE genuinely rendered/reachable (unlike Task 4.5's login page) — ported correctly as live buttons.
 
 **Files:**
 - Create: `nextgen/apps/web/src/pages/LandingPage.tsx`
-- Port from: `src/app/page.tsx` and `src/app/(app)/landing-client.tsx`
+- Port from: `src/app/page.tsx` and `src/components/landing-client.tsx` (not `src/app/(app)/landing-client.tsx` — see correction above)
 - Wire route: `/` in `router.tsx`
 
-- [ ] Port, apply touchpoint checklist, type-check, smoke test (unauthenticated view), commit.
+- [x] Port, apply touchpoint checklist, type-check, smoke test (unauthenticated view — real browser smoke test not possible in the execution sandbox, covered by automated tests instead, same as prior tasks), commit.
 
 ### Task 4.7: Dashboard
 
