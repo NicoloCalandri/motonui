@@ -595,19 +595,22 @@ Each task below follows the same shape: read the listed Next.js source files, po
 - [x] `npm run type-check` clean. Manual smoke test — NOT run (no Supabase/Mapbox credentials in the execution sandbox); Mapbox rendering itself remains unverified by any automated test (mocked in tests). Real smoke test deferred to Task 5.1.
 - [x] Commit: `git commit -m "feat(nextgen): port trip overview tab"`
 
-#### Task 4.9.2: Itinerary tab
+#### Task 4.9.2: Itinerary tab ✅ DONE (commits a6e7166..bafad65)
+
+**Post-review notes:** was interrupted mid-work once by a session rate limit (recovered cleanly — nothing committed by the killed attempt, uncommitted files verified and kept in the recovery dispatch). `LegDrawer.tsx` needed a second split round (493→222 lines) after the first pass didn't go far enough; final structure: `LegDrawer.tsx` (JSX shell) + `useLegDrawerForm.ts` (form/mutation logic, try/catch/finally preserved) + `LegDetailsFields.tsx` + `LegLocationFields.tsx`. **Activities were intentionally NOT ported here**: the old `ItineraryTab.tsx` imports `ActivityDrawer` from `components/booking/` for per-day "Aggiungi Attività," but `ActivityDrawer` belongs to Task 4.9.3 (not yet built at the time). This is disclosed in `ItineraryTab.tsx`'s doc comment. **Task 4.9.3 must, after building `ActivityDrawer`, check whether it needs wiring back into `ItineraryTab.tsx`'s per-day view** (not just the Bookings tab) to match the old app's actual behavior — added as an explicit step below.
 
 **Files:** Create `nextgen/apps/web/src/components/trip/ItineraryTab.tsx`, `DayDrawer.tsx`, `LegDrawer.tsx`, `AccommodationDrawer.tsx`, `AirportSearch.tsx`, `CarrierSearch.tsx`, `BoardingPassViewer.tsx`, `nextgen/apps/web/src/components/map/LocationSearch.tsx`. Port from the source files in the table above (491-line tab plus its drawers — this is the largest single tab; if the ported result exceeds ~300 lines per file, split drawers into their own files as `docs/CLAUDE.md` requires, which the source already mostly does).
-- [ ] Port, apply touchpoint checklist. Confirm `VITE_MAPBOX_TOKEN` is set (see 4.9.1).
-- [ ] Replace the Itinerary placeholder in `TripDetailPage.tsx`.
-- [ ] `npm run type-check` clean after every 2–3 files ported. Manual smoke test: add a day, add a leg (flight with airport/carrier search), add an accommodation, confirm they persist and render.
-- [ ] Commit: `git commit -m "feat(nextgen): port trip itinerary tab"`
+- [x] Port, apply touchpoint checklist. Confirm `VITE_MAPBOX_TOKEN` is set (see 4.9.1).
+- [x] Replace the Itinerary placeholder in `TripDetailPage.tsx`.
+- [x] `npm run type-check` clean after every 2–3 files ported. Manual smoke test — NOT run (no Supabase/Mapbox credentials in the execution sandbox); covered by 5 automated tests (render, add-day, add-flight-leg-with-search, add-accommodation, failure-path) instead.
+- [x] Commit: `git commit -m "feat(nextgen): port trip itinerary tab"`
 
 #### Task 4.9.3: Bookings tab
 
 **Files:** Create `nextgen/apps/web/src/components/booking/BookingsTab.tsx`, `ActivityDrawer.tsx`, `RestaurantDrawer.tsx`. Port from the source files in the table above (592 lines — split into smaller files per `docs/CLAUDE.md`'s 300-line rule if the direct port would exceed it; the source doesn't already split this one, so use judgment on a natural boundary, e.g. activities vs. restaurants).
-- [ ] Port, apply touchpoint checklist.
+- [ ] Port, apply touchpoint checklist. **Also apply the mutation-safety rule established in Tasks 4.9.1/4.9.2: any `apiFetch` call driving a loading/saving state MUST be wrapped in `try`/`catch`/`finally`.**
 - [ ] Replace the Bookings placeholder in `TripDetailPage.tsx`.
+- [ ] **New step (added after Task 4.9.2's review):** read `src/components/trip/ItineraryTab.tsx`'s per-day "Aggiungi Attività" section (it imports `ActivityDrawer` from `components/booking/` — confirmed present in old source) and decide whether `ItineraryTab.tsx` (already ported, Task 4.9.2) needs a follow-up wiring of the now-available `ActivityDrawer` to match old-app behavior, or whether that's better left as a deliberate, disclosed scope boundary. If wiring it back in, that's a small edit to `nextgen/apps/web/src/components/trip/ItineraryTab.tsx` — note it clearly in this task's report either way.
 - [ ] `npm run type-check` clean. Manual smoke test: add an activity and a restaurant booking, confirm they render and persist.
 - [ ] Commit: `git commit -m "feat(nextgen): port trip bookings tab"`
 
