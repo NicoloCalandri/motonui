@@ -55,27 +55,49 @@ export default function OverviewTab({ trip, onNavigate, onTripUpdate }: Overview
     setSavingDates(true);
     const start = datesInput.start || null;
     const end = datesInput.end || null;
-    await apiFetch(`/api/trips/${trip.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ start_date: start, end_date: end }),
-    }, token);
-    setCurrentDates({ start, end });
-    setEditingDates(false);
-    setSavingDates(false);
-    onTripUpdate?.({ start_date: start, end_date: end });
+    try {
+      await apiFetch(`/api/trips/${trip.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ start_date: start, end_date: end }),
+      }, token);
+      setCurrentDates({ start, end });
+      setEditingDates(false);
+      onTripUpdate?.({ start_date: start, end_date: end });
+    } catch (err) {
+      // apiFetch throws on any non-2xx response (unlike the old app's bare
+      // `fetch`, which silently continued past HTTP errors). Swallow it
+      // here rather than leaving an unhandled rejection — no user-facing
+      // error UI is in scope, but the edit form stays open (below) so the
+      // failed save is at least visibly not "done", and the button
+      // becomes clickable again via the `finally` block.
+      console.error('[motonui][OverviewTab] failed to save dates', err);
+    } finally {
+      // Always clear the loading flag, even on a failed save — otherwise
+      // the button gets stuck showing "..." forever with no way to retry.
+      setSavingDates(false);
+    }
   }
 
   async function saveBudget() {
     setSaving(true);
     const value = budgetInput.trim() === '' ? null : Number(budgetInput);
-    await apiFetch(`/api/trips/${trip.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ budget_eur: value }),
-    }, token);
-    setCurrentBudget(value);
-    setEditingBudget(false);
-    setSaving(false);
-    onTripUpdate?.({ budget_eur: value });
+    try {
+      await apiFetch(`/api/trips/${trip.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ budget_eur: value }),
+      }, token);
+      setCurrentBudget(value);
+      setEditingBudget(false);
+      onTripUpdate?.({ budget_eur: value });
+    } catch (err) {
+      // Same reasoning as saveDates — swallow rather than leave an
+      // unhandled rejection; no user-facing error UI is in scope.
+      console.error('[motonui][OverviewTab] failed to save budget', err);
+    } finally {
+      // Always clear the loading flag so a failed save doesn't leave the
+      // Salva button stuck forever.
+      setSaving(false);
+    }
   }
 
   return (

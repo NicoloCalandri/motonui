@@ -178,6 +178,47 @@ describe('OverviewTab', () => {
     await waitFor(() => expect(screen.getByText(/€500/)).toBeInTheDocument());
   });
 
+  it('resets the loading state after a failed budget save instead of getting stuck', async () => {
+    mockApiFetch.mockResolvedValueOnce(makeStats());
+    mockApiFetch.mockRejectedValueOnce(new Error('network error')); // the failed PUT save
+
+    const onTripUpdate = vi.fn();
+    const user = userEvent.setup();
+
+    renderOverview(makeTrip({ budget_eur: null }), { onTripUpdate });
+
+    await user.click(screen.getByRole('button', { name: /imposta/i }));
+    await user.type(screen.getByPlaceholderText('0.00'), '500');
+    await user.click(screen.getByRole('button', { name: /salva/i }));
+
+    // The Salva button must return to its normal, enabled label instead of
+    // staying stuck on "…" forever after a rejected apiFetch call.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salva' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Salva' })).not.toBeDisabled();
+    // The edit form stays open (the save did not silently "succeed").
+    expect(screen.getByPlaceholderText('0.00')).toBeInTheDocument();
+    expect(onTripUpdate).not.toHaveBeenCalled();
+  });
+
+  it('resets the loading state after a failed dates save instead of getting stuck', async () => {
+    mockApiFetch.mockResolvedValueOnce(makeStats());
+    mockApiFetch.mockRejectedValueOnce(new Error('network error')); // the failed PUT save
+
+    const onTripUpdate = vi.fn();
+    const user = userEvent.setup();
+
+    // budget_eur: null so the budget card shows "Imposta" rather than its
+    // own "Modifica" button, keeping the dates section's "Modifica" unique.
+    renderOverview(makeTrip({ budget_eur: null }), { onTripUpdate });
+
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+    await user.click(screen.getByRole('button', { name: /salva/i }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salva' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Salva' })).not.toBeDisabled();
+    expect(onTripUpdate).not.toHaveBeenCalled();
+  });
+
   it('renders trip members with translated roles', async () => {
     mockApiFetch.mockResolvedValueOnce(makeStats());
 
