@@ -1,0 +1,210 @@
+import { useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { it as itLocale } from 'date-fns/locale';
+import {
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Users,
+  Map,
+  DollarSign,
+  Images,
+  BookOpen,
+  ClipboardList,
+  Wallet,
+  CalendarDays,
+  Backpack,
+} from 'lucide-react';
+import { useAuth } from '../lib/auth-context';
+import { apiFetch } from '../lib/api-client';
+import type { TripWithDetails } from '@motonui/shared-types';
+
+const FALLBACK_COVER = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1';
+
+type TabId =
+  | 'overview'
+  | 'itinerary'
+  | 'bookings'
+  | 'wallet'
+  | 'calendar'
+  | 'packing'
+  | 'expenses'
+  | 'media'
+  | 'blog';
+
+// Tab id -> the task that replaces its placeholder with the real component.
+const TABS: { id: TabId; label: string; icon: React.ElementType; task: string }[] = [
+  { id: 'overview', label: 'Panoramica', icon: Map, task: '4.9.1' },
+  { id: 'itinerary', label: 'Itinerario', icon: Calendar, task: '4.9.2' },
+  { id: 'bookings', label: 'Prenotazioni', icon: ClipboardList, task: '4.9.3' },
+  { id: 'wallet', label: 'Wallet', icon: Wallet, task: '4.9.4' },
+  { id: 'calendar', label: 'Calendario', icon: CalendarDays, task: '4.9.5' },
+  { id: 'packing', label: 'Bagagli', icon: Backpack, task: '4.9.6' },
+  { id: 'expenses', label: 'Spese', icon: DollarSign, task: '4.9.7' },
+  { id: 'media', label: 'Foto', icon: Images, task: '4.9.8' },
+  { id: 'blog', label: 'Blog', icon: BookOpen, task: '4.9.9' },
+];
+
+function useTrip(id: string | undefined, token: string | undefined) {
+  return useQuery({
+    queryKey: ['trips', id],
+    queryFn: () => apiFetch<TripWithDetails>(`/api/trips/${id}`, {}, token),
+    enabled: !!id && !!token,
+  });
+}
+
+/**
+ * Trip detail page shell ("/trips/:id") — hero header, 9-tab tab bar, and a
+ * placeholder for each tab's content. Ported from
+ * src/app/(app)/trips/[id]/page.tsx (Task 4.9.0).
+ *
+ * This task ONLY ports the shell: hero, tab bar, tab-switching state, and
+ * the trip fetch. Each tab currently renders a placeholder; Tasks
+ * 4.9.1-4.9.9 each replace exactly one placeholder with its real component
+ * (OverviewTab, ItineraryTab, BookingsTab, TravelWallet, TripCalendar,
+ * PackingTab, ExpensesTab, MediaTab, BlogTab) — do not add tab content here.
+ *
+ * Touchpoint changes from the old page:
+ * - `useParams<{ id }>()` from `next/navigation` -> `react-router-dom`.
+ * - Raw `fetch('/api/trips/${id}')` + local `trip`/`loading` state ->
+ *   `useQuery(['trips', id], ...)` via `apiFetch`, matching
+ *   DashboardPage/TripsListPage's pattern. The old page's `fetchTrip`
+ *   refetch-after-mutation callback (passed to ItineraryTab/BookingsTab/
+ *   TravelWallet as `onDataChange`) becomes each of those later tasks'
+ *   responsibility to call `queryClient.invalidateQueries(['trips', id])`
+ *   instead — there's nothing to wire here since no tab has real content
+ *   yet.
+ * - `next/link`'s `Link` -> `react-router-dom`'s `Link`.
+ * - The old page read the initial active tab from `useSearchParams().get('tab')`
+ *   (set once, never written back to the URL); that one-way read is
+ *   preserved via `useSearchParams()` here too.
+ *
+ * Known gaps ported unchanged from the old page (not introduced here):
+ * - `trip.members?.length` in the hero reads a `members` field that
+ *   `TripWithDetails` declares, but the API (both the old Next.js route and
+ *   the ported `GET /api/trips/:id` in nextgen/apps/api) actually returns
+ *   `trip_members` — this was already a silent no-op in the old app (always
+ *   renders "undefined persone"), not a regression from this port.
+ * - The `hero-gradient` and `scrollbar-hide` classes on the hero/tab-bar
+ *   have no definition anywhere in the old app's CSS (nor in the new
+ *   index.css/tailwind.config.ts) and were already no-ops in the old page;
+ *   ported as-is for visual parity rather than inventing new styles.
+ * - `DeleteTripButton` is listed in the task brief's source inventory next
+ *   to this page, but the old page.tsx never renders it — it's only used
+ *   on the trips list page, and was already ported there in Task 4.8 as
+ *   `nextgen/apps/web/src/components/DeleteTripButton.tsx`. Not duplicated
+ *   here; see the task report for detail.
+ */
+export function TripDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const { session } = useAuth();
+  const token = session?.access_token;
+
+  const [activeTab, setActiveTab] = useState<TabId>(
+    (searchParams.get('tab') as TabId | null) ?? 'overview'
+  );
+
+  const { data: trip, isLoading } = useTrip(id, token);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-ink-400">
+          <div className="w-8 h-8 border-2 border-terracotta-400 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm">Caricamento viaggio...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!trip) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-ink-400">
+        <MapPin className="w-12 h-12" />
+        <p>Viaggio non trovato</p>
+        <Link to="/dashboard" className="text-terracotta-400 underline text-sm">
+          Torna alla home
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Hero */}
+      <div className="relative h-48 md:h-72 overflow-hidden flex-shrink-0">
+        <img
+          src={trip.cover_image ?? FALLBACK_COVER}
+          alt={trip.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 hero-gradient" />
+
+        {/* Back button */}
+        <Link
+          to="/dashboard"
+          className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg text-sm hover:bg-white/30 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Home
+        </Link>
+
+        {/* Trip info */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-white">
+          <h1 className="font-display text-2xl md:text-3xl font-bold">{trip.title}</h1>
+          <div className="flex flex-wrap items-center gap-3 mt-1 text-white/80 text-sm">
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5" />
+              {trip.destination}
+            </span>
+            {trip.start_date && trip.end_date && (
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" />
+                {format(new Date(trip.start_date), 'd MMM', { locale: itLocale })} –{' '}
+                {format(new Date(trip.end_date), 'd MMM yyyy', { locale: itLocale })}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
+              {trip.members?.length} persone
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Bar */}
+      <div className="sticky top-0 z-30 bg-sand-50/95 backdrop-blur-sm border-b border-sand-200 flex-shrink-0">
+        <div className="flex overflow-x-auto scrollbar-hide">
+          {TABS.map(({ id: tabId, label, icon: Icon }) => (
+            <button
+              key={tabId}
+              onClick={() => setActiveTab(tabId)}
+              className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${
+                activeTab === tabId
+                  ? 'border-terracotta-400 text-terracotta-400'
+                  : 'border-transparent text-ink-400 hover:text-ink-700'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Active Tab Content */}
+      <div className="flex-1 pb-24 md:pb-8">
+        {TABS.map(({ id: tabId, task }) =>
+          activeTab === tabId ? (
+            <div key={tabId} className="p-4 md:p-6 text-sm text-ink-400">
+              Tab in arrivo — Task {task}
+            </div>
+          ) : null
+        )}
+      </div>
+    </div>
+  );
+}

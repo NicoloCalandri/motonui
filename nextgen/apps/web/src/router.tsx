@@ -8,6 +8,7 @@ import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TripsListPage } from './pages/TripsListPage';
 import { NewTripPage } from './pages/NewTripPage';
+import { TripDetailPage } from './pages/TripDetailPage';
 
 export const router = createBrowserRouter([
   { path: '/suspended', /* Task 4.11 */ Component: undefined },
@@ -37,7 +38,7 @@ export const router = createBrowserRouter([
               { path: '/dashboard', Component: DashboardPage },
               { path: '/trips', Component: TripsListPage },
               { path: '/trips/new', Component: NewTripPage },
-              { path: '/trips/:id', Component: undefined },
+              { path: '/trips/:id', Component: TripDetailPage },
               { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
               { path: '/profile', /* Task 4.12 */ Component: undefined },
               {
