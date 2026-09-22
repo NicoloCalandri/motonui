@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { RequireAuth, RedirectIfAuthenticated, RequireAdmin } from './RequireAuth';
+import { RequireAuth, RedirectIfAuthenticated, RequireAdmin, RequireNotSuspended } from './RequireAuth';
 
 const mockUseAuth = vi.fn();
 vi.mock('../lib/auth-context', () => ({ useAuth: () => mockUseAuth() }));
@@ -47,6 +47,49 @@ it('redirects authenticated users away from /auth/login', () => {
     </>
   );
   expect(screen.getByText('dashboard')).toBeInTheDocument();
+});
+
+it('redirects an authenticated user away from / to /dashboard (RequireNotSuspended > RedirectIfAuthenticated)', () => {
+  mockUseAuth.mockReturnValue({
+    user: { id: 'u1' },
+    isLoading: false,
+    profileLoading: false,
+    profile: null,
+  });
+  renderAt(
+    '/',
+    <>
+      <Route path="/dashboard" element={<span>dashboard</span>} />
+      <Route element={<RequireNotSuspended />}>
+        <Route element={<RedirectIfAuthenticated />}>
+          <Route path="/" element={<span>landing page</span>} />
+        </Route>
+      </Route>
+    </>
+  );
+  expect(screen.getByText('dashboard')).toBeInTheDocument();
+  expect(screen.queryByText('landing page')).not.toBeInTheDocument();
+});
+
+it('renders / normally for an anonymous visitor (RequireNotSuspended > RedirectIfAuthenticated)', () => {
+  mockUseAuth.mockReturnValue({
+    user: null,
+    isLoading: false,
+    profileLoading: false,
+    profile: null,
+  });
+  renderAt(
+    '/',
+    <>
+      <Route path="/dashboard" element={<span>dashboard</span>} />
+      <Route element={<RequireNotSuspended />}>
+        <Route element={<RedirectIfAuthenticated />}>
+          <Route path="/" element={<span>landing page</span>} />
+        </Route>
+      </Route>
+    </>
+  );
+  expect(screen.getByText('landing page')).toBeInTheDocument();
 });
 
 it('does NOT redirect RequireAdmin while profileLoading is true', () => {

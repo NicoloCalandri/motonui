@@ -19,7 +19,10 @@ export const router = createBrowserRouter([
   {
     element: <RequireNotSuspended />,
     children: [
-      { path: '/', Component: LandingPage },
+      {
+        element: <RedirectIfAuthenticated />,
+        children: [{ path: '/', Component: LandingPage }],
+      },
       { path: '/blog', /* Task 4.9 */ Component: undefined },
       { path: '/blog/:slug', Component: undefined },
       {
