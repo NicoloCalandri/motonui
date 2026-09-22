@@ -514,15 +514,17 @@ Each task below follows the same shape: read the listed Next.js source files, po
 
 - [x] Port, apply touchpoint checklist, type-check, smoke test (unauthenticated view — real browser smoke test not possible in the execution sandbox, covered by automated tests instead, same as prior tasks), commit.
 
-### Task 4.7: Dashboard
+### Task 4.7: Dashboard ✅ DONE (commits edc4176..ffed78a)
+
+**Post-review notes (both deferred to Task 5.1, not fixed here):** (1) no query-error state exists anywhere yet in `apps/web` — a failed `GET /api/trips` would silently render as "0 trips" rather than an error; this is a cross-cutting gap, not unique to this page, best fixed once as a shared convention. (2) `GET /api/trips` (`apps/api/src/routes/trips.ts:44`) doesn't select `budget_eur`, so the dashboard needs a second request to `/api/trips/:id/stats` for the active trip's budget, causing a brief "Imposta un budget" flicker even when a budget is set — trivial one-line API fix, deferred since it touches already-reviewed Phase 3 code outside this task's scope.
 
 **Files:**
 - Create: `nextgen/apps/web/src/pages/DashboardPage.tsx`
-- Port from: `src/app/(app)/dashboard/page.tsx`
-- Likely consumes: `apps/api/src/routes/trips.ts` (list), `apps/api/src/routes/profile.ts` (stats) — confirm against actual imports
+- Port from: `src/app/(app)/dashboard/page.tsx` (confirmed correct path)
+- Consumes: `GET /api/trips` (list) and `GET /api/trips/:id/stats` (active trip's budget/spend — `apps/api/src/routes/trips.ts` and `trips-stats.ts`, not `profile.ts` as originally guessed)
 - Wire route: `/dashboard`
 
-- [ ] Port, apply touchpoint checklist, type-check, smoke test with a real trip in the DB, commit.
+- [x] Port, apply touchpoint checklist, type-check, smoke test with a real trip in the DB — NOT run (no Supabase credentials in the execution sandbox); covered by 4 automated tests (loading/empty/populated/no-budget states) instead, commit.
 
 ### Task 4.8: Trips list + new trip
 
