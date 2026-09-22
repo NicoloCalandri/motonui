@@ -4,6 +4,7 @@ import { AppShell } from './components/AppShell';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+import { LandingPage } from './pages/LandingPage';
 
 export const router = createBrowserRouter([
   { path: '/suspended', /* Task 4.11 */ Component: undefined },
@@ -18,7 +19,7 @@ export const router = createBrowserRouter([
   {
     element: <RequireNotSuspended />,
     children: [
-      { path: '/', /* Task 4.5 */ Component: undefined },
+      { path: '/', Component: LandingPage },
       { path: '/blog', /* Task 4.9 */ Component: undefined },
       { path: '/blog/:slug', Component: undefined },
       {
