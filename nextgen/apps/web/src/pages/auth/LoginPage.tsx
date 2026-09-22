@@ -4,8 +4,14 @@ import { Plane, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase-client';
 
 /**
- * Auth login page — email/password + Google OAuth sign-in, plus a
- * dev-only bypass login. Ported from src/app/auth/login/page.tsx.
+ * Auth login page — email/password sign-in, plus a dev-only bypass login.
+ * Ported from src/app/auth/login/page.tsx.
+ *
+ * The old page also defined a `handleGoogle` OAuth handler, but never
+ * rendered a button that called it — it was dead code, unreachable to any
+ * user. This port intentionally omits it: the goal is behavioral parity
+ * with the old app's actual rendered output, not adding functionality that
+ * never existed there.
  *
  * Redirects to /dashboard or the originally requested page (via the
  * `redirect` query param set by RequireAuth) after auth. No router.refresh()
@@ -44,20 +50,6 @@ export function LoginPage() {
     }
 
     navigate(redirectTo);
-  };
-
-  const handleGoogle = async () => {
-    setLoading(true);
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=${redirectTo}`,
-      },
-    });
-    if (!isDev && authError) {
-      setError('Errore con Google. Riprova.');
-      setLoading(false);
-    }
   };
 
   const handleDevLogin = async () => {
@@ -159,17 +151,6 @@ export function LoginPage() {
                 {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Log in'}
               </button>
             </form>
-
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={handleGoogle}
-                disabled={loading}
-                className="w-full py-4 border border-neutral-200 text-neutral-900 rounded-xl font-bold hover:bg-neutral-50 transition-all"
-              >
-                Continua con Google
-              </button>
-            </div>
 
             {/* Development Bypass footer */}
             {isDev && (
