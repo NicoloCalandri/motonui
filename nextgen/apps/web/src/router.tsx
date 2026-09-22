@@ -6,6 +6,8 @@ import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { TripsListPage } from './pages/TripsListPage';
+import { NewTripPage } from './pages/NewTripPage';
 
 export const router = createBrowserRouter([
   { path: '/suspended', /* Task 4.11 */ Component: undefined },
@@ -33,8 +35,8 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: '/dashboard', Component: DashboardPage },
-              { path: '/trips', /* Task 4.8 */ Component: undefined },
-              { path: '/trips/new', Component: undefined },
+              { path: '/trips', Component: TripsListPage },
+              { path: '/trips/new', Component: NewTripPage },
               { path: '/trips/:id', Component: undefined },
               { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
               { path: '/profile', /* Task 4.12 */ Component: undefined },

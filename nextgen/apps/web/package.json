@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.9.0",
     "@motonui/shared-types": "*",
     "@supabase/supabase-js": "^2.45.0",
     "@tanstack/react-query": "^5.62.8",
