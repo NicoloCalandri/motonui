@@ -1,15 +1,18 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { RequireAuth, RequireAdmin, RequireNotSuspended, RedirectIfAuthenticated } from './components/RequireAuth';
 import { AppShell } from './components/AppShell';
+import { LoginPage } from './pages/auth/LoginPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 export const router = createBrowserRouter([
   { path: '/suspended', /* Task 4.11 */ Component: undefined },
   {
     element: <RedirectIfAuthenticated />,
     children: [
-      { path: '/auth/login', /* Task 4.6 */ Component: undefined },
-      { path: '/auth/forgot-password', Component: undefined },
-      { path: '/auth/reset-password', Component: undefined },
+      { path: '/auth/login', Component: LoginPage },
+      { path: '/auth/forgot-password', Component: ForgotPasswordPage },
+      { path: '/auth/reset-password', Component: ResetPasswordPage },
     ],
   },
   {
