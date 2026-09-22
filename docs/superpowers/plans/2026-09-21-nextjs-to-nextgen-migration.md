@@ -452,19 +452,21 @@ git add nextgen/apps/web/src/router.tsx nextgen/apps/web/src/components/RequireA
 git commit -m "feat(nextgen): add router shell and auth/admin/suspended route guards"
 ```
 
-### Task 4.4: App shell layout (nav)
+### Task 4.4: App shell layout (nav) ✅ DONE (commits 1996d91..1c0dfe1)
+
+**Post-completion notes:** also ported `ImpersonationBanner.tsx` (correctly in-brief — the old layout renders it unconditionally) and added 3 CSS variables to `index.css` (verified necessary, not creep). Two design notes surfaced for later tasks, not blockers: Task 4.14 (admin pages) will render inside this same consumer-facing shell rather than a dedicated admin layout like the old Next.js `(admin)` route group had — acceptable for a personal 2-user app unless it looks wrong once built; Task 4.11 (public blog) sits outside this shell entirely by design (public route, no auth required) — consider a lightweight header of its own for visual consistency.
 
 **Files:**
 - Create: `nextgen/apps/web/src/components/AppShell.tsx`
 - Reference: `src/app/(app)/layout.tsx` (source of the nav structure — bottom tabs on mobile ≤768px, sidebar on desktop, per `docs/ARCHITECTURE.md`'s "Mobile Strategy" section)
 
 **Steps:**
-- [ ] **Step 1:** Read `src/app/(app)/layout.tsx` in full and list every nav item and every piece of chrome it renders (avatar, sign-out, impersonation banner if active).
-- [ ] **Step 2:** Port it to `AppShell.tsx` as a plain React component (no Server Component data fetching — pull `user`/`profile` from `useAuth()`), using `<Outlet />` from `react-router-dom` for the child route content instead of Next's `children` prop.
-- [ ] **Step 3:** Wire `AppShell` as a layout route wrapping the authenticated routes in `router.tsx` (the block under `RequireAuth` from Task 4.3).
-- [ ] **Step 4:** `cd nextgen/apps/web && npm run type-check` — must be clean.
-- [ ] **Step 5:** Manual smoke test: `npm run dev:web` (from `nextgen/`) + `npm run dev:api` in a second terminal, log in, confirm nav renders and links navigate without a full page reload.
-- [ ] **Step 6: Commit**
+- [x] **Step 1:** Read `src/app/(app)/layout.tsx` in full and list every nav item and every piece of chrome it renders (avatar, sign-out, impersonation banner if active).
+- [x] **Step 2:** Port it to `AppShell.tsx` as a plain React component (no Server Component data fetching — pull `user`/`profile` from `useAuth()`), using `<Outlet />` from `react-router-dom` for the child route content instead of Next's `children` prop.
+- [x] **Step 3:** Wire `AppShell` as a layout route wrapping the authenticated routes in `router.tsx` (the block under `RequireAuth` from Task 4.3).
+- [x] **Step 4:** `cd nextgen/apps/web && npm run type-check` — must be clean.
+- [x] **Step 5:** Manual smoke test — NOT run (no Supabase credentials in the execution sandbox); honestly reported as unrun rather than fabricated. Real smoke test deferred to Task 5.1's full verification pass. Added 2 automated render tests (mocked `useAuth()`, `MemoryRouter`) as a partial substitute.
+- [x] **Step 6: Commit**
 
 ```bash
 git add nextgen/apps/web/src/components/AppShell.tsx nextgen/apps/web/src/router.tsx
