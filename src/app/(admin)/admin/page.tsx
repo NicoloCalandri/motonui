@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 import { Users, Map, Receipt, BookOpen, Cpu, Activity } from 'lucide-react';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { PlatformStats } from '@/lib/types';
 
 interface StatCard {
@@ -12,16 +13,7 @@ interface StatCard {
 }
 
 export default function AdminDashboardPage() {
-    const [stats, setStats] = useState<PlatformStats | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetch('/api/admin/stats')
-            .then(r => r.json())
-            .then(setStats)
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, []);
+    const { data: stats, isLoading: loading } = useSWR<PlatformStats>('/api/admin/stats', jsonFetcher);
 
     const cards: StatCard[] = stats
         ? [

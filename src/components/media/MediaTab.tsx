@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import useSWR from 'swr';
+import { jsonFetcher } from '@/lib/fetcher';
 import { mediaFullSrc, mediaThumbSrc } from '@/lib/trip-files';
 import { MediaUploadError, uploadTripMedia } from '@/lib/media/upload-client';
 import InstagramGenerator from '@/components/instagram/InstagramGenerator';
@@ -14,22 +16,14 @@ interface MediaTabProps { tripId: string }
  * Media tab: masonry photo grid, drag-and-drop upload, lightbox.
  */
 export default function MediaTab({ tripId }: MediaTabProps) {
-    const [media, setMedia] = useState<MediaWithUrls[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: media = [], isLoading: loading, mutate } = useSWR<MediaWithUrls[]>(`/api/trips/${tripId}/media`, jsonFetcher);
     const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
     const [uploadErrors, setUploadErrors] = useState<string[]>([]);
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [showInstagram, setShowInstagram] = useState(false);
     const [lightbox, setLightbox] = useState<MediaWithUrls | null>(null);
 
-    const fetchMedia = () => {
-        fetch(`/api/trips/${tripId}/media`)
-            .then((r) => r.json())
-            .then((data: MediaWithUrls[]) => { setMedia(data); setLoading(false); })
-            .catch(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchMedia(); }, [tripId]);
+    const fetchMedia = useCallback(() => { void mutate(); }, [mutate]);
 
     const onDrop = useCallback(async (files: File[]) => {
         const errors: string[] = [];
@@ -46,7 +40,7 @@ export default function MediaTab({ tripId }: MediaTabProps) {
         setUploadErrors(errors);
         fetchMedia();
         setUploading(null);
-    }, [tripId]);
+    }, [tripId, fetchMedia]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,

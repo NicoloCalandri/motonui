@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { AdminUserSummary } from '@/lib/types';
 import UserDetailDrawer from '@/components/admin/user-detail-drawer';
 import ImpersonateConfirmDialog from '@/components/admin/impersonate-confirm-dialog';
@@ -15,8 +17,6 @@ type SortDir = 'asc' | 'desc';
 type SortBy = 'created_at' | 'last_sign_in_at' | 'trips_count';
 
 export default function AdminUsersPage() {
-    const [users, setUsers] = useState<AdminUserSummary[]>([]);
-    const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -25,7 +25,6 @@ export default function AdminUsersPage() {
     const [suspendedFilter, setSuspendedFilter] = useState<'all' | 'true' | 'false'>('all');
     const [sortBy, setSortBy] = useState<SortBy>('created_at');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
-    const [loading, setLoading] = useState(true);
 
     const [selectedUser, setSelectedUser] = useState<AdminUserSummary | null>(null);
     const [impersonateTarget, setImpersonateTarget] = useState<AdminUserSummary | null>(null);
@@ -40,32 +39,23 @@ export default function AdminUsersPage() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    const loadUsers = useCallback(async () => {
-        setLoading(true);
-        const params = new URLSearchParams({
-            page: String(page),
-            pageSize: '25',
-            sortBy,
-            sortDir,
-            role: roleFilter,
-            plan: planFilter,
-            suspended: suspendedFilter,
-        });
-        if (debouncedSearch) params.set('search', debouncedSearch);
-
-        try {
-            const res = await fetch(`/api/admin/users?${params}`);
-            const data = await res.json();
-            setUsers(data.users ?? []);
-            setTotal(data.total ?? 0);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    }, [page, sortBy, sortDir, roleFilter, planFilter, suspendedFilter, debouncedSearch]);
-
-    useEffect(() => { loadUsers(); }, [loadUsers]);
+    const params = new URLSearchParams({
+        page: String(page),
+        pageSize: '25',
+        sortBy,
+        sortDir,
+        role: roleFilter,
+        plan: planFilter,
+        suspended: suspendedFilter,
+    });
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    // The key carries every filter: changing one fetches, the previous page stays visible meanwhile.
+    const { data, isLoading: loading, mutate } = useSWR<{ users: AdminUserSummary[]; total: number }>(
+        `/api/admin/users?${params}`, jsonFetcher, { keepPreviousData: true },
+    );
+    const users = data?.users ?? [];
+    const total = data?.total ?? 0;
+    const loadUsers = () => { void mutate(); };
 
     const toggleSort = (col: SortBy) => {
         if (sortBy === col) {

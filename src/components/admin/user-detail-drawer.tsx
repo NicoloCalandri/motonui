@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { X, Plane, BookOpen, DollarSign, RotateCcw } from 'lucide-react';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { AdminUserSummary } from '@/lib/types';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -42,7 +44,7 @@ interface UserDetail {
 }
 
 export default function UserDetailDrawer({ user, onClose, onAction }: Props) {
-    const [detail, setDetail] = useState<UserDetail | null>(null);
+    const { data: detail = null, mutate } = useSWR<UserDetail>(`/api/admin/users/${user.id}`, jsonFetcher);
     const [tab, setTab] = useState<'trips' | 'posts' | 'expenses'>('trips');
     const [restoringId, setRestoringId] = useState<string | null>(null);
 
@@ -54,22 +56,12 @@ export default function UserDetailDrawer({ user, onClose, onAction }: Props) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'completed' }),
             });
-            // refresh detail
-            const res = await fetch(`/api/admin/users/${user.id}`);
-            const updated = await res.json();
-            setDetail(updated);
+            await mutate();
             onAction();
         } finally {
             setRestoringId(null);
         }
     }
-
-    useEffect(() => {
-        fetch(`/api/admin/users/${user.id}`)
-            .then(r => r.json())
-            .then(setDetail)
-            .catch(console.error);
-    }, [user.id]);
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
