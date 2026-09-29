@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Loader2, Upload, Ticket, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { hasBoardingPass } from '@/lib/boarding-pass';
 import type { Leg } from '@/lib/types';
 import LocationSearch, { type LocationResult } from '@/components/map/LocationSearch';
 import AirportSearch, { type AirportResult } from '@/components/trip/AirportSearch';
@@ -71,7 +72,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
     const [segments, setSegments] = useState<FlightSegment[]>([defaultSegment()]);
 
     // Boarding pass upload state
-    const [boardingPassUrl, setBoardingPassUrl] = useState<string | null>(null);
+    const [hasBoardingPassFile, setHasBoardingPassFile] = useState(false);
     const [uploadingBoardingPass, setUploadingBoardingPass] = useState(false);
 
     // Coordinates selected via geocoding (optional — map won't show if missing)
@@ -109,7 +110,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                         ? initialData.checkin_opens_at.slice(0, 16)
                         : undefined,
                 });
-                setBoardingPassUrl(initialData.boarding_pass_url ?? null);
+                setHasBoardingPassFile(hasBoardingPass(initialData));
                 setFromInitial(initialData.from_name);
                 setToInitial(initialData.to_name);
                 setFromCoords(
@@ -130,7 +131,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                 setToInitial('');
                 setFromCoords(null);
                 setToCoords(null);
-                setBoardingPassUrl(null);
+                setHasBoardingPassFile(false);
                 setSegments([defaultSegment()]);
             }
         }
@@ -151,7 +152,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
             );
             if (res.ok) {
                 const data = await res.json();
-                setBoardingPassUrl(data.boarding_pass_url ?? null);
+                setHasBoardingPassFile(hasBoardingPass(data));
             }
         } finally {
             setUploadingBoardingPass(false);
@@ -165,7 +166,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
             `/api/trips/${tripId}/days/${dayId}/legs/${initialData.id}/boarding-pass`,
             { method: 'DELETE' }
         );
-        setBoardingPassUrl(null);
+        setHasBoardingPassFile(false);
     };
 
     const onSubmit = async (values: FormValues, event?: BaseSyntheticEvent) => {
@@ -271,7 +272,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
             setToInitial('');
             setFromCoords(null);
             setToCoords(null);
-            setBoardingPassUrl(null);
+            setHasBoardingPassFile(false);
             setSegments([defaultSegment()]);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Errore imprevisto');
@@ -582,7 +583,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                         {isEditing && (
                                             <div>
                                                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d&apos;imbarco</label>
-                                                {boardingPassUrl ? (
+                                                {hasBoardingPassFile ? (
                                                     <div className="flex items-center gap-3 p-4 bg-sage-50 rounded-2xl">
                                                         <Ticket className="w-5 h-5 text-sage-500 flex-shrink-0" />
                                                         <span className="flex-1 text-sm font-medium text-ink-700 truncate">Documento caricato</span>
