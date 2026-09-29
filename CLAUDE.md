@@ -149,6 +149,7 @@ import type { Trip } from '@/lib/types'
 - Non esporre mai URL diretti di Supabase Storage al client — passa sempre per URL firmati o proxy
 - I file dei viaggi stanno in bucket privati sotto `trips/{trip_id}/` (`trip-media`, `trip-documents`): path costruiti dal server (`buildMediaPath`, `buildDocumentPath` in `src/lib/trip-files.ts`) e ricontrollati con `isTripFilePath()` prima di usare il service role; foto servite con `withSignedUrls()` (1 h), documenti tramite proxy autenticato
 - Chi cancella una riga con un file (media, documento, spostamento) cancella anche il file (`src/lib/trip-storage.ts`)
+- Le cancellazioni fatte in SQL (account, viaggi) mettono i file in `storage_deletion_queue`; il server li rimuove con la Storage API (`drainStorageDeletionQueue`). Non cancellare mai da `storage.objects` in SQL: resta il file
 - Upload di foto e video: `…/media/uploads` (URL di upload firmato verso `incoming/`) → upload diretto allo storage (`uploadTripMedia` in `src/lib/media/upload-client.ts`) → `…/media/confirm`, che passa da `src/lib/media/pipeline.ts`. Nessun file attraversa il corpo di una route (limite ~4,5 MB su Vercel)
 - Thumbnail sempre generati al momento dell'upload (400×400, WebP); le foto salvate non hanno metadati EXIF
 - ZIP degli export Instagram eliminati automaticamente dopo 24h

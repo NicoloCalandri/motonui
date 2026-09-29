@@ -683,6 +683,8 @@ export type Database = {
         }
       }
       accept_trip_invite: { Args: { p_token: string }; Returns: string }
+      purge_user_data: { Args: { p_user: string }; Returns: Json }
+      delete_my_account: { Args: { confirm_text: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
