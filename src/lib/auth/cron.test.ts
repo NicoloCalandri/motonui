@@ -2,7 +2,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isAuthorizedCronRequest } from './cron';
 
-const SECRET = 'cron-secret-for-unit-tests-0123456789';
+// Low-entropy placeholder: gitleaks flags realistic-looking values.
+const SECRET = 'x'.repeat(40);
 
 function request(authorization?: string) {
     return new Request('https://motonui.app/api/admin/cleanup', {
