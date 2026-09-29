@@ -374,6 +374,8 @@ export interface SplitResult {
   settlements: Settlement[];
   /** Is the split already even? */
   is_even: boolean;
+  /** Only one member so far: no balance to show until the partner joins (T-2.8) */
+  awaiting_partner: boolean;
 }
 
 /** A single debt settlement instruction */

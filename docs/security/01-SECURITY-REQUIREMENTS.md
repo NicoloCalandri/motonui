@@ -14,12 +14,12 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 44 | 10 | 12 |
+| **66** | 45 | 10 | 11 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
 | SR-AUTH · Autenticazione | 7 | 5 | 1 | 1 | 0 |
-| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 9 | 0 | 1 | 0 |
+| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 10 | 0 | 0 | 0 |
 | SR-INPUT · Validazione dell'input | 7 | 5 | 2 | 0 | 0 |
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 5 | 0 | 0 | 0 |
@@ -61,7 +61,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-AUTHZ-06 | Le colonne strutturali non sono modificabili dal client (`trips.owner_id`, `*.trip_id`, `media.url`, `media.uploaded_by`, `expenses.paid_by`…) | P0 | ✅ Fatto | `0016_harden_rls_structural_columns.sql` (trigger `prevent_structural_update`, `WITH CHECK` ovunque, `paid_by` membro del viaggio); test `supabase/tests/0016_phase0_rls.test.sql` | T-0.6. `paid_by` resta modificabile ma solo verso un membro del viaggio. Il mobile non invia più `url` nella modifica dei media. |
 | SR-AUTHZ-07 | Tutte le funzioni `SECURITY DEFINER` hanno `search_path` fissato | P2 | ✅ Fatto | `0016_harden_rls_structural_columns.sql`; meta-controllo su `pg_proc` in `supabase/tests/0016_phase0_rls.test.sql` | T-0.6. |
 | SR-AUTHZ-08 | Le route admin verificano il ruolo lato server; il bypass di sviluppo è opt-in esplicito | P1 | ✅ Fatto | `src/lib/auth/require-admin.ts`, `src/app/(admin)/admin/layout.tsx`; test `src/lib/admin/permissions.test.ts` | Il ruolo letto è affidabile solo dopo SR-AUTHZ-04. |
-| SR-AUTHZ-09 | Un viaggio ha al massimo 2 membri (vincolo nel DB) | P2 | 🔴 Da fare | `0001_initial.sql` (solo commento) | Serve un trigger o un vincolo; è anche la base del flusso di invito (PRD FR-02). |
+| SR-AUTHZ-09 | Un viaggio ha al massimo 2 membri (vincolo nel DB) | P2 | ✅ Fatto | `0021_trip_invites.sql` (trigger `AFTER INSERT` `enforce_trip_member_limit` con lock sul viaggio; `trip_members_insert` limitata all'owner che inserisce se stesso; `create_trip`, `create_trip_invite`, `accept_trip_invite` `SECURITY DEFINER`); test `supabase/tests/0021_trip_invites.test.sql`, `invites/route.test.ts` | T-2.5. Il trigger è `AFTER` perché la `WITH CHECK` della RLS viene valutata dopo i trigger `BEFORE`. Verificato con due inserimenti concorrenti: uno solo passa. Inviti: token da 256 bit salvato solo come SHA-256, 7 giorni, monouso, legato all'email invitata, un solo invito pendente per viaggio. |
 | SR-AUTHZ-10 | L'impersonazione è in sola lettura, revocabile e limitata nel tempo | P1 | ✅ Fatto | `src/lib/admin/impersonation-token.ts`, `middleware.ts`; test `impersonation-token.test.ts`, `middleware.test.ts`, `impersonation.test.ts` | T-1.8 (ADR-07): scritture bloccate, scadenza 30 min, revoca verificata a ogni richiesta (cache 30 s). L'identità impersonata non viene applicata per scelta: rimossi gli header `x-impersonated-*` che nessuno leggeva. |
 
 ## SR-INPUT — Validazione dell'input

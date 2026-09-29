@@ -109,10 +109,11 @@ export default function NewTripPage() {
       const trip: { id: string } = await res.json();
 
       if (values.partner_email) {
-        await fetch('/api/trips/invite', {
+        // The trip exists anyway: a failed invite can be resent from the trip page.
+        await fetch(`/api/trips/${trip.id}/invites`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trip_id: trip.id, email: values.partner_email }),
+          body: JSON.stringify({ email: values.partner_email }),
         }).catch(() => {});
       }
 

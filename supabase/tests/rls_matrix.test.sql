@@ -134,6 +134,9 @@ insert into public.baggage_items (id, trip_id, category) values
   ('30000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-0000000000a1', 'cabin_bag');
 insert into public.packing_checklists (trip_id) values
   ('10000000-0000-0000-0000-0000000000a1');
+insert into public.trip_invites (id, trip_id, invited_by, email, token_hash) values
+  ('30000000-0000-0000-0000-00000000000d', '10000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a1',
+   'someone@test.local', repeat('ab', 32));
 
 insert into rls_matrix.fixture (table_name, pk_column, pk_value, copy_overrides) values
   ('trip_members',       'id',      '20000000-0000-0000-0000-000000000001', '{}'),
@@ -149,7 +152,8 @@ insert into rls_matrix.fixture (table_name, pk_column, pk_value, copy_overrides)
   ('activities',         'id',      '30000000-0000-0000-0000-00000000000a', '{}'),
   ('documents',          'id',      '30000000-0000-0000-0000-00000000000b', '{}'),
   ('baggage_items',      'id',      '30000000-0000-0000-0000-00000000000c', '{}'),
-  ('packing_checklists', 'trip_id', '10000000-0000-0000-0000-0000000000a1', '{}');
+  ('packing_checklists', 'trip_id', '10000000-0000-0000-0000-0000000000a1', '{}'),
+  ('trip_invites',       'id',      '30000000-0000-0000-0000-00000000000d', '{"token_hash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"}');
 
 -- Expected results for members. Defaults: can select, insert, update, delete
 -- (1 row each). -1 = denied, 0 = filtered out, null = not checked (the copy
@@ -189,6 +193,13 @@ update rls_matrix.expectation
 update rls_matrix.expectation
    set partner_insert = null, owner_insert = null
  where table_name = 'packing_checklists';
+
+-- Invites: members read them, only the owner revokes; creation and
+-- acceptance go through SECURITY DEFINER RPCs (no client INSERT/UPDATE grant).
+update rls_matrix.expectation
+   set partner_insert = -1, partner_update = -1, partner_delete = 0,
+       owner_insert = -1, owner_update = -1
+ where table_name = 'trip_invites';
 
 grant select on rls_matrix.fixture, rls_matrix.expectation to anon, authenticated;
 

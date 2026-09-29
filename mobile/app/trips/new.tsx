@@ -14,53 +14,19 @@ import { useColors } from '@/hooks/useColors';
 import { queryClient } from '@/lib/queryClient';
 import { validateTripInput, type NewTripData } from '@/lib/validation';
 
-function generateUuidV4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === 'x' ? random : [8, 9, 10, 11][Math.floor(Math.random() * 4)];
-    return value.toString(16);
+/**
+ * create_trip() (migration 0021) inserts the trip and the owner membership in
+ * one transaction, with the user's JWT: no half-created trip to roll back.
+ */
+async function createTrip(data: NewTripData, _userId: string) {
+  const { data: trip, error } = await supabase.rpc('create_trip', {
+    p_title: data.title,
+    p_destination: data.destination,
+    p_start_date: data.start_date || null,
+    p_end_date: data.end_date || null,
+    p_description: data.description || null,
   });
-}
-
-async function createTrip(data: NewTripData, userId: string) {
-  const tripId = generateUuidV4();
-
-  const { error } = await supabase
-    .from('trips')
-    .insert({
-      id: tripId,
-      title: data.title,
-      destination: data.destination,
-      start_date: data.start_date || null,
-      end_date: data.end_date || null,
-      description: data.description || null,
-      owner_id: userId,
-      status: 'planning',
-    });
   if (error) throw error;
-
-  const { error: memberError } = await supabase.from('trip_members').insert({
-    trip_id: tripId,
-    user_id: userId,
-    role: 'owner',
-  });
-  if (memberError) {
-    const { error: rollbackError } = await supabase.from('trips').delete().eq('id', tripId);
-    if (rollbackError && __DEV__) {
-      console.warn(`[trips][create] rollback failed: ${rollbackError.message}`);
-    }
-    throw new Error(`Impossibile aggiungere il creatore al viaggio: ${memberError.message}`);
-  }
-
-  const { data: trip, error: tripFetchError } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('id', tripId)
-    .single();
-  if (tripFetchError) {
-    throw new Error(`Viaggio creato ma non recuperabile: ${tripFetchError.message}`);
-  }
-
   return trip;
 }
 

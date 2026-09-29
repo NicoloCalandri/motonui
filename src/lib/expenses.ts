@@ -204,13 +204,14 @@ export function splitExpenses(expenses: Expense[], memberIds: string[]): SplitRe
     // For a 2-person app, this is straightforward
     const [userA, userB] = memberIds;
     if (!userA || !userB) {
-        return { settlements: [], is_even: true };
+        // T-2.8: a single member has no balance; "even" would be misleading.
+        return { settlements: [], is_even: false, awaiting_partner: true };
     }
 
     const netA = Math.round((balances[userA] ?? 0) * 100) / 100;
 
     if (Math.abs(netA) < 0.01) {
-        return { settlements: [], is_even: true };
+        return { settlements: [], is_even: true, awaiting_partner: false };
     }
 
     if (netA < 0) {
@@ -229,5 +230,5 @@ export function splitExpenses(expenses: Expense[], memberIds: string[]): SplitRe
         });
     }
 
-    return { settlements, is_even: false };
+    return { settlements, is_even: false, awaiting_partner: false };
 }
