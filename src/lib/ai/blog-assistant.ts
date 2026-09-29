@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { TiptapDoc } from '@/lib/types';
+import { AI_MODELS } from '@/lib/ai/models';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -64,7 +65,7 @@ export function streamBlogAssistant(input: AssistBlogInput): ReadableStream {
 
             try {
                 const stream = anthropic.messages.stream({
-                    model: 'claude-sonnet-4-5',
+                    model: AI_MODELS.longForm,
                     max_tokens: 1024,
                     system,
                     messages: [{ role: 'user', content: userPrompt }],
@@ -88,48 +89,6 @@ export function streamBlogAssistant(input: AssistBlogInput): ReadableStream {
             }
         },
     });
-}
-
-// ─── Rate Limiting ────────────────────────────────────────────────────────────
-
-const DAILY_LIMITS = {
-    haiku: 200,
-    sonnet: 50,
-    opus: 10,
-};
-
-/**
- * Checks and increments AI usage for a user. Returns false if limit exceeded.
- * Uses Supabase ai_usage table with daily reset.
- */
-export async function checkRateLimit(
-    userId: string,
-    model: keyof typeof DAILY_LIMITS,
-    supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>
-): Promise<boolean> {
-    const today = new Date().toISOString().slice(0, 10);
-
-    const { data: usage } = await (supabase.from('ai_usage') as any)
-        .select('tokens')
-        .eq('user_id', userId)
-        .eq('call_type', model)
-        .eq('date', today)
-        .single();
-
-    const currentCount = (usage?.tokens as number) ?? 0;
-    if (currentCount >= DAILY_LIMITS[model]) return false;
-
-    // Upsert usage
-    await (supabase.from('ai_usage') as any).upsert(
-        { 
-            user_id: userId, 
-            call_type: model, 
-            date: today, 
-            tokens: currentCount + 1 
-        }
-    );
-
-    return true;
 }
 
 function buildPromptBoundary(userContent: string): string {

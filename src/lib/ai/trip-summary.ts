@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { TiptapDoc } from '@/lib/types';
+import { AI_MODELS } from '@/lib/ai/models';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -63,7 +64,7 @@ export async function generateTripSummary(
        Start with an evocative H2 title. Write in first person plural.`;
 
     const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
+        model: AI_MODELS.longForm,
         max_tokens: 2048,
         system,
         messages: [{ role: 'user', content: userPrompt }],
