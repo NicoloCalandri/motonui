@@ -4,6 +4,7 @@ import { useState, useEffect, type BaseSyntheticEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Loader2 } from 'lucide-react';
+import { useDialogA11y } from '@/components/ui/use-dialog-a11y';
 import { hasBoardingPass } from '@/lib/boarding-pass';
 import type { Leg } from '@/lib/types';
 import CarrierSearch from '@/components/trip/CarrierSearch';
@@ -26,6 +27,7 @@ interface LegDrawerProps {
 }
 
 export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDate, initialData, tripStartDate, tripEndDate }: LegDrawerProps) {
+    const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
@@ -184,12 +186,12 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
             <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
             <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
                 <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
-                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
+                    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="leg-drawer-title" tabIndex={-1} className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
                         <div className="p-6 sm:p-10 overflow-y-auto">
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica spostamento' : 'Nuovo spostamento'}</h2>
-                                <button onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <h2 id="leg-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica spostamento' : 'Nuovo spostamento'}</h2>
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>

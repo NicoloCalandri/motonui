@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Loader2 } from 'lucide-react';
+import { useDialogA11y } from '@/components/ui/use-dialog-a11y';
 import type { Accommodation } from '@/lib/types';
 
 const Schema = z.object({
@@ -34,6 +35,7 @@ interface AccommodationDrawerProps {
 }
 
 export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSaved, dayDate, initialData, tripStartDate, tripEndDate }: AccommodationDrawerProps) {
+    const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
@@ -119,12 +121,12 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
             <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
             <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
                 <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
-                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
+                    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="acc-drawer-title" tabIndex={-1} className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
                         <div className="p-6 sm:p-10 overflow-y-auto">
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica alloggio' : 'Nuovo alloggio'}</h2>
-                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <h2 id="acc-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica alloggio' : 'Nuovo alloggio'}</h2>
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -137,16 +139,16 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
 
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Struttura *</label>
-                                    <input
+                                    <label htmlFor="acc-name" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Struttura *</label>
+                                    <input id="acc-name"
                                         {...register('name')}
                                         placeholder="es. Grand Hotel Plaza"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo o Zona</label>
-                                    <input
+                                    <label htmlFor="acc-address" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo o Zona</label>
+                                    <input id="acc-address"
                                         {...register('address')}
                                         placeholder="es. Via del Corso, 1"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
@@ -155,8 +157,8 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Check-in (Data)</label>
-                                        <input
+                                        <label htmlFor="acc-check-in" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Check-in (Data)</label>
+                                        <input id="acc-check-in"
                                             {...register('check_in')}
                                             type="date"
                                             min={tripStartDate || undefined}
@@ -165,8 +167,8 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Check-out (Data)</label>
-                                        <input
+                                        <label htmlFor="acc-check-out" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Check-out (Data)</label>
+                                        <input id="acc-check-out"
                                             {...register('check_out')}
                                             type="date"
                                             min={watch('check_in') || tripStartDate || undefined}
@@ -177,9 +179,9 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo stimato</label>
+                                    <label htmlFor="acc-currency" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo stimato</label>
                                     <div className="flex gap-3">
-                                        <select
+                                        <select id="acc-currency"
                                             {...register('currency')}
                                             className="px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-sm w-28 flex-shrink-0"
                                         >
@@ -205,8 +207,8 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione (es. Booking.com)</label>
-                                    <input
+                                    <label htmlFor="acc-booking-ref" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione (es. Booking.com)</label>
+                                    <input id="acc-booking-ref"
                                         {...register('booking_ref')}
                                         placeholder="es. 4082.563.821"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -215,16 +217,16 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Scadenza pagamento</label>
-                                        <input
+                                        <label htmlFor="acc-payment-deadline" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Scadenza pagamento</label>
+                                        <input id="acc-payment-deadline"
                                             {...register('payment_deadline')}
                                             type="date"
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Cancellazione gratuita entro</label>
-                                        <input
+                                        <label htmlFor="acc-cancellation-deadline" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Cancellazione gratuita entro</label>
+                                        <input id="acc-cancellation-deadline"
                                             {...register('cancellation_deadline')}
                                             type="date"
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import TripsPage from './page';
+import { seriousA11yViolations } from '@/test/axe';
 
 // Mock the Supabase server client
 vi.mock('@/lib/supabase/server', () => ({
@@ -53,6 +54,9 @@ describe('TripsPage', () => {
         render(Result);
         expect(screen.getByText(/I vostri viaggi/i)).toBeDefined();
     });
+
+    it('has no serious axe violations (T-3.9)', async () => {
+        const { container } = render(await TripsPage());
+        expect(await seriousA11yViolations(container)).toEqual([]);
+    });
 });
-
-

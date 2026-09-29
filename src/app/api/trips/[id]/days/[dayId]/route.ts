@@ -1,31 +1,20 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { Errors, ok } from '@/lib/errors';
 
 const UpdateDaySchema = z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato YYYY-MM-DD').optional(),
     title: z.string().max(200).optional().nullable(),
 });
 
-type Params = { params: Promise<{ id: string; dayId: string }> };
-
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, dayId } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
-    const body = await request.json();
-    const parsed = UpdateDaySchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
+export const PUT = withRoute(
+    { name: 'trips/[id]/days/[dayId] PUT', params: tripParams('dayId'), body: UpdateDaySchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+    const { id, dayId } = params;
     const { data: day, error } = await supabase
         .from('days')
-        .update(parsed.data)
+        .update(body)
         .eq('id', dayId)
         .eq('trip_id', id)
         .select()
@@ -35,17 +24,12 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     if (!day) throw Errors.notFound('Giorno');
 
     return ok(day);
-}, 'trips/[id]/days/[dayId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
+export const DELETE = withRoute(
+    { name: 'trips/[id]/days/[dayId] DELETE', params: tripParams('dayId'), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id, dayId } = params;
     const { error } = await supabase
         .from('days')
         .delete()
@@ -55,4 +39,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (error) throw new Error(`[motonui][days][DELETE] ${error.message}`);
 
     return ok({ success: true });
-}, 'trips/[id]/days/[dayId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

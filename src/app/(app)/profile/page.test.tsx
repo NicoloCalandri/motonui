@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SWRTestProvider } from '@/test/swr';
 import ProfilePage from './page';
+import { seriousA11yViolations } from '@/test/axe';
 
 beforeEach(() => {
     vi.stubGlobal('fetch', (url: string) => {
@@ -50,5 +51,11 @@ describe('ProfilePage', () => {
         const emailInput = (await screen.findByLabelText('Email (non modificabile)')) as HTMLInputElement;
         // The email field should be disabled or read-only
         expect(emailInput.readOnly || emailInput.disabled).toBe(true);
+    });
+
+    it('has no serious axe violations (T-3.9)', async () => {
+        const { container } = render(<ProfilePage />, { wrapper: SWRTestProvider });
+        await screen.findByText('Profilo');
+        expect(await seriousA11yViolations(container)).toEqual([]);
     });
 });

@@ -129,7 +129,7 @@ import type { Trip } from '@/lib/types'
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
 - Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `middleware.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`)
 - Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`
-- Le route sotto `/api/trips/[id]/**` dichiarano `tripMember: true` (o chiamano `requireTripMember`): lo verifica `src/app/api/trips/route-authz.test.ts`
+- Le route sotto `/api/trips/**` usano tutte `withRoute` e quelle sotto `/api/trips/[id]/**` dichiarano `tripMember: true`: lo verifica `src/app/api/trips/route-authz.test.ts`. `route-contract.test.ts` genera dagli schemi (`handler.route`) tre richieste per handler: valida, non valida (400), non membro (403). Se un input valido non si ricava dallo schema (`refine`, path costruiti dal server) aggiungi un esempio in `VALID_BODIES`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
 - Ogni `fetch` lato server verso un servizio esterno passa da `safeFetch()` (`src/lib/safe-fetch.ts`) con un'allowlist di host in `EXTERNAL_HOSTS`
 
@@ -141,7 +141,8 @@ import type { Trip } from '@/lib/types'
 - Form sempre con `react-hook-form` + resolver Zod — niente `useState` per i form
 - Componenti server per default, `'use client'` solo quando necessario (eventi, hooks, browser API)
 - Drawer invece di Dialog su mobile (breakpoint `md`)
-- Ogni componente interattivo deve funzionare con tastiera e avere `aria-label` appropriati
+- Ogni componente interattivo deve funzionare con tastiera e avere `aria-label` appropriati. Drawer e dialog: `role="dialog"`, `aria-modal`, `aria-labelledby` sul titolo e `useDialogA11y` (`src/components/ui/use-dialog-a11y.ts`: focus dentro, Tab intrappolato, Escape chiude, focus restituito); ogni `<label>` ha `htmlFor` e il controllo il suo `id`
+- I test delle pagine principali e dei drawer controllano axe con `seriousA11yViolations` (`src/test/axe.ts`): zero violazioni serie o critiche
 
 ---
 

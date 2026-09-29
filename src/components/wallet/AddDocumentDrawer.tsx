@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useDialogA11y } from '@/components/ui/use-dialog-a11y';
 import type { DocumentType } from '@/lib/types';
 import { DOC_TYPE_CONFIG } from './wallet-cards';
 
@@ -12,6 +13,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
     onClose: () => void;
     onSaved: () => void;
 }) {
+    const panelRef = useDialogA11y<HTMLDivElement>(true, onClose);
     const [title, setTitle] = useState('');
     const [type, setType] = useState<DocumentType>('other');
     const [fileUrl, setFileUrl] = useState('');
@@ -75,12 +77,12 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
             <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
             <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
                 <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
-                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
+                    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="document-drawer-title" tabIndex={-1} className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
                         <div className="p-6 sm:p-10 overflow-y-auto">
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">Nuovo documento</h2>
-                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <h2 id="document-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">Nuovo documento</h2>
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -93,8 +95,9 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
                             <form onSubmit={onSubmit} className="space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Titolo *</label>
+                                    <label htmlFor="document-title" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Titolo *</label>
                                     <input
+                                            id="document-title"
                                         value={title}
                                         onChange={e => setTitle(e.target.value)}
                                         placeholder="es. Carta d'imbarco Roma-Tokyo"
@@ -104,8 +107,8 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo documento</label>
-                                    <div className="flex flex-wrap gap-2">
+                                    <p id="document-type-label" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo documento</p>
+                                    <div role="group" aria-labelledby="document-type-label" className="flex flex-wrap gap-2">
                                         {(Object.entries(DOC_TYPE_CONFIG) as [DocumentType, typeof DOC_TYPE_CONFIG[DocumentType]][]).map(([key, config]) => {
                                             const Icon = config.icon;
                                             return (
@@ -113,6 +116,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                                     key={key}
                                                     type="button"
                                                     onClick={() => setType(key)}
+                                                    aria-pressed={type === key}
                                                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                                                         type === key
                                                             ? `${config.bgColor} text-white shadow-panel`
@@ -155,8 +159,9 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo file</label>
+                                        <label htmlFor="document-file-type" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo file</label>
                                         <select
+                                            id="document-file-type"
                                             value={fileType}
                                             onChange={e => setFileType(e.target.value as 'pdf' | 'image')}
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -166,8 +171,9 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice/Barcode</label>
+                                        <label htmlFor="document-barcode" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice/Barcode</label>
                                         <input
+                                            id="document-barcode"
                                             value={barcodeData}
                                             onChange={e => setBarcodeData(e.target.value)}
                                             placeholder="es. ABC123"
@@ -178,8 +184,9 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido dal</label>
+                                        <label htmlFor="document-valid-from" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido dal</label>
                                         <input
+                                            id="document-valid-from"
                                             value={validFrom}
                                             onChange={e => setValidFrom(e.target.value)}
                                             type="date"
@@ -187,8 +194,9 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido fino al</label>
+                                        <label htmlFor="document-valid-until" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido fino al</label>
                                         <input
+                                            id="document-valid-until"
                                             value={validUntil}
                                             onChange={e => setValidUntil(e.target.value)}
                                             type="date"

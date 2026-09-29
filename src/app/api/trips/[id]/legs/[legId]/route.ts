@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok } from '@/lib/errors';
 import { removeLegFiles } from '@/lib/trip-storage';
 
 const UpdateLegSchema = z.object({
@@ -24,36 +22,24 @@ const UpdateLegSchema = z.object({
     checkin_opens_at: z.string().nullable().optional(),
 });
 
-type Params = { params: Promise<{ id: string; legId: string }> };
-
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, legId } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
-    const body = await request.json();
-    const parsed = UpdateLegSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
+export const PUT = withRoute(
+    { name: 'trips/[id]/legs/[legId] PUT', params: tripParams('legId'), body: UpdateLegSchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+    const { id, legId } = params;
     const { error } = await supabase
         .from('legs')
-        .update(parsed.data)
+        .update(body)
         .eq('id', legId)
         .eq('trip_id', id);
 
     if (error) throw new Error(`[motonui][legs][PUT] ${error.message}`);
     return ok({ success: true });
-}, 'trips/[id]/legs/[legId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, legId } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
+export const DELETE = withRoute(
+    { name: 'trips/[id]/legs/[legId] DELETE', params: tripParams('legId'), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id, legId } = params;
     const { data: leg, error } = await supabase
         .from('legs')
         .delete()
@@ -67,4 +53,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     // The boarding pass file goes with the leg (T-2.3).
     if (leg) await removeLegFiles(id, leg);
     return ok({ success: true });
-}, 'trips/[id]/legs/[legId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

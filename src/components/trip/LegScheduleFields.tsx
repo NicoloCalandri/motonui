@@ -18,6 +18,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
                 <div className="grid grid-cols-2 gap-3">
                     <input
                         {...register('departure_date')}
+                        aria-label="Data di partenza"
                         type="date"
                         min={tripStartDate || undefined}
                         max={tripEndDate || undefined}
@@ -25,6 +26,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
                     />
                     <input
                         {...register('departure_time')}
+                        aria-label="Ora di partenza"
                         type="time"
                         className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                     />
@@ -35,6 +37,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
                 <div className="grid grid-cols-2 gap-3">
                     <input
                         {...register('arrival_date')}
+                        aria-label="Data di arrivo"
                         type="date"
                         min={departureDate || tripStartDate || undefined}
                         max={tripEndDate || undefined}
@@ -42,6 +45,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
                     />
                     <input
                         {...register('arrival_time')}
+                        aria-label="Ora di arrivo"
                         type="time"
                         className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                     />
@@ -54,6 +58,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
             <div className="flex gap-3">
                 <select
                     {...register('currency')}
+                    aria-label="Valuta"
                     className="px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-sm w-28 flex-shrink-0"
                 >
                     <option value="EUR">EUR €</option>
@@ -69,6 +74,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
                 </select>
                 <input
                     {...register('cost')}
+                    aria-label="Costo stimato"
                     type="number"
                     step="0.01"
                     placeholder="0.00"

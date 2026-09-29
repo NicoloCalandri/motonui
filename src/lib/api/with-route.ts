@@ -24,6 +24,11 @@ export interface RouteConfig<P, Q, B> {
     dayInTrip?: boolean;
 }
 
+/** A route handler built by withRoute, carrying its config. */
+export type RouteHandler<P, Q, B> = ((request: Request, context: { params: Promise<RawParams<P>> }) => Promise<Response>) & {
+    route: RouteConfig<P, Q, B>;
+};
+
 export interface RouteContext<P, Q, B> {
     request: Request;
     supabase: SupabaseServerClient;
@@ -61,7 +66,7 @@ export function withRoute<
 >(
     config: RouteConfig<P, Q, B>,
     handler: (ctx: RouteContext<P, Q, B>) => Promise<Response>,
-): (request: Request, context: { params: Promise<RawParams<P>> }) => Promise<Response> {
+): RouteHandler<P, Q, B> {
     const wrapped = withErrorHandler(async (request, context) => {
         const supabase = await createClient();
         const user = await getAuthUser(supabase);
@@ -102,5 +107,7 @@ export function withRoute<
         return response;
     }, config.name);
 
-    return wrapped as unknown as (request: Request, context: { params: Promise<RawParams<P>> }) => Promise<Response>;
+    const typed = wrapped as unknown as (request: Request, context: { params: Promise<RawParams<P>> }) => Promise<Response>;
+    // The config travels with the handler: contract tests read its schemas (T-3.8).
+    return Object.assign(typed, { route: config });
 }
