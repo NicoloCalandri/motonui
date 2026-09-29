@@ -110,4 +110,17 @@ describe('requireAdmin', () => {
         expect(result).toEqual({ adminId: '00000000-0000-0000-0000-000000000001' });
         expect(mockGetUser).not.toHaveBeenCalled();
     });
+
+    it('ignores ADMIN_AUTH_BYPASS in production', async () => {
+        vi.stubEnv('ADMIN_AUTH_BYPASS', 'true');
+        vi.stubEnv('NODE_ENV', 'production');
+        const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        mockGetUser.mockResolvedValue({ data: { user: null } });
+
+        const result = await requireAdmin();
+
+        expect(result).toMatchObject({ status: 401 });
+        expect(mockGetUser).toHaveBeenCalled();
+        error.mockRestore();
+    });
 });

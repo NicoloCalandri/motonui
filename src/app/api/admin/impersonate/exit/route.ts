@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
-import { ok } from '@/lib/errors';
-import type { ImpersonationPayload } from '@/lib/types';
+import { hashJti, readJti } from '@/lib/admin/impersonation-token';
 
 /** POST /api/admin/impersonate/exit — end an impersonation session */
 export async function POST(request: Request) {
@@ -14,13 +12,14 @@ export async function POST(request: Request) {
     const tokenMatch = cookieHeader.match(/impersonation_token=([^;]+)/);
     const token = tokenMatch?.[1];
 
-    if (token) {
+    const jti = token ? readJti(decodeURIComponent(token)) : null;
+    if (jti) {
         const supabase = await createAdminClient();
 
-        // Remove the token from the DB
+        // Revoke: the middleware refuses tokens whose jti hash is no longer stored.
         await (supabase.from('impersonation_tokens') as any)
             .delete()
-            .eq('token', token);
+            .eq('token', await hashJti(jti));
     }
 
     // Clear the impersonation cookie and redirect admin back

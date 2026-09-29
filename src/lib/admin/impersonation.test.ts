@@ -18,16 +18,11 @@ class MockNextResponse {
 
 vi.mock('next/server', () => ({ NextResponse: MockNextResponse }));
 
-// Mock jose so we don't need Web Crypto in jsdom
-const mockSign = vi.fn(() => Promise.resolve('mock.jwt.token'));
-vi.mock('jose', () => ({
-    SignJWT: class {
-        constructor(_payload: unknown) {}
-        setProtectedHeader() { return this; }
-        setExpirationTime() { return this; }
-        sign(_key: unknown) { return mockSign(); }
-    },
-    jwtVerify: vi.fn(),
+// Token creation is covered in impersonation-token.test.ts
+const mockCreateToken = vi.fn();
+vi.mock('@/lib/admin/impersonation-token', () => ({
+    IMPERSONATION_DURATION_SECONDS: 1800,
+    createImpersonationToken: mockCreateToken,
 }));
 
 const mockAdminId = 'admin-111';
@@ -64,6 +59,12 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         vi.clearAllMocks();
         process.env.ADMIN_IMPERSONATION_SECRET = TEST_SECRET;
         mockRequireAdmin.mockResolvedValue({ adminId: mockAdminId });
+        mockCreateToken.mockResolvedValue({
+            token: 'signed.jwt.token',
+            jti: 'jti-1',
+            jtiHash: 'a'.repeat(64),
+            expiresAt: new Date(Date.now() + 1_800_000),
+        });
     });
 
     it('returns 500 when ADMIN_IMPERSONATION_SECRET is not set', async () => {
@@ -118,7 +119,6 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
 
     it('starts impersonation and sets httpOnly cookies when target user exists', async () => {
         mockSelectSingle.mockResolvedValue({ data: { id: mockTargetId, display_name: 'Test User' }, error: null });
-        mockSign.mockResolvedValue('signed.jwt.token');
 
         const { POST } = await import('@/app/api/admin/users/[id]/impersonate/route');
         const req = new Request(`http://localhost/api/admin/users/${mockTargetId}/impersonate`, {
@@ -142,9 +142,8 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         );
     });
 
-    it('stores token in impersonation_tokens table', async () => {
+    it('stores only the jti hash in impersonation_tokens', async () => {
         mockSelectSingle.mockResolvedValue({ data: { id: mockTargetId, display_name: 'Test User' }, error: null });
-        mockSign.mockResolvedValue('signed.jwt.token');
 
         const { POST } = await import('@/app/api/admin/users/[id]/impersonate/route');
         const req = new Request(`http://localhost/api/admin/users/${mockTargetId}/impersonate`, {
@@ -156,7 +155,10 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
             expect.objectContaining({
                 admin_id: mockAdminId,
                 target_id: mockTargetId,
+                token: 'a'.repeat(64),
             })
         );
+        // The signed token itself is never persisted.
+        expect(JSON.stringify(mockInsert.mock.calls)).not.toContain('signed.jwt.token');
     });
 });
