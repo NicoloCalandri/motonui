@@ -6,7 +6,7 @@ Istruzioni per Claude Code. Leggi questo file integralmente prima di toccare qua
 
 ## Cos'è questo progetto
 
-**motonui** è una web app per coppie che viaggiano. Permette di pianificare itinerari, tracciare spese, pubblicare un travel blog e generare contenuti pronti per Instagram. È un progetto personale di Nicolò e Sara.
+**motonui** è una web app per coppie che viaggiano. Permette di pianificare itinerari, tracciare spese, pubblicare un travel blog e generare contenuti pronti per Instagram. È un progetto personale di Nicolò e Giorgia.
 
 Il nome viene da *Motu Nui*, l'isolotto più vicino al Point Nemo — il posto più remoto della Terra.
 
@@ -18,18 +18,34 @@ Il nome viene da *Motu Nui*, l'isolotto più vicino al Point Nemo — il posto p
 
 1. Leggi `agents/00_ORCHESTRATOR.md` per capire la visione d'insieme
 2. Leggi il file agente rilevante in `agents/` per la fase su cui stai lavorando
-3. Se esiste già `docs/ARCHITECTURE.md`, leggilo — contiene decisioni architetturali importanti
-4. Controlla `src/lib/types.ts` prima di creare nuovi tipi — potrebbe già esistere quello che cerchi
+3. Leggi `docs/architecture.md` (architettura attuale, obiettivo e ADR) e `docs/tasks.md` (piano a fasi)
+4. Se il task tocca sicurezza, DB, storage, API o CI, leggi `docs/security/` — in particolare `04-SECURITY-CHECKLIST.md`
+5. Controlla `src/lib/types.ts` prima di creare nuovi tipi — potrebbe già esistere quello che cerchi
 
-### Ordine obbligatorio degli agenti
+Documenti di riferimento:
 
-Non saltare fasi. Ogni agente dipende dal precedente:
+| File | Contenuto |
+|---|---|
+| `docs/PRD.md` | Requisiti funzionali (FR) e non funzionali (NFR) |
+| `docs/architecture.md` | Architettura com'è, differenze con questo file, architettura obiettivo, ADR |
+| `docs/REVIEW.md` | Analisi del codice: finding di sicurezza (S), qualità (Q), testabilità (T) |
+| `docs/tasks.md` | Piano a fasi (T-0.x … T-5.x) |
+| `docs/security/01-SECURITY-REQUIREMENTS.md` | Registro dei requisiti di sicurezza `SR-…` e loro stato |
+| `docs/security/02-THREAT-MODEL.md` | Threat model STRIDE |
+| `docs/security/03-SECURITY-ARCHITECTURE.md` | Confini di fiducia, token, livelli di autorizzazione, header, log |
+| `docs/security/04-SECURITY-CHECKLIST.md` | Checklist per PR e rilasci, registro verifiche |
+
+`docs/archive/` contiene documenti superati (vecchio `ARCHITECTURE.md` e `SECURITY.md`): non usarli come fonte.
+
+### Ordine di lavoro
+
+L'ordine degli agenti descrive la costruzione da zero:
 
 ```
 01_ARCHITECT  →  02_BACKEND  →  03_FRONTEND  →  04_MEDIA  →  05_CONTENT  →  06_DEVOPS
 ```
 
-Se ricevi un task che appartiene a una fase successiva rispetto a dove siamo, segnalalo prima di procedere.
+Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** seguendo `docs/tasks.md` (Fase 0 contenimento → Fase 5 SEO). Ogni task indica l'agente di riferimento, che dà lo scope del commit. Regola invariata: nessuna modifica di frontend che dipenda da uno schema non ancora migrato. Ogni PR che chiude un requisito aggiorna la riga corrispondente in `docs/security/01-SECURITY-REQUIREMENTS.md`.
 
 ---
 
@@ -39,7 +55,7 @@ Se ricevi un task che appartiene a una fase successiva rispetto a dove siamo, se
 |---|---|
 | Framework | Next.js 15, App Router, TypeScript strict |
 | Database | Supabase (Postgres + RLS) |
-| Auth | Supabase Auth (email + password + Google OAuth) |
+| Auth | Supabase Auth (email + password + Google OAuth; niente magic link, vedi ADR-06) |
 | Storage | Supabase Storage |
 | Styling | Tailwind CSS + shadcn/ui |
 | Mappe | Mapbox GL |
@@ -89,6 +105,12 @@ import type { Trip } from '@/lib/types'
 - RLS è abilitato su tutte le tabelle — non bypassarlo mai con il service role key lato client
 - Ogni nuova tabella richiede una migration in `supabase/migrations/`
 - Testa sempre le RLS policy con un utente non autorizzato prima di fare PR
+- **La RLS è il confine primario** (SADR-01): il mobile e i client component parlano direttamente con Supabase, quindi ogni invariante di sicurezza va espressa anche nel DB
+- Ogni policy `UPDATE` ha `WITH CHECK`; non aggiungere policy permissive che ne allargano un'altra sulla stessa operazione (sono in OR)
+- Le colonne strutturali (`id`, `trip_id`, `owner_id`, `uploaded_by`, `author_id`, `media.url`, `created_at`) sono protette dal trigger `prevent_structural_update()`: aggiungilo alle nuove tabelle di viaggio
+- Le colonne sensibili di `profiles` (`role`, `plan`, `premium_*`, `suspended_*`) si scrivono solo con il service role
+- Funzioni `SECURITY DEFINER` sempre con `set search_path = public, pg_temp`; nessuna vista su `auth.users` leggibile da `anon`/`authenticated`
+- Service role solo alle condizioni di `docs/security/03-SECURITY-ARCHITECTURE.md` §3.3
 
 ---
 
@@ -102,6 +124,8 @@ import type { Trip } from '@/lib/types'
   ```
 - Log strutturato: `[motonui][/api/trips][GET] errore descrittivo`
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
+- Le route sotto `/api/trips/[id]/**` chiamano sempre `requireTripMember`
+- I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
 
 ---
 
@@ -190,7 +214,9 @@ Branch `main` è protetto — apri sempre una PR, non fare push diretti.
 
 Tutte le variabili sono in `.env.example`. Per lo sviluppo locale copia in `.env.local`.
 
-Variabili con prefisso `NEXT_PUBLIC_` sono esposte al browser — non mettere mai segreti lì.
+Variabili con prefisso `NEXT_PUBLIC_` (o `EXPO_PUBLIC_` nel mobile) sono esposte al browser — non mettere mai segreti lì.
+
+**Mai committare file `.env` con valori reali.** Sono ignorati da git (tranne `.env.example` e `mobile/.env.example`, solo placeholder) e gitleaks gira in pre-commit (`.pre-commit-config.yaml`) e in CI (job `secrets-scan`). Se un segreto finisce nel repo va ruotato, non solo rimosso.
 
 Variabili richieste per far partire il dev server:
 - `NEXT_PUBLIC_SUPABASE_URL`
@@ -243,7 +269,7 @@ docs/                    # Decisioni architetturali
 Il progetto è completo quando:
 
 - [ ] `npm run dev` parte senza errori
-- [ ] Nicolò e Sara possono registrarsi e creare un viaggio insieme
+- [ ] Nicolò e Giorgia possono registrarsi e creare un viaggio insieme
 - [ ] Si possono aggiungere giorni, tappe e alloggi all'itinerario
 - [ ] Si possono registrare spese e vedere chi deve quanto a chi
 - [ ] Si possono caricare foto e vederle nella griglia media

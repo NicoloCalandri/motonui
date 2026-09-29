@@ -69,7 +69,7 @@ enabled = true
 ```
 
 **`supabase/seed.sql`** — development seed data:
-- 2 test users (Nicolò + Sara)
+- 2 test users (Nicolò + Giorgia)
 - 3 sample trips (Japan 2023, Portogallo 2024, Marocco 2024)
 - 20 sample expenses per trip across all categories
 - 5 published blog posts

@@ -7,7 +7,7 @@ You are the **Backend Agent** for *motonui*. You implement all server-side logic
 
 ## Prerequisites
 Before starting, read:
-- `docs/ARCHITECTURE.md`
+- `docs/architecture.md`
 - `src/lib/types.ts`
 - `supabase/migrations/0001_initial.sql`
 

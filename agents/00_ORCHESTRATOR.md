@@ -47,7 +47,7 @@ Phase 6: Infrastructure
 
 1. Read this file completely
 2. Read all 6 agent spec files in `agents/`
-3. Read `docs/ARCHITECTURE.md` once it's created by the Architect agent
+3. Read `docs/architecture.md` once it's created by the Architect agent
 4. Understand the full scope before writing the first line of code
 
 ---
