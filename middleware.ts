@@ -1,18 +1,60 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
 import { updateSession } from '@/lib/supabase/middleware';
-import type { ImpersonationPayload } from '@/lib/types';
+import { isImpersonationTokenActive, verifyImpersonationToken } from '@/lib/admin/impersonation-token';
+
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/**
+ * Cron endpoints: called server-to-server without a user session, they check
+ * their own secret (T-2.6 moves them to Vercel's CRON_SECRET).
+ */
+const CRON_ROUTES = new Set(['/api/admin/send-reminders', '/api/admin/cleanup']);
+
+function apiError(error: string, code: string, status: number) {
+    return NextResponse.json({ error, code, status }, { status });
+}
+
+/**
+ * True if a state-changing request comes from another site (T-1.9, SR-WEB-04).
+ * Browsers always send Origin on cross-origin POST/PUT/PATCH/DELETE and
+ * Sec-Fetch-Site on modern versions; requests with neither (curl, server to
+ * server) carry no ambient cookies from a victim and are left to auth.
+ */
+function isCrossSiteWrite(request: NextRequest): boolean {
+    const trusted = new Set([request.nextUrl.origin]);
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        try {
+            trusted.add(new URL(process.env.NEXT_PUBLIC_APP_URL).origin);
+        } catch {
+            // Invalid NEXT_PUBLIC_APP_URL: only the request's own origin is trusted.
+        }
+    }
+
+    const origin = request.headers.get('origin');
+    if (origin) return !trusted.has(origin);
+
+    const fetchSite = request.headers.get('sec-fetch-site');
+    return fetchSite === 'cross-site' || fetchSite === 'same-site';
+}
 
 /**
  * Route protection middleware.
- * - Refreshes Supabase auth session on every request
- * - Redirects unauthenticated users from protected routes to /auth/login
+ * - Rejects cross-site writes to the API
+ * - Refreshes the Supabase session on every request
+ * - Unauthenticated: 401 JSON for /api/*, redirect to /auth/login for pages
  * - Blocks suspended users and redirects to /suspended
  * - Protects /admin routes — admin role required
- * - Handles read-only impersonation sessions
+ * - Read-only impersonation, with revocation checked against the database
  */
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const isApi = pathname.startsWith('/api/');
+    const isWrite = WRITE_METHODS.has(request.method);
+    const isCronRoute = CRON_ROUTES.has(pathname);
+
+    if (isApi && isWrite && !isCronRoute && isCrossSiteWrite(request)) {
+        return apiError('Richiesta non consentita da un sito esterno.', 'CROSS_SITE_REQUEST', 403);
+    }
 
     // Routes that do NOT require authentication
     const isPublicRoute =
@@ -21,49 +63,33 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/auth') ||
         pathname.startsWith('/blog') ||
         pathname.startsWith('/api/posts') ||
+        isCronRoute ||
         pathname.startsWith('/_next') ||
         pathname.startsWith('/favicon');
 
     const { supabaseResponse: response, user, profile } = await updateSession(request);
 
-    // ── Impersonation token handling ───────────────────────────────────────
+    // ── Impersonation (ADR-07: read-only banner session, revocable) ────────
     const impersonationToken = request.cookies.get('impersonation_token')?.value;
 
     if (impersonationToken) {
-        try {
-            const secret = new TextEncoder().encode(
-                process.env.ADMIN_IMPERSONATION_SECRET!
-            );
-            const { payload } = await jwtVerify(impersonationToken, secret);
-            const imp = payload as unknown as ImpersonationPayload;
+        const claims = await verifyImpersonationToken(impersonationToken, process.env.ADMIN_IMPERSONATION_SECRET);
+        const active = claims !== null && (await isImpersonationTokenActive(claims.jti));
 
-            // Block write methods in impersonation mode
-            const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
-            const isExitRoute = pathname === '/api/admin/impersonate/exit';
-
-            if (isWriteMethod && !isExitRoute) {
-                return NextResponse.json(
-                    {
-                        error: 'Operazione non disponibile in modalità anteprima 🏝️',
-                        code: 'IMPERSONATION_READ_ONLY',
-                        status: 403,
-                    },
-                    { status: 403 }
-                );
-            }
-
-            // Forward impersonated identity to Server Components via headers
-            response.headers.set('x-impersonated-user-id', imp.targetId);
-            response.headers.set('x-impersonating-admin-id', imp.adminId);
-        } catch {
-            // Token expired or invalid — silently remove both impersonation cookies
+        if (!active) {
+            // Expired, forged or revoked on exit: drop the impersonation cookies.
             response.cookies.delete('impersonation_token');
             response.cookies.delete('impersonation_display_name');
+        } else if (isWrite && pathname !== '/api/admin/impersonate/exit') {
+            return apiError('Operazione non disponibile in modalità anteprima 🏝️', 'IMPERSONATION_READ_ONLY', 403);
         }
     }
 
-    // ── Redirect unauthenticated users ─────────────────────────────────────
+    // ── Unauthenticated ────────────────────────────────────────────────────
     if (!isPublicRoute && !user) {
+        if (isApi) {
+            return apiError('Non sei autenticato. Effettua il login per continuare.', 'UNAUTHORIZED', 401);
+        }
         const loginUrl = new URL('/auth/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
@@ -73,6 +99,9 @@ export async function middleware(request: NextRequest) {
         if (profile) {
             // Block suspended users everywhere except /suspended and /auth
             if (profile.suspended_at && !pathname.startsWith('/suspended') && !pathname.startsWith('/auth')) {
+                if (isApi) {
+                    return apiError('Il tuo account è sospeso.', 'ACCOUNT_SUSPENDED', 403);
+                }
                 return NextResponse.redirect(new URL('/suspended', request.url));
             }
 
