@@ -1,6 +1,7 @@
 'use client';
 
-import { X, Download, QrCode, Plane } from 'lucide-react';
+import { X, Download, QrCode, Plane, FileText } from 'lucide-react';
+import { boardingPassHref, isPdfBoardingPass } from '@/lib/boarding-pass';
 import type { Leg } from '@/lib/types';
 
 interface BoardingPassViewerProps {
@@ -9,15 +10,18 @@ interface BoardingPassViewerProps {
 }
 
 export default function BoardingPassViewer({ leg, onClose }: BoardingPassViewerProps) {
-    const url = leg.boarding_pass_url;
-    const isPdf = url?.toLowerCase().endsWith('.pdf');
+    // Same-origin proxy route for private files (legacy public URL until migrated).
+    const url = boardingPassHref(leg);
+    const downloadUrl = boardingPassHref(leg, { download: true });
+    const isPdf = isPdfBoardingPass(leg);
 
     const handleDownload = () => {
-        if (!url) return;
+        if (!downloadUrl) return;
         const a = document.createElement('a');
-        a.href = url;
+        a.href = downloadUrl;
         a.download = `boarding-pass-${leg.pnr ?? leg.id}.${isPdf ? 'pdf' : 'jpg'}`;
         a.target = '_blank';
+        a.rel = 'noopener';
         a.click();
     };
 
@@ -75,11 +79,17 @@ export default function BoardingPassViewer({ leg, onClose }: BoardingPassViewerP
                         <p className="text-sm mt-1">Carica un&apos;immagine o PDF dal drawer dello spostamento</p>
                     </div>
                 ) : isPdf ? (
-                    <iframe
-                        src={url}
-                        className="w-full h-full max-w-2xl rounded-2xl border-0"
-                        title="Carta d'imbarco PDF"
-                    />
+                    // PDFs open in a new tab: the CSP (frame-ancestors 'none',
+                    // X-Frame-Options DENY) does not allow embedding them.
+                    <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex flex-col items-center gap-3 px-8 py-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    >
+                        <FileText className="w-12 h-12" />
+                        <span className="font-semibold">Apri la carta d&apos;imbarco (PDF)</span>
+                    </a>
                 ) : (
                     // Image (photo of a boarding pass)
                     // eslint-disable-next-line @next/next/no-img-element
