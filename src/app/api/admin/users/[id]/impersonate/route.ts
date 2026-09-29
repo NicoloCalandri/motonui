@@ -24,7 +24,7 @@ export async function POST(_req: Request, { params }: Params) {
     const supabase = await createAdminClient();
 
     // Ensure target user exists
-    const { data: targetProfile } = await (supabase.from('profiles') as any)
+    const { data: targetProfile } = await supabase.from('profiles')
         .select('id, display_name')
         .eq('id', targetId)
         .single();
@@ -40,14 +40,14 @@ export async function POST(_req: Request, { params }: Params) {
     // leak does not leak usable tokens and exit can revoke by jti (T-1.8).
     const { token, jtiHash, expiresAt } = await createImpersonationToken({ adminId, targetId }, secret);
 
-    await (supabase.from('impersonation_tokens') as any).insert({
+    await supabase.from('impersonation_tokens').insert({
         admin_id: adminId,
         target_id: targetId,
         token: jtiHash,
         expires_at: expiresAt.toISOString(),
     });
 
-    await (supabase.from('admin_audit_log') as any).insert({
+    await supabase.from('admin_audit_log').insert({
         admin_id: adminId,
         action: 'impersonate',
         target_id: targetId,

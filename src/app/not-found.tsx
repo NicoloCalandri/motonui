@@ -17,7 +17,7 @@ export default function NotFound() {
             </div>
 
             <h1 className="font-display text-4xl font-bold text-ink-900 mb-4 tracking-tight">
-                Persi nell'oceano? 🌊
+                Persi nell&apos;oceano? 🌊
             </h1>
             <p className="text-ink-muted max-w-md mb-10 leading-relaxed font-medium">
                 Sembra che la rotta che stai seguendo non porti a nessuna terra emersa. Torna alla dashboard per riprendere il viaggio.

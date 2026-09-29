@@ -73,7 +73,9 @@ Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** segue
 ### TypeScript
 - Strict mode attivo — zero `any`, zero `// @ts-ignore`
 - Tutti i tipi di dominio vivono in `src/lib/types.ts`
-- Usa i tipi generati da Supabase (`src/lib/supabase/database.types.ts`) come base, wrappali in tipi di dominio più leggibili
+- Usa i tipi generati da Supabase (`src/lib/supabase/database.types.ts`) come base, wrappali in tipi di dominio più leggibili. I client (`createClient`, `createAdminClient`, middleware) sono tipizzati `<Database>`: niente cast `as any` su `from()`/`rpc()`. Dopo ogni migration rigenera i tipi (`npm run db:types`)
+- Le colonne `jsonb` si scrivono con `toJson()` e si leggono con `fromJson<T>()` (`src/lib/json.ts`)
+- Una colonna polimorfica senza FK (es. `reminders.entity_id`) non si può embeddare in PostgREST: carica le entità con una query per tipo (`src/lib/reminder-emails.ts`)
 - Preferisci `type` a `interface` per i tipi di dominio, `interface` per i props dei componenti React
 
 ### Naming

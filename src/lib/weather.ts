@@ -40,7 +40,7 @@ export async function getTripWeather(
     const cacheKey = `${roundedLat}_${roundedLng}_${startDate}_${endDate}_${mode}`;
 
     const cutoff = new Date(now.getTime() - CACHE_TTL_MS).toISOString();
-    const { data: cached } = await (supabase.from('weather_cache') as any)
+    const { data: cached } = await supabase.from('weather_cache')
         .select('payload, fetched_at')
         .eq('cache_key', cacheKey)
         .gte('fetched_at', cutoff)
@@ -54,7 +54,7 @@ export async function getTripWeather(
         ? await fetchForecast(lat, lng, startDate, endDate)
         : await fetchHistoricalAverage(lat, lng, startDate, endDate);
 
-    await (supabase.from('weather_cache') as any).upsert(
+    await supabase.from('weather_cache').upsert(
         { cache_key: cacheKey, payload: days, fetched_at: now.toISOString() },
         { onConflict: 'cache_key' }
     );

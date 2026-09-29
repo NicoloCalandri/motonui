@@ -1,3 +1,4 @@
+import type { Sharp } from 'sharp';
 import type { ResponsiveImageSet, TextOverlayOptions, ImageFilter, AspectRatio } from '@/lib/types';
 
 // ─── Sharp lazy import ────────────────────────────────────────────────────────
@@ -9,7 +10,7 @@ async function getSharp() {
 
 // ─── Filter Definitions ────────────────────────────────────────────────────────
 
-const FILTER_PIPELINES: Record<ImageFilter, (img: any) => any> = {
+const FILTER_PIPELINES: Record<ImageFilter, (img: Sharp) => Sharp> = {
     none: (img) => img,
     warm: (img) =>
         img.modulate({ brightness: 1.05, saturation: 1.1 }).tint({ r: 255, g: 230, b: 190 }),

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Users, Map, Receipt, BookOpen, Cpu, Activity } from 'lucide-react';
 import type { PlatformStats } from '@/lib/types';
 

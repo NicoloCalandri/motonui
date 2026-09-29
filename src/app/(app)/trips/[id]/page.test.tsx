@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TripPage from './page';
@@ -31,7 +31,7 @@ vi.mock('next/navigation', async (importActual) => {
 
 // Mock dynamic imports (tab components) so they render something quickly
 vi.mock('next/dynamic', () => ({
-    default: (fn: () => Promise<{ default: () => React.ReactElement }>) => {
+    default: () => {
         // Return a no-op placeholder; individual tab content is not under test here
         return () => null;
     },

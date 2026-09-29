@@ -6,6 +6,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' })
 
 import { DestinationBriefing } from '@/lib/types';
 import { AI_MODELS } from '@/lib/ai/models';
+import { toJson } from '@/lib/json';
 
 
 /**
@@ -21,7 +22,7 @@ export async function getDestinationBriefing(
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Check cache
-    const { data: cached } = await (supabase.from('destination_cache') as any)
+    const { data: cached } = await supabase.from('destination_cache')
         .select('briefing, fetched_at')
         .eq('destination', cacheKey)
         .gte('fetched_at', sevenDaysAgo)
@@ -35,10 +36,10 @@ export async function getDestinationBriefing(
     const briefing = await generateBriefing(destination, language);
 
     // Store in cache
-    await (supabase.from('destination_cache') as any)
+    await supabase.from('destination_cache')
         .upsert({ 
             destination: cacheKey, 
-            briefing: briefing as any, 
+            briefing: toJson(briefing), 
             fetched_at: new Date().toISOString() 
         });
 

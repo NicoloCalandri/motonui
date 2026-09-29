@@ -6,7 +6,7 @@ import { MediaUploadError, uploadTripMedia } from '@/lib/media/upload-client';
 import InstagramGenerator from '@/components/instagram/InstagramGenerator';
 import type { MediaWithUrls } from '@/lib/types';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image, Loader2, Trash2, Play } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Loader2, Trash2, Play } from 'lucide-react';
 
 interface MediaTabProps { tripId: string }
 
@@ -57,7 +57,8 @@ export default function MediaTab({ tripId }: MediaTabProps) {
     const toggleSelect = (id: string) => {
         setSelected((prev) => {
             const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
             return next;
         });
     };
@@ -137,7 +138,7 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                 </div>
             ) : media.length === 0 ? (
                 <div className="text-center py-16 text-ink-400">
-                    <Image className="w-12 h-12 mx-auto mb-3 text-sand-300" />
+                    <ImageIcon className="w-12 h-12 mx-auto mb-3 text-sand-300" aria-hidden="true" />
                     <p className="font-display text-lg font-semibold text-ink-700 mb-1">Nessuna foto ancora</p>
                     <p className="text-sm">Carica le vostre foto di viaggio</p>
                 </div>

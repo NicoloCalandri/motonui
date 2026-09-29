@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 48 | 8 | 10 |
+| **66** | 48 | 9 | 9 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -27,7 +27,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-PRIV · Privacy e dati personali | 7 | 6 | 1 | 0 | 0 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
 | SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
-| SR-SDLC · Ciclo di sviluppo | 7 | 4 | 1 | 2 | 0 |
+| SR-SDLC · Ciclo di sviluppo | 7 | 4 | 2 | 1 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
 
@@ -105,7 +105,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-INT-03 | Un solo sistema di quota AI, allineato alla policy di progetto (20 chiamate/giorno per utente) | P2 | ✅ Fatto | contatore `ai_total` (20/giorno) consumato insieme ai limiti per funzionalità; `checkRateLimit` rimosso; model id in `src/lib/ai/models.ts` | T-1.5. Il premium resta configurabile per funzionalità tramite `feature_entitlements`. |
 | SR-INT-04 | Token Mapbox pubblico ristretto per URL/dominio | P2 | 🔴 Da fare | configurazione esterna (dashboard Mapbox) | Il token attuale è anche nel repo. |
 | SR-INT-05 | Degradazione controllata dei servizi esterni (timeout, fallback espliciti) | P2 | ✅ Fatto | `src/lib/safe-fetch.ts` (timeout 8 s) per meteo e cambi; `src/lib/currency.ts` (`convertCurrency` restituisce `null` senza tasso), `src/lib/expenses.ts` (`eurCents`), `src/lib/trips.ts`; test `currency.test.ts`, `expenses.test.ts`, `trips.test.ts` | T-3.2. Una spesa in valuta estera senza tasso resta "da convertire" (`amount_eur` null): esclusa da totali, saldo e statistiche e mostrata con un avviso, invece di contare 100 USD come 100 €. |
-| SR-INT-06 | I job cron sono autenticati e vengono realmente eseguiti | P1 | ✅ Fatto | `vercel.json` (crons `send-reminders` 08:00 e `cleanup` 03:00 UTC), `src/lib/auth/cron.ts` (`Authorization: Bearer $CRON_SECRET`, `timingSafeEqual`); test `cron.test.ts`, `cleanup/route.test.ts` | T-2.6. Route in `GET`, escluse dal login nel middleware (`CRON_ROUTES`). Da verificare dopo il deploy: esecuzioni giornaliere nei log Vercel e `CRON_SECRET` impostato. |
+| SR-INT-06 | I job cron sono autenticati e vengono realmente eseguiti | P1 | ✅ Fatto | `vercel.json` (crons `send-reminders` 08:00 e `cleanup` 03:00 UTC), `src/lib/auth/cron.ts` (`Authorization: Bearer $CRON_SECRET`, `timingSafeEqual`); test `cron.test.ts`, `cleanup/route.test.ts` | T-2.6. Route in `GET`, escluse dal login nel middleware (`CRON_ROUTES`). Da verificare dopo il deploy: esecuzioni giornaliere nei log Vercel e `CRON_SECRET` impostato. `send-reminders` caricava le entità con un embed `legs:entity_id(...)` impossibile (nessuna FK): falliva a ogni esecuzione. Ora `src/lib/reminder-emails.ts` fa una query per tipo; test `reminder-emails.test.ts`. |
 | SR-INT-07 | I template email fanno escape dei dati inseriti dall'utente | P2 | ✅ Fatto | `src/lib/email.ts` (tutti i campi passano da `escapeFields`, `src/lib/html.ts`); test `email.test.ts` | T-1.7. |
 
 ## SR-PRIV — Privacy e dati personali
@@ -145,8 +145,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-SDLC-01 | CI su ogni PR: type-check, lint, test, build | P1 | ✅ Fatto | `.github/workflows/ci.yml` | Il job `unit-tests` non genera coverage ma la carica su Codecov. |
-| SR-SDLC-02 | Lint con zero warning, come richiesto da CLAUDE.md | P3 | 🔴 Da fare | `npx eslint .` → 0 errori, 306 warning | — |
+| SR-SDLC-01 | CI su ogni PR: type-check, lint, test, build | P1 | ✅ Fatto | `.github/workflows/ci.yml` | Il job `unit-tests` esegue `test:coverage` con soglie (T-3.1) e carica `lcov.info` su Codecov. |
+| SR-SDLC-02 | Lint con zero warning, come richiesto da CLAUDE.md | P3 | 🟡 Parziale | `eslint.config.mjs` (flat config unica, `.eslintrc.json` rimosso); `npx eslint .` → 0 errori, 10 warning (erano 306) | T-3.3/T-3.7: zero `any`, client Supabase tipizzato. Restano solo `react-hooks/exhaustive-deps` dei fetch in `useEffect`, che spariscono con la migrazione a SWR (T-3.5); poi `--max-warnings=0` in CI. |
 | SR-SDLC-03 | Coverage ≥ 70% su `src/lib/`, imposta in CI | P2 | ✅ Fatto | `vitest.config.ts` (soglie righe/istruzioni/funzioni 70%, branch 60%; esclusi solo `src/lib/supabase/**`), job CI Unit Tests con `npm run test:coverage` e report caricato | T-3.1. Al 29/09/2026: 81% righe, 79% istruzioni, 66% branch. La CI fallisce sotto soglia. |
 | SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | ✅ Fatto | `supabase/tests/rls_matrix.test.sql` (matrice SELECT/INSERT/UPDATE/DELETE × anonimo/estraneo/partner/owner su ogni tabella con `trip_id`), `supabase/tests/0016_phase0_rls.test.sql` (regressioni S-02/S-03/S-04); job CI `rls-tests` (Postgres 15 + `supabase/tests/support/supabase-stub.sql`) | T-1.1, T-1.2. Una nuova tabella di viaggio senza fixture fa fallire il test. |
 | SR-SDLC-05 | Secret scanning in CI e pre-commit | P1 | ✅ Fatto | job `secrets-scan` in `.github/workflows/ci.yml` (bloccante), `.gitleaks.toml`, `.pre-commit-config.yaml` | T-0.3. Scansiona l'albero, non la storia (già esposta: vedi SR-DEV-01). |

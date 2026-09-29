@@ -38,7 +38,7 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
 
-    const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
+    const { register, handleSubmit, reset, watch } = useForm<FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: {
             currency: 'EUR',
@@ -65,7 +65,7 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
                 reset({ currency: 'EUR', check_in: dayDate || undefined, check_out: dayDate || undefined });
             }
         }
-    }, [open, initialData]);
+    }, [open, initialData, dayDate, reset]);
 
     const onSubmit = async (values: FormValues, event?: BaseSyntheticEvent) => {
         setSaving(true);

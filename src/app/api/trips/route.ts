@@ -19,7 +19,7 @@ export const GET = withErrorHandler(async () => {
 
     const user = await getAuthUser(supabase);
 
-    const { data, error } = await (supabase.from('trip_members') as any)
+    const { data, error } = await supabase.from('trip_members')
         .select(`trip_id, trips (id, title, destination, cover_image, start_date, end_date, status, created_at)`)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -28,8 +28,8 @@ export const GET = withErrorHandler(async () => {
 
     // Reshape to trip cards
     const trips = (data ?? [])
-        .map((row: any) => row.trips)
-        .filter(Boolean);
+        .map((row) => row.trips)
+        .filter((trip) => trip !== null);
 
     return ok(trips);
 }, 'trips GET');
@@ -51,10 +51,11 @@ export const POST = withErrorHandler(async (request) => {
     const { data: trip, error } = await supabase.rpc('create_trip', {
         p_title: input.title,
         p_destination: input.destination,
-        p_start_date: input.start_date || null,
-        p_end_date: input.end_date || null,
-        p_description: input.description ?? null,
-        p_cover_image: input.cover_image ?? null,
+        // Optional RPC args: omitted when empty, the SQL defaults are null.
+        p_start_date: input.start_date || undefined,
+        p_end_date: input.end_date || undefined,
+        p_description: input.description,
+        p_cover_image: input.cover_image,
     });
 
     if (error || !trip) throw new Error(`[motonui][trips][POST] ${error?.message}`);

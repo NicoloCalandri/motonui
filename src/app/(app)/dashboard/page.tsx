@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         .select('display_name')
         .eq('id', user.id)
         .single();
-    const firstName = profile?.display_name || (user as any).email?.split('@')[0] || 'Viaggiatore';
+    const firstName = profile?.display_name || user.email?.split('@')[0] || 'Viaggiatore';
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
                             {pastTrips.slice(0, 3).map((trip) => (
                                 <Link key={trip.id} href={`/trips/${trip.id}`} className="card p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                                     <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0">
-                                        <img src={trip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'} className="w-full h-full object-cover" />
+                                        <img src={trip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'} alt="" className="w-full h-full object-cover" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-ink-900 truncate">{trip.title}</p>

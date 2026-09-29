@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
-import { ok } from '@/lib/errors';
 import type { PlatformStats } from '@/lib/types';
 
 /** GET /api/admin/stats — aggregate platform statistics (cached 5 min) */
@@ -21,18 +20,18 @@ export async function GET() {
         postsRes,
         aiCallsRes,
     ] = await Promise.all([
-        (supabase.from('profiles') as any).select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.auth.admin.listUsers(),
-        (supabase.from('trips') as any).select('id', { count: 'exact', head: true }),
-        (supabase.from('expenses') as any).select('id', { count: 'exact', head: true }),
-        (supabase.from('posts') as any).select('id', { count: 'exact', head: true }),
+        supabase.from('trips').select('id', { count: 'exact', head: true }),
+        supabase.from('expenses').select('id', { count: 'exact', head: true }),
+        supabase.from('posts').select('id', { count: 'exact', head: true }),
         // One ai_total row per user and day, incremented on every AI call (migration 0018).
-        (supabase.from('usage_counters') as any).select('usage_count').eq('feature_key', 'ai_total').eq('period_type', 'day'),
+        supabase.from('usage_counters').select('usage_count').eq('feature_key', 'ai_total').eq('period_type', 'day'),
     ]);
 
     // Count users active in last 30 days
     const activeUsersLast30Days = (activeUsersRes.data?.users ?? []).filter(
-        (u: any) => u.last_sign_in_at && u.last_sign_in_at >= thirtyDaysAgo
+        (u) => u.last_sign_in_at && u.last_sign_in_at >= thirtyDaysAgo
     ).length;
 
     const stats: PlatformStats = {

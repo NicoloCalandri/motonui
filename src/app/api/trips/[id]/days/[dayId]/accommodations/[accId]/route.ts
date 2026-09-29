@@ -38,7 +38,9 @@ export const PUT = withRoute(
     // Sync the related expense if cost/currency changed
     const expDesc = `Alloggio: ${acc.name}`;
     if (acc.cost && acc.cost > 0) {
-        const amount_eur = await convertCurrency(acc.cost, acc.currency, 'EUR', { supabase });
+        // legs/accommodations.currency is nullable, expenses.currency is not.
+        const currency = acc.currency ?? 'EUR';
+        const amount_eur = await convertCurrency(acc.cost, currency, 'EUR', { supabase });
         const { data: existing } = await supabase
             .from('expenses')
             .select('id')
@@ -49,7 +51,7 @@ export const PUT = withRoute(
         if (existing) {
             await supabase
                 .from('expenses')
-                .update({ description: expDesc, amount: acc.cost, currency: acc.currency, amount_eur, category: 'accommodation' })
+                .update({ description: expDesc, amount: acc.cost, currency, amount_eur, category: 'accommodation' })
                 .eq('id', existing.id);
         } else {
             const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
@@ -58,7 +60,7 @@ export const PUT = withRoute(
                 day_id: dayId,
                 description: expDesc,
                 amount: acc.cost,
-                currency: acc.currency,
+                currency,
                 amount_eur,
                 category: 'accommodation',
                 paid_by: user.id,

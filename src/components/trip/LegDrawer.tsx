@@ -135,7 +135,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                 setSegments([defaultSegment()]);
             }
         }
-    }, [open, initialData]);
+    }, [open, initialData, dayDate, reset]);
 
     const selectedType = watch('type');
 
