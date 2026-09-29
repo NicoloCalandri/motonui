@@ -60,8 +60,10 @@ describe('weather', () => {
 
         expect(days).toEqual([{ date: '2026-10-02', temp_max_c: 21, temp_min_c: 13, precipitation_probability: 40, condition: 'pioggia' }]);
         expect(new URL(String(fetchMock.mock.calls[0][0])).hostname).toBe('api.open-meteo.com');
+        // Key: rounded lat, lng, start, end, mode (built from parts, not one opaque literal).
+        const cacheKey = [-27.1, -109.3, '2026-10-02', '2026-10-02', 'forecast'].join('_');
         expect(upsert).toHaveBeenCalledWith(
-            expect.objectContaining({ cache_key: '-27.1_-109.3_2026-10-02_2026-10-02_forecast', fetched_at: NOW.toISOString() }),
+            expect.objectContaining({ cache_key: cacheKey, fetched_at: NOW.toISOString() }),
             { onConflict: 'cache_key' },
         );
     });
