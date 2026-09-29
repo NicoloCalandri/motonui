@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plane, Mail, Lock, User, Eye, EyeOff, Loader2, Github, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { safeRedirectPath } from '@/lib/redirect';
 //import { getAuthUser } from '@/lib/auth/get-user';
 
 export default function LoginPage() {
@@ -36,7 +37,7 @@ function LoginForm() {
     
 
     const searchParams = useSearchParams();
-    const redirectTo = searchParams.get('redirect') ?? '/dashboard';
+    const redirectTo = safeRedirectPath(searchParams.get('redirect'));
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,7 +64,7 @@ function LoginForm() {
         const { error: authError } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback?redirect=${redirectTo}`,
+                redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
             },
         });
         if (!isDev && authError) {
