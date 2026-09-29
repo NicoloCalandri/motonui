@@ -86,7 +86,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                 });
             }
         }
-    }, [open, initialData]);
+    }, [open, initialData, reset]);
 
     const selectedCategory = watch('category');
 

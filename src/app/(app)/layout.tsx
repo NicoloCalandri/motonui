@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Map, PlusCircle, BookOpen, LayoutDashboard, User, Plane, LogOut } from 'lucide-react';
+import { Map, PlusCircle, BookOpen, LayoutDashboard, User, LogOut } from 'lucide-react';
 import ImpersonationBanner from '@/components/admin/impersonation-banner';
 
 interface AppLayoutProps {

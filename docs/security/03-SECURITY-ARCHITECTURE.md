@@ -111,7 +111,7 @@ flowchart TB
 ### 3.3 Regole per l'uso del service role
 
 Il service role è ammesso solo se **tutte** queste condizioni valgono:
-1. l'operazione non è esprimibile con il JWT dell'utente (admin, cron, URL firmati, operazioni cross-utente previste come l'accettazione di un invito);
+1. l'operazione non è esprimibile con il JWT dell'utente (admin, cron, URL firmati, operazioni cross-utente non esprimibili con una RPC `SECURITY DEFINER`; l'accettazione di un invito usa `accept_trip_invite()`, non il service role);
 2. prima della chiamata la route ha verificato identità e autorizzazione (L2 + L3);
 3. gli identificatori usati (path, id) sono costruiti dal server, mai presi da colonne che l'utente può scrivere;
 4. l'operazione è coperta da test.

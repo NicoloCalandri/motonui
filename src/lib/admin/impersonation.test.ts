@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { MockResponse } from '@/test/mock-response';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
 
-        expect((result as any).status).toBe(500);
+        expect((result as unknown as MockResponse).status).toBe(500);
     });
 
     it('returns 500 when secret is shorter than 32 chars', async () => {
@@ -88,7 +89,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
 
-        expect((result as any).status).toBe(500);
+        expect((result as unknown as MockResponse).status).toBe(500);
     });
 
     it('returns 401 when not authenticated', async () => {
@@ -102,7 +103,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: mockTargetId }) });
 
-        expect((result as any).status).toBe(401);
+        expect((result as unknown as MockResponse).status).toBe(401);
     });
 
     it('returns 404 when target user does not exist', async () => {
@@ -114,7 +115,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         });
         const result = await POST(req, { params: Promise.resolve({ id: 'nonexistent' }) });
 
-        expect((result as any).status).toBe(404);
+        expect((result as unknown as MockResponse).status).toBe(404);
     });
 
     it('starts impersonation and sets httpOnly cookies when target user exists', async () => {
@@ -124,7 +125,7 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         const req = new Request(`http://localhost/api/admin/users/${mockTargetId}/impersonate`, {
             method: 'POST',
         });
-        const result = (await POST(req, { params: Promise.resolve({ id: mockTargetId }) })) as any;
+        const result = (await POST(req, { params: Promise.resolve({ id: mockTargetId }) })) as unknown as MockResponse;
 
         expect(result.status).toBe(200);
         expect(result.body).toEqual({ started: true });

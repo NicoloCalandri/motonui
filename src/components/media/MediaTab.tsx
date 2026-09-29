@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { mediaFullSrc, mediaThumbSrc } from '@/lib/trip-files';
+import { MediaUploadError, uploadTripMedia } from '@/lib/media/upload-client';
+import InstagramGenerator from '@/components/instagram/InstagramGenerator';
 import type { MediaWithUrls } from '@/lib/types';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image, Loader2, Trash2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Loader2, Trash2, Play } from 'lucide-react';
 
 interface MediaTabProps { tripId: string }
 
@@ -14,8 +16,10 @@ interface MediaTabProps { tripId: string }
 export default function MediaTab({ tripId }: MediaTabProps) {
     const [media, setMedia] = useState<MediaWithUrls[]>([]);
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
+    const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
+    const [uploadErrors, setUploadErrors] = useState<string[]>([]);
     const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [showInstagram, setShowInstagram] = useState(false);
     const [lightbox, setLightbox] = useState<MediaWithUrls | null>(null);
 
     const fetchMedia = () => {
@@ -28,14 +32,20 @@ export default function MediaTab({ tripId }: MediaTabProps) {
     useEffect(() => { fetchMedia(); }, [tripId]);
 
     const onDrop = useCallback(async (files: File[]) => {
-        setUploading(true);
-        for (const file of files) {
-            const form = new FormData();
-            form.append('file', file);
-            await fetch(`/api/trips/${tripId}/media`, { method: 'POST', body: form });
+        const errors: string[] = [];
+        setUploadErrors([]);
+        for (const [index, file] of files.entries()) {
+            setUploading({ done: index, total: files.length });
+            try {
+                // Direct upload to storage, then server-side processing (EXIF removed).
+                await uploadTripMedia(tripId, file);
+            } catch (err) {
+                errors.push(`${file.name}: ${err instanceof MediaUploadError ? err.message : 'errore imprevisto'}`);
+            }
         }
+        setUploadErrors(errors);
         fetchMedia();
-        setUploading(false);
+        setUploading(null);
     }, [tripId]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -47,7 +57,8 @@ export default function MediaTab({ tripId }: MediaTabProps) {
     const toggleSelect = (id: string) => {
         setSelected((prev) => {
             const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
             return next;
         });
     };
@@ -71,7 +82,9 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                 {uploading ? (
                     <div className="flex flex-col items-center gap-2 text-ink-400">
                         <Loader2 className="w-8 h-8 animate-spin text-terracotta-400" />
-                        <p className="text-sm">Caricamento in corso...</p>
+                        <p className="text-sm" aria-live="polite">
+                            Caricamento {uploading.done + 1} di {uploading.total}...
+                        </p>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-2 text-ink-400">
@@ -84,17 +97,33 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                 )}
             </div>
 
+            {uploadErrors.length > 0 && (
+                <div role="alert" className="mb-4 p-3 rounded-2xl bg-red-50 text-red-700 text-sm space-y-1">
+                    {uploadErrors.map((message) => <p key={message}>{message}</p>)}
+                </div>
+            )}
+
+            {showInstagram && (
+                <InstagramGenerator
+                    tripId={tripId}
+                    // Selection order is the slide order.
+                    media={[...selected].flatMap((id) => media.filter((item) => item.id === id))}
+                    onClose={() => setShowInstagram(false)}
+                />
+            )}
+
             {/* Selection actions bar */}
             {selected.size > 0 && (
                 <div className="mb-4 flex items-center gap-3 p-3 bg-ink-900 text-white rounded-2xl animate-slide-up">
                     <span className="text-sm flex-1">{selected.size} foto selezionate</span>
-                    <a
-                        href={`/api/trips/${tripId}/instagram?mediaIds=${[...selected].join(',')}`}
+                    <button
+                        type="button"
+                        onClick={() => setShowInstagram(true)}
                         className="px-3 py-1.5 bg-terracotta-400 rounded-xl text-xs font-medium hover:bg-terracotta-300 transition-colors"
                     >
                         📸 Instagram
-                    </a>
-                    <button onClick={() => setSelected(new Set())} className="p-1">
+                    </button>
+                    <button onClick={() => setSelected(new Set())} aria-label="Annulla selezione" className="p-1">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -109,7 +138,7 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                 </div>
             ) : media.length === 0 ? (
                 <div className="text-center py-16 text-ink-400">
-                    <Image className="w-12 h-12 mx-auto mb-3 text-sand-300" />
+                    <ImageIcon className="w-12 h-12 mx-auto mb-3 text-sand-300" aria-hidden="true" />
                     <p className="font-display text-lg font-semibold text-ink-700 mb-1">Nessuna foto ancora</p>
                     <p className="text-sm">Carica le vostre foto di viaggio</p>
                 </div>
@@ -121,12 +150,19 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                             className="masonry-item relative group rounded-xl overflow-hidden cursor-pointer"
                             onClick={() => setLightbox(item)}
                         >
-                            <img
-                                src={mediaThumbSrc(item)}
-                                alt={item.caption ?? ''}
-                                className="w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                loading="lazy"
-                            />
+                            {item.mime_type?.startsWith('video/') && !item.signed_thumb_url ? (
+                                // Videos have no image thumbnail: the grid never loads the full file.
+                                <div className="w-full h-32 bg-ink-800 flex items-center justify-center" aria-label={item.caption ?? 'Video'}>
+                                    <Play className="w-8 h-8 text-white/80" />
+                                </div>
+                            ) : (
+                                <img
+                                    src={mediaThumbSrc(item)}
+                                    alt={item.caption ?? ''}
+                                    className="w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    loading="lazy"
+                                />
+                            )}
                             {/* Select checkbox */}
                             <button
                                 onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}

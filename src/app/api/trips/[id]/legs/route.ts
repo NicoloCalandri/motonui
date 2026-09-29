@@ -74,7 +74,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
         
         // Auto-create expense for the first segment if cost is provided
         if (data.cost && data.cost > 0 && insertedRows && insertedRows.length > 0) {
-            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
             await supabase.from('expenses').insert({
                 trip_id: id,
                 description: `Volo: ${data.segments![0].from_name} → ${data.segments![data.segments!.length - 1].to_name}`,
@@ -118,7 +118,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
 
     // Auto-create expense if cost provided
     if (data.cost && data.cost > 0) {
-        const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+        const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
         await supabase.from('expenses').insert({
             trip_id: id,
             description: `Spostamento: ${data.from_name} → ${data.to_name}`,

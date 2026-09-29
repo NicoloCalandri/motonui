@@ -8,6 +8,7 @@ import { requireFeatureAccess } from '@/lib/premium/access';
 import { geocodeDestination, getTripWeather } from '@/lib/weather';
 import { generatePackingChecklist, computePackingInputHash } from '@/lib/ai/packing';
 import type { BaggageItem, PackingCategoryGroup } from '@/lib/types';
+import { fromJson, toJson } from '@/lib/json';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -20,7 +21,7 @@ interface TripForPacking {
 }
 
 async function loadTripContext(supabase: Awaited<ReturnType<typeof createClient>>, tripId: string) {
-    const { data: trip, error: tripError } = await (supabase.from('trips') as any)
+    const { data: trip, error: tripError } = await supabase.from('trips')
         .select('destination, start_date, end_date, days(id, date, title, legs(from_name, to_name, from_lat, from_lng)), activities(name, type, date)')
         .eq('id', tripId)
         .single();
@@ -45,7 +46,7 @@ export const GET = withErrorHandler(async (_req, { params }) => {
 
     await requireTripMember(supabase, id, user.id);
 
-    const { data: checklist, error } = await (supabase.from('packing_checklists') as any)
+    const { data: checklist, error } = await supabase.from('packing_checklists')
         .select('*')
         .eq('trip_id', id)
         .maybeSingle();
@@ -68,7 +69,7 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     return ok({
         checklist: {
             trip_id: id,
-            categories: checklist.items as PackingCategoryGroup[],
+            categories: fromJson<PackingCategoryGroup[]>(checklist.items),
             weather_snapshot: checklist.weather_snapshot,
             input_hash: checklist.input_hash,
             generated_at: checklist.generated_at,
@@ -131,11 +132,11 @@ export const POST = withErrorHandler(async (_req, { params }) => {
         stopCount: stops.length,
     });
 
-    const { error: upsertError } = await (supabase.from('packing_checklists') as any).upsert(
+    const { error: upsertError } = await supabase.from('packing_checklists').upsert(
         {
             trip_id: id,
-            items: categories,
-            weather_snapshot: weather,
+            items: toJson(categories),
+            weather_snapshot: toJson(weather),
             input_hash: inputHash,
             generated_at: new Date().toISOString(),
             checked_item_ids: [],
@@ -173,7 +174,7 @@ export const PATCH = withErrorHandler(async (request, { params }) => {
     const parsed = ToggleSchema.safeParse(body);
     if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
-    const { data: current, error: fetchError } = await (supabase.from('packing_checklists') as any)
+    const { data: current, error: fetchError } = await supabase.from('packing_checklists')
         .select('checked_item_ids')
         .eq('trip_id', id)
         .single();
@@ -185,7 +186,7 @@ export const PATCH = withErrorHandler(async (request, { params }) => {
         ? Array.from(new Set([...existing, parsed.data.itemId]))
         : existing.filter((itemId) => itemId !== parsed.data.itemId);
 
-    const { error: updateError } = await (supabase.from('packing_checklists') as any)
+    const { error: updateError } = await supabase.from('packing_checklists')
         .update({ checked_item_ids: next, updated_at: new Date().toISOString() })
         .eq('trip_id', id);
 

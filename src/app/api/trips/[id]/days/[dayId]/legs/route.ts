@@ -77,7 +77,7 @@ export const POST = withRoute(
 
         // Single shared expense for the whole multi-leg journey
         if (input.cost && input.cost > 0) {
-            const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR');
+            const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR', { supabase });
             const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
             const routeLabel = `${segs[0].from_name.split(' — ')[0]} → ${segs[segs.length - 1].to_name.split(' — ')[0]}`;
 
@@ -140,7 +140,7 @@ export const POST = withRoute(
 
     // Auto-create transport expense
     if (input.cost && input.cost > 0) {
-        const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR');
+        const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR', { supabase });
         const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
 
         await supabase.from('expenses').insert({

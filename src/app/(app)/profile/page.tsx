@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { User, Mail, Camera, Save, Loader2, Shield, Globe, Bell } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
 
 export default function ProfilePage() {
-    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState<{ id: string; email: string | null; fullName: string; avatarUrl: string | null } | null>(null);
@@ -249,6 +248,8 @@ export default function ProfilePage() {
                             </button>
                         </form>
                     </section>
+
+                    <DeleteAccountSection />
 
                     {/* Subscription Preview Card */}
                     <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-[40px] p-8 md:p-12 border border-neutral-200/50 overflow-hidden relative">

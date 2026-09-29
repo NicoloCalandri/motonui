@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { MockResponse } from '@/test/mock-response';
 import { AppError, Errors, withErrorHandler } from './errors';
 
 vi.mock('next/server', () => ({
@@ -139,7 +140,7 @@ describe('withErrorHandler', () => {
     it('returns 401 JSON response when Errors.unauthorized() is thrown', async () => {
         const handler = vi.fn().mockRejectedValue(Errors.unauthorized());
         const wrapped = withErrorHandler(handler, 'TEST POST');
-        const result = (await wrapped(new Request('http://localhost'), mockContext)) as any;
+        const result = (await wrapped(new Request('http://localhost'), mockContext)) as unknown as MockResponse;
         expect(result.status).toBe(401);
         expect(result.body.code).toBe('UNAUTHORIZED');
         expect(result.body.error).toBeDefined();
@@ -148,7 +149,7 @@ describe('withErrorHandler', () => {
     it('returns 404 JSON response when Errors.notFound() is thrown', async () => {
         const handler = vi.fn().mockRejectedValue(Errors.notFound('Trip'));
         const wrapped = withErrorHandler(handler, 'TRIPS GET');
-        const result = (await wrapped(new Request('http://localhost'), mockContext)) as any;
+        const result = (await wrapped(new Request('http://localhost'), mockContext)) as unknown as MockResponse;
         expect(result.status).toBe(404);
         expect(result.body.code).toBe('NOT_FOUND');
     });
@@ -156,7 +157,7 @@ describe('withErrorHandler', () => {
     it('returns 500 InternalError response for unexpected errors', async () => {
         const handler = vi.fn().mockRejectedValue(new Error('Database exploded'));
         const wrapped = withErrorHandler(handler, 'TEST DELETE');
-        const result = (await wrapped(new Request('http://localhost'), mockContext)) as any;
+        const result = (await wrapped(new Request('http://localhost'), mockContext)) as unknown as MockResponse;
         expect(result.status).toBe(500);
         expect(result.body.code).toBe('INTERNAL_ERROR');
     });
@@ -164,7 +165,7 @@ describe('withErrorHandler', () => {
     it('returns 400 JSON response when Errors.validation() is thrown', async () => {
         const handler = vi.fn().mockRejectedValue(Errors.validation('missing title'));
         const wrapped = withErrorHandler(handler, 'TRIPS POST');
-        const result = (await wrapped(new Request('http://localhost'), mockContext)) as any;
+        const result = (await wrapped(new Request('http://localhost'), mockContext)) as unknown as MockResponse;
         expect(result.status).toBe(400);
         expect(result.body.code).toBe('VALIDATION_ERROR');
     });

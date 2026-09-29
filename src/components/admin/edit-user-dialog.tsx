@@ -3,6 +3,13 @@
 import { useEffect, useState } from 'react';
 import type { AdminUserSummary } from '@/lib/types';
 
+type EntitlementPayload = {
+    featureKey: string;
+    enabled: boolean;
+    dailyLimit: number | null;
+    monthlyLimit: number | null;
+};
+
 interface Props {
     user: AdminUserSummary;
     onClose: () => void;
@@ -51,7 +58,7 @@ export default function EditUserDialog({ user, onClose, onSuccess }: Props) {
                 }
                 if (Array.isArray(payload.entitlements)) {
                     setEntitlements(PREMIUM_FEATURES.map((feature) => {
-                        const existing = payload.entitlements.find((e: any) => e.featureKey === feature.key);
+                        const existing = (payload.entitlements as EntitlementPayload[]).find((e) => e.featureKey === feature.key);
                         return {
                             featureKey: feature.key,
                             enabled: existing ? Boolean(existing.enabled) : (detailUser?.plan === 'premium'),
