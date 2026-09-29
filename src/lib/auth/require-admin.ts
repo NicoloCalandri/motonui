@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isAdminAuthBypassEnabled } from '@/lib/auth/admin-bypass';
 
 export type AdminResult = { adminId: string } | NextResponse;
 
@@ -15,9 +16,8 @@ export type AdminResult = { adminId: string } | NextResponse;
 const DEV_ADMIN_ID = '00000000-0000-0000-0000-000000000001';
 
 export async function requireAdmin(): Promise<AdminResult> {
-    // Explicit opt-in bypass for local development only.
-    // Must never be set outside a developer's own machine.
-    if (process.env.ADMIN_AUTH_BYPASS === 'true') {
+    // Explicit opt-in bypass for local development only (never in production).
+    if (isAdminAuthBypassEnabled()) {
         return { adminId: DEV_ADMIN_ID };
     }
 

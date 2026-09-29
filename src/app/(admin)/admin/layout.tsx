@@ -1,6 +1,7 @@
 import { getAuthUser } from '@/lib/auth/get-user';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { isAdminAuthBypassEnabled } from '@/lib/auth/admin-bypass';
 import AdminNav from './_components/AdminNav';
 
 interface AdminLayoutProps {
@@ -9,11 +10,10 @@ interface AdminLayoutProps {
 
 /** Server-side admin role check — defence in depth beyond middleware */
 async function checkAdminAccess() {
-    // Explicit opt-in bypass for local development only.
-    // Must never be set outside a developer's own machine.
-    if (process.env.ADMIN_AUTH_BYPASS === 'true') return;
+    // Explicit opt-in bypass for local development only (never in production).
+    if (isAdminAuthBypassEnabled()) return;
     const supabase = await createClient();
-        const user = await getAuthUser(supabase);
+    const user = await getAuthUser(supabase);
     if (!user) redirect('/auth/login');
 
     const { data: profile } = await (supabase.from('profiles') as any)
