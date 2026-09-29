@@ -28,8 +28,8 @@ Oggi sono automatici solo type-check, lint (senza soglia sui warning), test e bu
 | A5 | Coverage `src/lib/**` ≥ 70% | 🤖⏳ ⛔ | `npm run test:coverage` con soglia (T-3.1) | SDLC-03 | 🔴 29,6% |
 | A6 | Build di produzione | 🤖 ⛔ | `npm run build` | SDLC-01 | ✅ attivo |
 | A7 | Nessun segreto nei file modificati | 🤖⏳ ⛔ | gitleaks in pre-commit e CI (T-0.3) | SDLC-05, DEV-01 | 🔴 assente |
-| A8 | Test RLS verdi (anonimo, estraneo, partner, owner) | 🤖⏳ ⛔ | job `rls-tests` con `supabase start` (T-1.1) | SDLC-04 | 🔴 assente |
-| A9 | Ogni tabella ha RLS e ogni policy UPDATE/INSERT ha `WITH CHECK` | 🤖⏳ ⛔ | test di meta-controllo su `pg_policies` (T-1.1) | AUTHZ-01, AUTHZ-06 | 🔴 assente |
+| A8 | Test RLS verdi (anonimo, estraneo, partner, owner) | 🤖 ⛔ | job `rls-tests` (Postgres + stub Supabase, `scripts/run-sql-tests.sh`); in locale `npm run test:rls` su Supabase | SDLC-04 | ✅ attivo |
+| A9 | Ogni tabella ha RLS e ogni policy UPDATE/INSERT ha `WITH CHECK` | 🤖 ⛔ | meta-controllo in `supabase/tests/rls_matrix.test.sql` | AUTHZ-01, AUTHZ-06 | ✅ attivo |
 | A10 | Nessuna vulnerabilità alta o critica nelle dipendenze | 🤖⏳ ⛔ | `npm audit --audit-level=high` (T-4.7) | SDLC-06 | 🟡 solo Dependabot |
 | A11 | Linter DB di Supabase senza errori | 🤖⏳ | `supabase db lint` | AUTHZ-07 | 🔴 assente |
 
@@ -43,7 +43,7 @@ Oggi sono automatici solo type-check, lint (senza soglia sui warning), test e bu
 - [ ] 👤 ⛔ Le funzioni `SECURITY DEFINER` hanno `set search_path` e controllano `auth.uid()` all'interno (SR-AUTHZ-07).
 - [ ] 👤 ⛔ Nessuna vista nello schema `public` legge `auth.users` o tabelle private senza `security_invoker = true` o `REVOKE` esplicito (SR-AUTHZ-05).
 - [ ] 👤 La migration è retrocompatibile con il codice attualmente in produzione, perché viene applicata prima del deploy (SR-OPS-03).
-- [ ] 👤 Sono stati aggiunti i test RLS per la nuova tabella o policy.
+- [ ] 👤 Sono stati aggiunti i test RLS per la nuova tabella o policy (fixture in `supabase/tests/rls_matrix.test.sql`; il job fallisce se manca per una tabella con `trip_id`).
 
 **Route API** (`src/app/api/**`)
 
@@ -141,6 +141,8 @@ Una riga per ogni verifica: revisione di PR significative, rilascio, verifica pe
 |---|---|---|---|---|---|---|
 | 2026-09-29 | `483599c` | Baseline: revisione statica del codice | Claude (su richiesta di Nicolò) | Intero repo, migration 0001–0015, CI | 🔴 **Non rilasciabile.** `tsc` 0 errori; lint 0 errori e 306 warning; 181/181 test verdi; coverage `src/lib` 29,6%. Requisiti: 17 fatti, 18 parziali, 31 da fare; 5 P0 aperti (SR-DEV-01, SR-AUTHZ-04, SR-AUTHZ-05, SR-AUTHZ-06, SR-PRIV-02). Nessuna verifica eseguita sul progetto cloud. | `REVIEW.md`, `01-SECURITY-REQUIREMENTS.md` |
 | 2026-09-29 | branch `claude/eloquent-lovelace-dwicxb` | Fase 0 (T-0.2–T-0.8): verifica locale | Claude (su richiesta di Nicolò) | Migration `0016`, redirect, gitleaks, `.gitignore`, documentazione | 🟡 Migration 0001–0016 applicate su Postgres 16 con stub di Supabase: `supabase/tests/0016_phase0_rls.test.sql` verde (21 controlli) e rosso sullo schema precedente (S-02 riprodotto). 200/200 test Vitest dell'app verdi, lint 0 errori. Restano: rimozione di `.env.local`/`mobile/.env` e artefatti, rotazione segreti, T-0.9, verifica sul cloud. | T-0.4–T-0.7 |
+| 2026-09-29 | branch `claude/t-0.9-private-documents` | T-0.9: verifica locale | Claude (su richiesta di Nicolò) | Bucket privato `trip-documents`, route boarding pass, script di migrazione | 🟡 Migration 0001–0017 applicate su Postgres 16 con stub di Supabase (anche riapplicando 0017): `0016_phase0_rls.test.sql` e `0017_trip_documents.test.sql` verdi. 232/232 test Vitest; il test della route fallisce se si rimuove il controllo sul prefisso del path. Script di migrazione non eseguito: nessun accesso allo storage cloud. | T-0.9 |
+| | | Esecuzione `npm run storage:migrate-boarding-passes -- --apply` in produzione, poi verifica che nessun `trips/*/boarding-passes/*` risponda su `/object/public/trip-media/` | | | | T-0.9 |
 | | | Rotazione segreti esposti | | | | T-0.1 |
 | | | Verifica REST su cloud (B8) | | | | T-0.4, T-0.5 |
 

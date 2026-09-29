@@ -179,7 +179,10 @@ npm run type-check   # zero errori TypeScript
 npm run lint         # zero warning ESLint
 npm run test         # tutti i test passano
 npm run build        # build di produzione completa
+npm run test:rls     # test RLS su Supabase locale (npm run db:start prima); in CI il job rls-tests li esegue su Postgres + stub
 ```
+
+Ogni migration che aggiunge una tabella di viaggio (con `trip_id`) aggiunge anche la sua fixture in `supabase/tests/rls_matrix.test.sql`: senza, il test RLS fallisce.
 
 Copertura minima su `src/lib/`: **70%**
 
