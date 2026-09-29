@@ -12,7 +12,8 @@ vi.mock('@/lib/instagram-cleanup', () => ({ removeExpiredExportObjects: removeEx
 import { GET } from './route';
 import { GET as sendReminders } from '../send-reminders/route';
 
-const SECRET = 'cron-secret-for-route-tests-0123456789';
+// Low-entropy placeholder: gitleaks flags realistic-looking values.
+const SECRET = 'x'.repeat(40);
 const context = { params: Promise.resolve({}) };
 
 function cronRequest(path: string, authorization?: string) {
