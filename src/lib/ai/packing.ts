@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createHash } from 'node:crypto';
 import type { BaggageItem, DailyWeather, PackingCategoryGroup } from '@/lib/types';
+import { AI_MODELS } from '@/lib/ai/models';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -41,7 +42,7 @@ export async function generatePackingChecklist(input: GeneratePackingChecklistIn
     const prompt = buildPrompt(input);
 
     const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: AI_MODELS.fast,
         max_tokens: 1536,
         messages: [{ role: 'user', content: prompt }],
     });

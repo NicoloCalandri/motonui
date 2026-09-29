@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { InstagramType } from '@/lib/types';
+import { AI_MODELS } from '@/lib/ai/models';
 
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY ?? '',
@@ -24,7 +25,7 @@ const TYPE_PROMPTS: Record<InstagramType, string> = {
 
 /**
  * Generates an Instagram caption + hashtag set for a photo export using Claude.
- * Uses claude-haiku-3-5 for cost efficiency on short text generation.
+ * Uses the fast model (AI_MODELS.fast) for cost efficiency on short text generation.
  */
 export async function generateCaption(input: GenerateCaptionInput): Promise<CaptionResult> {
     const { captions, type, language } = input;
@@ -50,7 +51,7 @@ export async function generateCaption(input: GenerateCaptionInput): Promise<Capt
        Include 10-15 relevant hashtags in English.`;
 
     const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: AI_MODELS.fast,
         max_tokens: 512,
         messages: [{ role: 'user', content: userPrompt }],
         system: systemPrompt,

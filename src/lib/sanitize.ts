@@ -19,17 +19,17 @@ const SAFE_NODE_TYPES = new Set([
   'image',
 ]);
 
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+// C0 controls except tab, newline and carriage return, plus DEL.
+const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
+/**
+ * Normalizes user plain text before storage: trim, drop control characters,
+ * cap the length. It does NOT HTML-escape (T-1.6): the value is stored as
+ * typed and escaped where it is output (React, email templates via
+ * escapeHtml), which avoids the double escaping seen in the UI and on mobile.
+ */
 export function sanitizePlainText(input: string, maxLength = 1000): string {
-  return escapeHtml(input.trim()).slice(0, maxLength);
+  return input.replace(CONTROL_CHARS, '').trim().slice(0, maxLength);
 }
 
 function sanitizeUrl(url: string): string | null {
@@ -70,7 +70,7 @@ export function sanitizeTiptapDocument(input: unknown): JSONContent {
     const sanitized: JSONContent = { type };
 
     if (typeof raw.text === 'string') {
-      sanitized.text = raw.text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+      sanitized.text = raw.text.replace(CONTROL_CHARS, '');
     }
 
     if (raw.attrs && typeof raw.attrs === 'object' && !Array.isArray(raw.attrs)) {

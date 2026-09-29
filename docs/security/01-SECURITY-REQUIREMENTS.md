@@ -20,7 +20,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 |---|---|---|---|---|---|
 | SR-AUTH · Autenticazione | 7 | 4 | 1 | 2 | 0 |
 | SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 8 | 1 | 1 | 0 |
-| SR-INPUT · Validazione dell'input | 7 | 3 | 2 | 2 | 0 |
+| SR-INPUT · Validazione dell'input | 7 | 4 | 2 | 1 | 0 |
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 2 | 2 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 2 | 1 | 2 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 1 | 2 | 4 | 0 |
@@ -73,7 +73,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-INPUT-02 | Upload: whitelist MIME, controllo magic bytes, limite 50 MB lato server | P1 | ✅ Fatto | `src/lib/storage.ts`; test `src/lib/storage.test.ts` | — |
 | SR-INPUT-03 | Gli errori di validazione restituiscono 400 con messaggio leggibile | P3 | ✅ Fatto | `formatZodError` in `src/lib/validation.ts` (test `validation.test.ts`), usato da `withRoute` e da tutte le route con `Errors.validation`; `validateFile` lancia un `AppError` 400 | T-1.4. Messaggi `campo: motivo` in italiano, senza valori in ingresso. |
 | SR-INPUT-04 | Il contenuto Tiptap è sanificato in scrittura (whitelist di nodi, marks, protocolli URL, limiti di profondità) | P1 | ✅ Fatto | `src/lib/sanitize.ts`; test `src/lib/sanitize.test.ts` | — |
-| SR-INPUT-05 | Il contenuto del blog è sanificato anche in rendering (difesa contro scritture dirette via REST) | P1 | 🔴 Da fare | `src/app/(app)/blog/[slug]/page.tsx:148` (`dangerouslySetInnerHTML`) | La RLS `posts_update` permette all'autore di scrivere `content_json` saltando l'API. |
+| SR-INPUT-05 | Il contenuto del blog è sanificato anche in rendering (difesa contro scritture dirette via REST) | P1 | ✅ Fatto | `src/lib/blog/render.ts` (`sanitizeTiptapDocument` prima di `generateHTML`), usato da `blog/[slug]/page.tsx`; test `render.test.ts` | T-1.6. Il test fallisce se si toglie la sanificazione (link `javascript:` scritto via REST). |
 | SR-INPUT-06 | I dati utente nei prompt AI sono delimitati e trattati come non fidati | P2 | 🟡 Parziale | `src/lib/ai/blog-assistant.ts` (`buildPromptBoundary`) | Assente in `destination.ts`, `packing.ts`, `seo.ts`, `trip-summary.ts`, `media/captions.ts`. |
 | SR-INPUT-07 | Le richieste HTTP lato server vanno solo verso host in allowlist (anti-SSRF) | P1 | 🔴 Da fare | `src/lib/media/instagram-export.ts:70` (`fetch(media.url)`) | `media.url` è modificabile dal client (SR-AUTHZ-06). |
 
@@ -102,12 +102,12 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
 | SR-INT-01 | La chiave Anthropic resta solo lato server | P0 | ✅ Fatto | uso solo in `src/lib/ai/*` e route server | Da ruotare comunque (SR-DEV-01). `connect-src` include `api.anthropic.com` senza motivo. |
-| SR-INT-02 | Le quote AI sono imposte lato server in modo atomico | P1 | 🟡 Parziale | `src/lib/premium/access.ts` (client service role); test `access.test.ts` | Lettura-poi-scrittura (race). Il vecchio limiter `ai_usage` è scrivibile dall'utente via RLS e quindi azzerabile. |
-| SR-INT-03 | Un solo sistema di quota AI, allineato alla policy di progetto (20 chiamate/giorno per utente) | P2 | 🔴 Da fare | `blog-assistant.ts:95` (200/50/10), `access.ts` (30/10/20…) | Due sistemi paralleli con limiti diversi da CLAUDE.md. |
+| SR-INT-02 | Le quote AI sono imposte lato server in modo atomico | P1 | ✅ Fatto | `0018_atomic_ai_quota.sql` (`consume_feature_quota`: incremento condizionale `ON CONFLICT … WHERE`, tutto-o-niente, eseguibile solo dal service role); `src/lib/premium/access.ts`; test `access.test.ts`, `supabase/tests/0018_ai_quota.test.sql` | T-1.5. Verificato con 50 connessioni parallele: esattamente 20 accettate. `ai_usage` non è più scrivibile dall'utente. |
+| SR-INT-03 | Un solo sistema di quota AI, allineato alla policy di progetto (20 chiamate/giorno per utente) | P2 | ✅ Fatto | contatore `ai_total` (20/giorno) consumato insieme ai limiti per funzionalità; `checkRateLimit` rimosso; model id in `src/lib/ai/models.ts` | T-1.5. Il premium resta configurabile per funzionalità tramite `feature_entitlements`. |
 | SR-INT-04 | Token Mapbox pubblico ristretto per URL/dominio | P2 | 🔴 Da fare | configurazione esterna (dashboard Mapbox) | Il token attuale è anche nel repo. |
 | SR-INT-05 | Degradazione controllata dei servizi esterni (timeout, fallback espliciti) | P2 | 🟡 Parziale | `src/lib/expenses.ts:30-33` | Senza tasso, `amount_eur ?? amount` tratta un importo in valuta estera come EUR (`expenses.ts:133,187`, `trips.ts:120`). Nessun timeout su `fetch`. |
 | SR-INT-06 | I job cron sono autenticati e vengono realmente eseguiti | P1 | 🔴 Da fare | `vercel.json` (crons), `send-reminders/route.ts`, `cleanup/route.ts` | Vercel Cron chiama in GET con `Authorization: Bearer $CRON_SECRET`; le route esportano solo POST e il middleware le reindirizza al login. `cleanup` non è schedulato. Anche: confronto del segreto a tempo costante; `cleanup` gestisce anche la retention di `ai_usage` (90 gg) e cache (30 gg), oggi mai eseguita. |
-| SR-INT-07 | I template email fanno escape dei dati inseriti dall'utente | P2 | 🔴 Da fare | `src/lib/email.ts:63-75` | `carrier`, `from`, `to`, `pnr`, `userName` interpolati in HTML. |
+| SR-INT-07 | I template email fanno escape dei dati inseriti dall'utente | P2 | ✅ Fatto | `src/lib/email.ts` (tutti i campi passano da `escapeFields`, `src/lib/html.ts`); test `email.test.ts` | T-1.7. |
 
 ## SR-PRIV — Privacy e dati personali
 

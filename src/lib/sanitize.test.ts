@@ -2,8 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { sanitizePlainText, sanitizeTiptapDocument } from '@/lib/sanitize';
 
 describe('sanitizePlainText', () => {
-    it('escapes HTML metacharacters', () => {
-        expect(sanitizePlainText('<img src=x onerror=1>')).toBe('&lt;img src=x onerror=1&gt;');
+    it('stores text as typed, without HTML-escaping (escaping happens on output)', () => {
+        expect(sanitizePlainText('Pizza & birra <3')).toBe('Pizza & birra <3');
+    });
+
+    it('trims, drops control characters and caps the length', () => {
+        expect(sanitizePlainText('  ciao\u0000\u0007 mondo\n ')).toBe('ciao mondo');
+        expect(sanitizePlainText('abcdef', 3)).toBe('abc');
+    });
+
+    it('keeps newlines and tabs inside the text', () => {
+        expect(sanitizePlainText('riga 1\n\triga 2')).toBe('riga 1\n\triga 2');
     });
 });
 

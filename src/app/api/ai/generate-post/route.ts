@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { withRoute } from '@/lib/api/with-route';
 import { requireTripMember } from '@/lib/authz';
 import { generateTripSummary } from '@/lib/ai/trip-summary';
-import { checkRateLimit } from '@/lib/ai/blog-assistant';
 import { requireFeatureAccess } from '@/lib/premium/access';
 import { ok, Errors } from '@/lib/errors';
 
@@ -23,9 +22,6 @@ export const POST = withRoute(
     await requireTripMember(supabase, tripId, user.id);
     await requireFeatureAccess({ userId: user.id, feature: 'ai_generate_post', allowAdminBypass: true });
 
-    // Rate limit check (Sonnet: 50/day)
-    const allowed = await checkRateLimit(user.id, 'sonnet', supabase);
-    if (!allowed) throw Errors.rateLimited();
 
     // Fetch trip context
     const { data: trip } = await supabase

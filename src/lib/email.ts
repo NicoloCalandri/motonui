@@ -4,6 +4,8 @@
  * Falls back to a no-op log if keys are not configured (dev / preview).
  */
 
+import { escapeFields } from '@/lib/html';
+
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'motonui <reminders@motonui.app>';
 
 export interface EmailPayload {
@@ -46,6 +48,8 @@ export function flightCheckinEmail(opts: {
     departureAt: string;
     checkinOpensAt: string;
 }): string {
+    // Every field may come from trip data entered by either member (SR-INT-07).
+    const safe = escapeFields(opts);
     const dep = new Date(opts.departureAt).toLocaleString('it-IT', {
         weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
@@ -60,17 +64,17 @@ export function flightCheckinEmail(opts: {
       <div style="background:#C4622D;border-radius:16px;padding:24px;color:white;text-align:center;margin-bottom:24px">
         <div style="font-size:36px;margin-bottom:8px">✈️</div>
         <h1 style="margin:0;font-size:22px">Check-in aperto!</h1>
-        <p style="margin:8px 0 0;opacity:0.85">${opts.carrier}</p>
+        <p style="margin:8px 0 0;opacity:0.85">${safe.carrier}</p>
       </div>
 
-      <p style="font-size:16px">Ciao ${opts.userName},</p>
+      <p style="font-size:16px">Ciao ${safe.userName},</p>
       <p>Il check-in online per il tuo volo è ora disponibile.</p>
 
       <div style="background:#f5f5f0;border-radius:12px;padding:20px;margin:24px 0">
         <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#666;font-size:14px">Volo</td><td style="padding:6px 0;font-weight:700">${opts.from} → ${opts.to}</td></tr>
-          <tr><td style="padding:6px 0;color:#666;font-size:14px">Compagnia</td><td style="padding:6px 0;font-weight:700">${opts.carrier}</td></tr>
-          ${opts.pnr ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Codice prenotazione</td><td style="padding:6px 0;font-weight:700;letter-spacing:2px;font-size:18px;color:#C4622D">${opts.pnr}</td></tr>` : ''}
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Volo</td><td style="padding:6px 0;font-weight:700">${safe.from} → ${safe.to}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Compagnia</td><td style="padding:6px 0;font-weight:700">${safe.carrier}</td></tr>
+          ${safe.pnr ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Codice prenotazione</td><td style="padding:6px 0;font-weight:700;letter-spacing:2px;font-size:18px;color:#C4622D">${safe.pnr}</td></tr>` : ''}
           <tr><td style="padding:6px 0;color:#666;font-size:14px">Check-in aperto</td><td style="padding:6px 0;font-weight:700">${checkin}</td></tr>
           <tr><td style="padding:6px 0;color:#666;font-size:14px">Partenza</td><td style="padding:6px 0;font-weight:700">${dep}</td></tr>
         </table>
@@ -88,6 +92,8 @@ export function paymentDeadlineEmail(opts: {
     deadline: string;
     type: 'payment_deadline' | 'cancellation_deadline';
 }): string {
+    // Every field may come from trip data entered by either member (SR-INT-07).
+    const safe = escapeFields(opts);
     const date = new Date(opts.deadline).toLocaleDateString('it-IT', {
         weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
     });
@@ -103,16 +109,16 @@ export function paymentDeadlineEmail(opts: {
       <div style="background:${isPayment ? '#1a1a1a' : '#b91c1c'};border-radius:16px;padding:24px;color:white;text-align:center;margin-bottom:24px">
         <div style="font-size:36px;margin-bottom:8px">${emoji}</div>
         <h1 style="margin:0;font-size:22px">${label}</h1>
-        <p style="margin:8px 0 0;opacity:0.85">${opts.hotelName}</p>
+        <p style="margin:8px 0 0;opacity:0.85">${safe.hotelName}</p>
       </div>
 
-      <p style="font-size:16px">Ciao ${opts.userName},</p>
+      <p style="font-size:16px">Ciao ${safe.userName},</p>
       <p>${action}</p>
 
       <div style="background:#f5f5f0;border-radius:12px;padding:20px;margin:24px 0">
         <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#666;font-size:14px">Struttura</td><td style="padding:6px 0;font-weight:700">${opts.hotelName}</td></tr>
-          ${opts.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Ref. prenotazione</td><td style="padding:6px 0;font-weight:700">${opts.bookingRef}</td></tr>` : ''}
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Struttura</td><td style="padding:6px 0;font-weight:700">${safe.hotelName}</td></tr>
+          ${safe.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Ref. prenotazione</td><td style="padding:6px 0;font-weight:700">${safe.bookingRef}</td></tr>` : ''}
           <tr><td style="padding:6px 0;color:#666;font-size:14px">${label}</td><td style="padding:6px 0;font-weight:700;color:${isPayment ? '#C4622D' : '#b91c1c'}">${date}</td></tr>
         </table>
       </div>
@@ -128,6 +134,8 @@ export function restaurantReminderEmail(opts: {
     date: string;
     time: string;
 }): string {
+    // Every field may come from trip data entered by either member (SR-INT-07).
+    const safe = escapeFields(opts);
     const dateStr = new Date(opts.date).toLocaleDateString('it-IT', {
         weekday: 'long', day: '2-digit', month: 'long',
     });
@@ -137,18 +145,18 @@ export function restaurantReminderEmail(opts: {
       <div style="background:#ea580c;border-radius:16px;padding:24px;color:white;text-align:center;margin-bottom:24px">
         <div style="font-size:36px;margin-bottom:8px">🍽️</div>
         <h1 style="margin:0;font-size:22px">Prenotazione ristorante</h1>
-        <p style="margin:8px 0 0;opacity:0.85">${opts.restaurantName}</p>
+        <p style="margin:8px 0 0;opacity:0.85">${safe.restaurantName}</p>
       </div>
 
-      <p style="font-size:16px">Ciao ${opts.userName},</p>
+      <p style="font-size:16px">Ciao ${safe.userName},</p>
       <p>Promemoria per la tua prenotazione al ristorante.</p>
 
       <div style="background:#f5f5f0;border-radius:12px;padding:20px;margin:24px 0">
         <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#666;font-size:14px">Ristorante</td><td style="padding:6px 0;font-weight:700">${opts.restaurantName}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Ristorante</td><td style="padding:6px 0;font-weight:700">${safe.restaurantName}</td></tr>
           <tr><td style="padding:6px 0;color:#666;font-size:14px">Data</td><td style="padding:6px 0;font-weight:700">${dateStr}</td></tr>
-          <tr><td style="padding:6px 0;color:#666;font-size:14px">Orario</td><td style="padding:6px 0;font-weight:700;color:#ea580c">${opts.time}</td></tr>
-          ${opts.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Prenotazione</td><td style="padding:6px 0;font-weight:700">${opts.bookingRef}</td></tr>` : ''}
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Orario</td><td style="padding:6px 0;font-weight:700;color:#ea580c">${safe.time}</td></tr>
+          ${safe.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Prenotazione</td><td style="padding:6px 0;font-weight:700">${safe.bookingRef}</td></tr>` : ''}
         </table>
       </div>
 
@@ -163,6 +171,8 @@ export function activityReminderEmail(opts: {
     date: string;
     time: string;
 }): string {
+    // Every field may come from trip data entered by either member (SR-INT-07).
+    const safe = escapeFields(opts);
     const dateStr = new Date(opts.date).toLocaleDateString('it-IT', {
         weekday: 'long', day: '2-digit', month: 'long',
     });
@@ -172,18 +182,18 @@ export function activityReminderEmail(opts: {
       <div style="background:#7c3aed;border-radius:16px;padding:24px;color:white;text-align:center;margin-bottom:24px">
         <div style="font-size:36px;margin-bottom:8px">🎟️</div>
         <h1 style="margin:0;font-size:22px">Attività in arrivo</h1>
-        <p style="margin:8px 0 0;opacity:0.85">${opts.activityName}</p>
+        <p style="margin:8px 0 0;opacity:0.85">${safe.activityName}</p>
       </div>
 
-      <p style="font-size:16px">Ciao ${opts.userName},</p>
+      <p style="font-size:16px">Ciao ${safe.userName},</p>
       <p>Promemoria per la tua attività programmata.</p>
 
       <div style="background:#f5f5f0;border-radius:12px;padding:20px;margin:24px 0">
         <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#666;font-size:14px">Attività</td><td style="padding:6px 0;font-weight:700">${opts.activityName}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Attività</td><td style="padding:6px 0;font-weight:700">${safe.activityName}</td></tr>
           <tr><td style="padding:6px 0;color:#666;font-size:14px">Data</td><td style="padding:6px 0;font-weight:700">${dateStr}</td></tr>
-          <tr><td style="padding:6px 0;color:#666;font-size:14px">Orario</td><td style="padding:6px 0;font-weight:700;color:#7c3aed">${opts.time}</td></tr>
-          ${opts.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Prenotazione</td><td style="padding:6px 0;font-weight:700">${opts.bookingRef}</td></tr>` : ''}
+          <tr><td style="padding:6px 0;color:#666;font-size:14px">Orario</td><td style="padding:6px 0;font-weight:700;color:#7c3aed">${safe.time}</td></tr>
+          ${safe.bookingRef ? `<tr><td style="padding:6px 0;color:#666;font-size:14px">Prenotazione</td><td style="padding:6px 0;font-weight:700">${safe.bookingRef}</td></tr>` : ''}
         </table>
       </div>
 

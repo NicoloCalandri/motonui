@@ -26,7 +26,8 @@ export async function GET() {
         (supabase.from('trips') as any).select('id', { count: 'exact', head: true }),
         (supabase.from('expenses') as any).select('id', { count: 'exact', head: true }),
         (supabase.from('posts') as any).select('id', { count: 'exact', head: true }),
-        (supabase.from('ai_usage') as any).select('id', { count: 'exact', head: true }),
+        // One ai_total row per user and day, incremented on every AI call (migration 0018).
+        (supabase.from('usage_counters') as any).select('usage_count').eq('feature_key', 'ai_total').eq('period_type', 'day'),
     ]);
 
     // Count users active in last 30 days
@@ -40,7 +41,7 @@ export async function GET() {
         totalTrips: tripsRes.count ?? 0,
         totalExpenses: expensesRes.count ?? 0,
         totalPosts: postsRes.count ?? 0,
-        totalAiCalls: aiCallsRes.count ?? 0,
+        totalAiCalls: ((aiCallsRes.data ?? []) as Array<{ usage_count: number }>).reduce((sum, row) => sum + row.usage_count, 0),
     };
 
     return new Response(JSON.stringify(stats), {
