@@ -216,7 +216,10 @@ export interface Document {
   entity_id: string | null;
   type: DocumentType;
   title: string;
-  file_url: string;
+  /** External https link, when no file was uploaded */
+  file_url: string | null;
+  /** trips/{trip_id}/documents/... in the private trip-documents bucket */
+  file_path: string | null;
   file_type: DocumentFileType;
   valid_from: string | null;    // ISO date string
   valid_until: string | null;   // ISO date string
@@ -269,8 +272,13 @@ export interface Media {
   trip_id: string;
   day_id: string | null;
   uploaded_by: string;
-  url: string;
+  /** External link only; uploaded files use storage_path (private bucket). */
+  url: string | null;
   thumbnail_url: string | null;
+  /** trips/{trip_id}/original/... in the private trip-media bucket */
+  storage_path: string | null;
+  /** trips/{trip_id}/thumbs/... in the private trip-media bucket */
+  thumb_path: string | null;
   width: number | null;
   height: number | null;
   size: number | null;
@@ -283,6 +291,12 @@ export interface Media {
   camera: string | null;
   sort_order: number;
 }
+
+/** Media as returned by the API: signed URLs (1 h) instead of storage paths. */
+export type MediaWithUrls = Media & {
+  signed_url: string | null;
+  signed_thumb_url: string | null;
+};
 
 /** Generated Instagram export job */
 export interface InstagramExport {

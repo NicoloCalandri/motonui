@@ -1,91 +1,96 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
-import { validateFile, uploadFile, Buckets } from '@/lib/storage';
-import { requireTripMember, requireDayInTrip } from '@/lib/authz';
+import { Errors, ok, created } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { requireDayInTrip } from '@/lib/authz';
+import { Buckets, uploadPrivateFile, validateFile } from '@/lib/storage';
+import { buildMediaPath } from '@/lib/trip-files';
+import { removeMediaFiles, withSignedUrls } from '@/lib/trip-storage';
 import { sanitizePlainText } from '@/lib/sanitize';
-
-type Params = { params: Promise<{ id: string }> };
+import type { Media } from '@/lib/types';
 
 const FilterSchema = z.object({
     day_id: z.string().uuid().optional(),
 });
 
-/** GET /api/trips/[id]/media — list all media for a trip, optionally filtered by day */
-export const GET = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
+const EXTENSION_BY_MIME: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'video/mp4': 'mp4',
+};
 
-    const user = await getAuthUser(supabase);
+/**
+ * GET /api/trips/[id]/media — media of a trip, optionally filtered by day,
+ * with signed URLs (1 h) for files in the private bucket (T-2.1).
+ */
+export const GET = withRoute(
+    { name: 'trips/[id]/media GET', params: tripParams(), query: FilterSchema, tripMember: true },
+    async ({ supabase, params, query }) => {
+        let request = supabase
+            .from('media')
+            .select('*')
+            .eq('trip_id', params.id)
+            .order('taken_at', { ascending: true })
+            .order('created_at', { ascending: false });
 
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-    const { searchParams } = new URL(request.url);
+        if (query.day_id) request = request.eq('day_id', query.day_id);
 
-    const filter = FilterSchema.safeParse({
-        day_id: searchParams.get('day_id') ?? undefined,
-    });
+        const { data, error } = await request;
+        if (error) throw new Error(`[motonui][media][GET] ${error.message}`);
 
-    let query = supabase
-        .from('media')
-        .select('*')
-        .eq('trip_id', id)
-        .order('taken_at', { ascending: true })
-        .order('created_at', { ascending: false });
+        return ok(await withSignedUrls(supabase, params.id, (data ?? []) as Media[]));
+    },
+);
 
-    if (filter.success && filter.data.day_id) {
-        query = query.eq('day_id', filter.data.day_id);
-    }
+/** POST /api/trips/[id]/media — upload a photo/video to the private bucket */
+export const POST = withRoute(
+    { name: 'trips/[id]/media POST', params: tripParams(), tripMember: true },
+    async ({ request, supabase, user, params }) => {
+        const formData = await request.formData();
+        const file = formData.get('file');
+        const dayId = formData.get('day_id');
+        const caption = formData.get('caption');
 
-    const { data, error } = await query;
-    if (error) throw new Error(`[motonui][media][GET] ${error.message}`);
+        if (!(file instanceof File)) throw Errors.validation('Campo "file" mancante.');
+        if (dayId !== null && (typeof dayId !== 'string' || !z.string().uuid().safeParse(dayId).success)) {
+            throw Errors.validation('day_id non valido.');
+        }
 
-    return ok(data ?? []);
-}, 'trips/[id]/media GET') as (req: Request, ctx: Params) => Promise<Response>;
+        const buffer = Buffer.from(await file.arrayBuffer());
+        validateFile(file.type, file.size, buffer);
+        await requireDayInTrip(supabase, params.id, dayId);
 
-/** POST /api/trips/[id]/media — upload photo/video to Supabase Storage */
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
+        const extension = EXTENSION_BY_MIME[file.type];
+        if (!extension) throw Errors.validation('Tipo di file non supportato per le foto del viaggio.');
 
-    const user = await getAuthUser(supabase);
+        // Server-built, non-guessable path inside the trip folder.
+        const storagePath = buildMediaPath(params.id, 'original', extension);
+        await uploadPrivateFile(Buckets.tripMedia, storagePath, buffer, file.type);
 
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
+        const { data: media, error } = await supabase
+            .from('media')
+            .insert({
+                trip_id: params.id,
+                day_id: dayId ?? null,
+                uploaded_by: user.id,
+                storage_path: storagePath,
+                size: file.size,
+                mime_type: file.type,
+                caption: typeof caption === 'string' && caption ? sanitizePlainText(caption, 500) : null,
+                tags: [],
+            })
+            .select()
+            .single();
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const dayId = formData.get('day_id') as string | null;
-    const caption = formData.get('caption') as string | null;
+        if (error || !media) {
+            await removeMediaFiles(params.id, { storage_path: storagePath, thumb_path: null });
+            throw new Error(`[motonui][media][POST] ${error?.message ?? 'insert failed'}`);
+        }
 
-    if (!file) throw Errors.validation('Campo "file" mancante.');
+        const [withUrls] = await withSignedUrls(supabase, params.id, [media as Media]);
+        return created(withUrls);
+    },
+);
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    validateFile(file.type, file.size, buffer);
-    await requireDayInTrip(supabase, id, dayId);
-
-    const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-    const filename = `${crypto.randomUUID()}.${fileExt}`;
-    const storagePath = `trips/${id}/original/${filename}`;
-
-    const publicUrl = await uploadFile(Buckets.tripMedia, storagePath, buffer, file.type);
-
-    // Insert media record
-    const { data: media, error } = await supabase
-        .from('media')
-        .insert({
-            trip_id: id,
-            day_id: dayId ?? null,
-            uploaded_by: user.id,
-            url: publicUrl,
-            size: file.size,
-            mime_type: file.type,
-            caption: caption ? sanitizePlainText(caption, 500) : null,
-            tags: [],
-        })
-        .select()
-        .single();
-
-    if (error) throw new Error(`[motonui][media][POST] ${error.message}`);
-
-    return created(media);
-}, 'trips/[id]/media POST') as (req: Request, ctx: Params) => Promise<Response>;

@@ -107,7 +107,7 @@ import type { Trip } from '@/lib/types'
 - Testa sempre le RLS policy con un utente non autorizzato prima di fare PR
 - **La RLS è il confine primario** (SADR-01): il mobile e i client component parlano direttamente con Supabase, quindi ogni invariante di sicurezza va espressa anche nel DB
 - Ogni policy `UPDATE` ha `WITH CHECK`; non aggiungere policy permissive che ne allargano un'altra sulla stessa operazione (sono in OR)
-- Le colonne strutturali (`id`, `trip_id`, `owner_id`, `uploaded_by`, `author_id`, `media.url`, `created_at`) sono protette dal trigger `prevent_structural_update()`: aggiungilo alle nuove tabelle di viaggio
+- Le colonne strutturali (`id`, `trip_id`, `owner_id`, `uploaded_by`, `author_id`, `media.url`, `media.storage_path`, `media.thumb_path`, `documents.file_path`, `created_at`) sono protette dal trigger `prevent_structural_update()`: aggiungilo alle nuove tabelle di viaggio
 - Le colonne sensibili di `profiles` (`role`, `plan`, `premium_*`, `suspended_*`) si scrivono solo con il service role
 - Funzioni `SECURITY DEFINER` sempre con `set search_path = public, pg_temp`; nessuna vista su `auth.users` leggibile da `anon`/`authenticated`
 - Service role solo alle condizioni di `docs/security/03-SECURITY-ARCHITECTURE.md` §3.3
@@ -146,6 +146,8 @@ import type { Trip } from '@/lib/types'
 
 - **Tutto il processing delle immagini avviene server-side** — mai `sharp` o `canvas` nel browser
 - Non esporre mai URL diretti di Supabase Storage al client — passa sempre per URL firmati o proxy
+- I file dei viaggi stanno in bucket privati sotto `trips/{trip_id}/` (`trip-media`, `trip-documents`): path costruiti dal server (`buildMediaPath`, `buildDocumentPath` in `src/lib/trip-files.ts`) e ricontrollati con `isTripFilePath()` prima di usare il service role; foto servite con `withSignedUrls()` (1 h), documenti tramite proxy autenticato
+- Chi cancella una riga con un file (media, documento, spostamento) cancella anche il file (`src/lib/trip-storage.ts`)
 - Thumbnail sempre generati al momento dell'upload (400×400, WebP)
 - ZIP degli export Instagram eliminati automaticamente dopo 24h
 

@@ -104,7 +104,7 @@ Tutti i punti sono ⛔ **bloccanti** salvo indicazione. Chi rilascia registra l'
 | B6 | Migration applicate su staging e test RLS verdi contro lo stesso schema | 🤖⏳ ⛔ | Job di staging | SDLC-04 |
 | B7 | Supabase Security Advisor senza errori | 👤 ⛔ | Dashboard Supabase → Advisors | AUTHZ-05, AUTHZ-07 |
 | B8 | Prova REST manuale con account di test: non si può cambiare `role`/`plan`/`suspended_at`; `admin_user_view` non leggibile con anon key | 👤 ⛔ | `curl` con anon key e JWT di test, esito nel registro | AUTHZ-04, AUTHZ-05 |
-| B9 | Bucket: solo `avatars` (ed eventuali copertine pubbliche) pubblici | 👤 ⛔ | Dashboard Storage | PRIV-02 |
+| B9 | Bucket: solo `avatars` (ed eventuali copertine pubbliche) pubblici; un vecchio URL `/storage/v1/object/public/trip-media/…` risponde 400 | 👤 ⛔ | Dashboard Storage, `curl` | PRIV-02 |
 | B10 | Auth: conferma email, password minima 10, leaked password protection | 👤 ⛔ | Dashboard Supabase → Auth | AUTH-06, AUTH-07 |
 | B11 | Cron eseguiti con successo nelle ultime 24 h su Preview o Production | 👤 ⛔ | Log Vercel | INT-06 |
 | B12 | Sentry riceve un errore di prova senza dati personali | 👤 ⛔ | Evento di prova | OPS-01 |

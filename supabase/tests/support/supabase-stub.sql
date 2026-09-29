@@ -72,6 +72,9 @@ create table storage.objects (
   owner     uuid
 );
 alter table storage.objects enable row level security;
+-- As on Supabase: client roles hold table grants, RLS decides the rows.
+grant select, insert, update, delete on storage.objects to anon, authenticated, service_role;
+grant select on storage.buckets to anon, authenticated, service_role;
 
 create function storage.foldername(name text) returns text[] language sql immutable as $$
   select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1]
