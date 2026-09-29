@@ -1,4 +1,8 @@
 import type { NextConfig } from 'next';
+import { assertNoAdminBypassInProduction } from './src/lib/auth/admin-bypass';
+
+// Refuse to build or start with the admin auth bypass in production (T-1.10).
+assertNoAdminBypassInProduction();
 
 const isDev = process.env.NODE_ENV === 'development';
 

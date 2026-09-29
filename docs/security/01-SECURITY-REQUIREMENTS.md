@@ -14,19 +14,19 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 24 | 17 | 25 |
+| **66** | 30 | 14 | 22 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
-| SR-AUTH · Autenticazione | 7 | 4 | 1 | 2 | 0 |
-| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 7 | 2 | 1 | 0 |
+| SR-AUTH · Autenticazione | 7 | 5 | 1 | 1 | 0 |
+| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 8 | 1 | 1 | 0 |
 | SR-INPUT · Validazione dell'input | 7 | 2 | 3 | 2 | 0 |
-| SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 2 | 2 | 1 | 1 |
-| SR-CRYPTO · Crittografia e token | 5 | 2 | 1 | 2 | 0 |
+| SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
+| SR-CRYPTO · Crittografia e token | 5 | 4 | 1 | 0 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 1 | 2 | 4 | 0 |
 | SR-PRIV · Privacy e dati personali | 7 | 1 | 2 | 4 | 1 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
-| SR-WEB · Sicurezza web | 6 | 2 | 3 | 1 | 0 |
+| SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 2 | 1 | 4 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
@@ -46,7 +46,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-AUTH-02 | La sessione è rinnovata nel middleware con `getUser()` (validazione lato Auth server, non `getSession()`) | P1 | ✅ Fatto | `src/lib/supabase/middleware.ts`; test `middleware.test.ts` | — |
 | SR-AUTH-03 | Dopo login/OAuth si reindirizza solo verso path interni relativi (nessun open redirect) | P1 | ✅ Fatto | `src/lib/redirect.ts` (`safeRedirectPath`) usato in `src/app/auth/callback/route.ts` e `src/app/auth/login/page.tsx`; test `src/lib/redirect.test.ts` | T-0.7. Parametro OAuth con `encodeURIComponent`. |
 | SR-AUTH-04 | Un utente sospeso non può usare l'app né le API, su nessun canale | P1 | 🟡 Parziale | `middleware.ts:71-82`; test `middleware.test.ts` | Il middleware blocca il web, ma l'utente può azzerare `suspended_at` da solo via REST (vedi SR-AUTHZ-04) e l'app mobile parla direttamente con Supabase. |
-| SR-AUTH-05 | Le API non autenticate rispondono 401 JSON, non con redirect HTML | P2 | 🔴 Da fare | `middleware.ts:65-69` | Il middleware reindirizza anche `/api/*` a `/auth/login` prima che la route possa restituire 401. |
+| SR-AUTH-05 | Le API non autenticate rispondono 401 JSON, non con redirect HTML | P2 | ✅ Fatto | `middleware.ts`; test `middleware.test.ts` | T-1.9. Anche un utente sospeso riceve 403 JSON sulle API invece del redirect. |
 | SR-AUTH-06 | Conferma email obbligatoria e JWT di breve durata | P2 | ✅ Fatto | `supabase/config.toml` (`enable_confirmations = true`, `jwt_expiry = 3600`) | Verificare che il progetto cloud abbia le stesse impostazioni (config esterna). |
 | SR-AUTH-07 | Password policy minima e protezione da password compromesse attive | P2 | 🔴 Da fare | `supabase/config.toml` (assente `minimum_password_length`/`password_requirements`) | Configurare anche su Supabase cloud (Auth → Policies). |
 
@@ -63,7 +63,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-AUTHZ-07 | Tutte le funzioni `SECURITY DEFINER` hanno `search_path` fissato | P2 | ✅ Fatto | `0016_harden_rls_structural_columns.sql`; meta-controllo su `pg_proc` in `supabase/tests/0016_phase0_rls.test.sql` | T-0.6. |
 | SR-AUTHZ-08 | Le route admin verificano il ruolo lato server; il bypass di sviluppo è opt-in esplicito | P1 | ✅ Fatto | `src/lib/auth/require-admin.ts`, `src/app/(admin)/admin/layout.tsx`; test `src/lib/admin/permissions.test.ts` | Il ruolo letto è affidabile solo dopo SR-AUTHZ-04. |
 | SR-AUTHZ-09 | Un viaggio ha al massimo 2 membri (vincolo nel DB) | P2 | 🔴 Da fare | `0001_initial.sql` (solo commento) | Serve un trigger o un vincolo; è anche la base del flusso di invito (PRD FR-02). |
-| SR-AUTHZ-10 | L'impersonazione è in sola lettura, revocabile e limitata nel tempo | P1 | 🟡 Parziale | `middleware.ts:30-63`; test `src/lib/admin/impersonation.test.ts` | Scritture bloccate e scadenza 30 min presenti; revoca non verificata e identità impersonata mai applicata (header impostati sulla risposta, non letti da nessuno). |
+| SR-AUTHZ-10 | L'impersonazione è in sola lettura, revocabile e limitata nel tempo | P1 | ✅ Fatto | `src/lib/admin/impersonation-token.ts`, `middleware.ts`; test `impersonation-token.test.ts`, `middleware.test.ts`, `impersonation.test.ts` | T-1.8 (ADR-07): scritture bloccate, scadenza 30 min, revoca verificata a ogni richiesta (cache 30 s). L'identità impersonata non viene applicata per scelta: rimossi gli header `x-impersonated-*` che nessuno leggeva. |
 
 ## SR-INPUT — Validazione dell'input
 
@@ -83,7 +83,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 |---|---|---|---|---|---|
 | SR-DEV-01 | Nessun segreto nel repository, né nella storia git | P0 | 🔴 Da fare | `git ls-files` contiene solo i `.env.example` con placeholder; job `secrets-scan` verde | Rimossi dal tracking `.env.local` e `mobile/.env` (T-0.2). Resta aperto finché i valori esposti (chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, stringa simile a password) non sono ruotati (T-0.1): restano nella storia git pubblica. |
 | SR-DEV-02 | `.gitignore` copre `.env*`, `coverage/`, `tmp/`, `*.tsbuildinfo`, `.expo/` | P1 | ✅ Fatto | `.gitignore`; `git ls-files` senza `.env` reali, `.expo/`, `supabase/.temp`, `*.tsbuildinfo` | T-0.2. `tmp/`, `undefined/`, `chat.py`, `.replit` ancora tracciati (pulizia T-0.3). |
-| SR-DEV-03 | I bypass di sviluppo non possono attivarsi in produzione | P1 | 🟡 Parziale | `src/lib/auth/require-admin.ts:20` | Opt-in con `ADMIN_AUTH_BYPASS`, ma nessun blocco se la variabile è impostata con `NODE_ENV=production`. |
+| SR-DEV-03 | I bypass di sviluppo non possono attivarsi in produzione | P1 | ✅ Fatto | `src/lib/auth/admin-bypass.ts` (ignorato a runtime in produzione, `next.config.ts` blocca build/start); test `admin-bypass.test.ts`, `permissions.test.ts` | T-1.10. Verificato: `next build` con `ADMIN_AUTH_BYPASS=true` esce con errore. |
 | SR-DEV-04 | Lo sviluppo locale usa Supabase locale, senza chiavi di produzione | P2 | 🟡 Parziale | `.env.local` → `127.0.0.1:54321` | `mobile/.env` punta al progetto cloud. |
 | SR-DEV-05 | Seed con credenziali note solo in locale, mai eseguito in produzione | P2 | ✅ Fatto | `supabase/seed.sql` (utente dev `password123`), `deploy-production.yml` esegue solo `db push` | — |
 
@@ -93,8 +93,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 |---|---|---|---|---|---|
 | SR-CRYPTO-01 | TLS ovunque e HSTS con preload | P1 | ✅ Fatto | `next.config.ts` (`Strict-Transport-Security`) | — |
 | SR-CRYPTO-02 | Token di impersonazione firmato HS256, segreto ≥ 32 caratteri, scadenza 30 min | P1 | ✅ Fatto | `src/app/api/admin/users/[id]/impersonate/route.ts`; test `impersonation.test.ts` | Il segreto attuale è compromesso (SR-DEV-01). |
-| SR-CRYPTO-03 | I token persistiti nel DB sono salvati come hash, non in chiaro | P2 | 🔴 Da fare | `impersonation_tokens.token` (`0007_admin_role.sql`) | — |
-| SR-CRYPTO-04 | Revoca del token di impersonazione verificata a ogni richiesta (`jti` + lista revoche) | P2 | 🔴 Da fare | `middleware.ts:35` | `exit` cancella la riga, ma il middleware verifica solo firma e scadenza. |
+| SR-CRYPTO-03 | I token persistiti nel DB sono salvati come hash, non in chiaro | P2 | ✅ Fatto | `impersonation_tokens.token` contiene SHA-256 del `jti` (`0019_impersonation_token_hash.sql`); test `impersonation.test.ts` | T-1.8. La migration elimina le righe in chiaro esistenti. Gli inviti (T-2.5) seguiranno lo stesso schema. |
+| SR-CRYPTO-04 | Revoca del token di impersonazione verificata a ogni richiesta (`jti` + lista revoche) | P2 | ✅ Fatto | `isImpersonationTokenActive` in `middleware.ts`; test `impersonation-token.test.ts`, `middleware.test.ts` | T-1.8. Fail closed: un errore di rete o di configurazione equivale a token revocato. |
 | SR-CRYPTO-05 | I media privati sono serviti con URL firmati a breve durata | P1 | 🟡 Parziale | `src/lib/storage.ts` (`getSignedUrl` esiste ma non è usato) | `uploadFile` restituisce sempre l'URL pubblico. |
 
 ## SR-INT — Integrazioni esterne
@@ -138,7 +138,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-WEB-01 | Header di sicurezza: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy | P1 | ✅ Fatto | `next.config.ts`, `vercel.json` | `vercel.json` e `next.config.ts` definiscono `Permissions-Policy` diverse (geolocation). |
 | SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | 🟡 Parziale | `next.config.ts` (CSP con `unsafe-inline` e `unsafe-eval`) | — |
 | SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` | — |
-| SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | 🟡 Parziale | affidata a `SameSite=Lax` | Aggiungere il controllo `Origin`/`Sec-Fetch-Site` nel middleware per i metodi di scrittura. |
+| SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | ✅ Fatto | `middleware.ts` (`Origin` / `Sec-Fetch-Site` sui metodi di scrittura di `/api/*`); test `middleware.test.ts` | T-1.9. Oltre a `SameSite=Lax`. Le route cron sono escluse (server-to-server, segreto proprio). |
 | SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`; test `errors.test.ts` | Le route `/api/ai/*` e parte di `/api/admin/*` non usano `withErrorHandler`. |
 | SR-WEB-06 | Rate limiting sulle route pubbliche e su quelle costose (upload, export, AI) | P2 | 🔴 Da fare | `/api/posts/[slug]`, `/api/trips/[id]/media`, `/api/instagram/generate` | — |
 

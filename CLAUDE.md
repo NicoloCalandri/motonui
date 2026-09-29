@@ -124,6 +124,7 @@ import type { Trip } from '@/lib/types'
   ```
 - Log strutturato: `[motonui][/api/trips][GET] errore descrittivo`
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
+- Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `middleware.ts` e verifica un segreto nella route
 - Le route sotto `/api/trips/[id]/**` chiamano sempre `requireTripMember`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
 
