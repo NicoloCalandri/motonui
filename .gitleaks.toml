@@ -1,0 +1,12 @@
+title = "motonui gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Lockfiles and generated files"
+paths = [
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next/''',
+]
