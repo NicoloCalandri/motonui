@@ -191,10 +191,12 @@ npm run test:rls     # test RLS su Supabase locale (npm run db:start prima); in 
 
 Ogni migration che aggiunge una tabella di viaggio (con `trip_id`) aggiunge anche la sua fixture in `supabase/tests/rls_matrix.test.sql`: senza, il test RLS fallisce.
 
-Copertura minima su `src/lib/`: **70%**
+Copertura minima su `src/lib/`: **70%** (righe, istruzioni, funzioni; 60% branch), imposta da `vitest.config.ts`: `npm run test:coverage` fallisce sotto soglia, in CI e in locale
+
+Le funzioni di dominio ricevono le dipendenze invece di crearle (T-3.4): client Supabase (`{ supabase }` o parametro) e orologio (`now`) iniettabili, così i test usano `queryChain` di `src/test/supabase-mock.ts` senza `vi.mock` del modulo
 
 Priorità di test:
-1. Logica spese (`src/lib/expenses.ts`) — calcoli critici
+1. Logica spese (`src/lib/expenses.ts`, `src/lib/currency.ts`) — calcoli critici, sempre in centesimi interi; senza tasso di cambio `amount_eur` resta `null` (spesa "da convertire"), mai l'importo non convertito
 2. Processing media (`src/lib/media/`) — pipeline complessa
 3. API route handlers — integrazione DB
 4. Componenti con logica complessa (ExpenseDrawer, InstagramGenerator)

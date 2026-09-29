@@ -366,6 +366,8 @@ export interface ExpenseSummary {
   by_user: Record<string, number>;            // user_id → total EUR
   by_day: Record<string, number>;             // date string → total EUR
   currency_breakdown: Record<string, number>; // original currency → total
+  /** Foreign-currency expenses saved without a rate: left out of every EUR total (T-3.2) */
+  unconverted: { count: number; by_currency: Record<string, number> };
 }
 
 /** Result of split calculation */
@@ -376,6 +378,8 @@ export interface SplitResult {
   is_even: boolean;
   /** Only one member so far: no balance to show until the partner joins (T-2.8) */
   awaiting_partner: boolean;
+  /** Split expenses left out because they still need an exchange rate (T-3.2) */
+  excluded_unconverted: number;
 }
 
 /** A single debt settlement instruction */
@@ -394,6 +398,8 @@ export interface TripStats {
   avg_per_day_eur: number;
   transport_breakdown: Record<LegType, number>; // leg type → km
   budget_eur: number | null;
+  /** Expenses left out of total_spent_eur because they still need a rate (T-3.2) */
+  unconverted_expenses: number;
 }
 
 // =============================================================================

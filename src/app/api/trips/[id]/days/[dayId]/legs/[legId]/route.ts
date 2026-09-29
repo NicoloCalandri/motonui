@@ -44,7 +44,7 @@ export const PUT = withRoute(
     // Sync the related expense if cost/currency changed
     const expDesc = `Spostamento: ${leg.from_name} → ${leg.to_name}`;
     if (leg.cost && leg.cost > 0) {
-        const amount_eur = await convertCurrency(leg.cost, leg.currency, 'EUR');
+        const amount_eur = await convertCurrency(leg.cost, leg.currency, 'EUR', { supabase });
         const { data: existing } = await supabase
             .from('expenses')
             .select('id')

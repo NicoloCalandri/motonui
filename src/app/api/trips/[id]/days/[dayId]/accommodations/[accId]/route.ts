@@ -38,7 +38,7 @@ export const PUT = withRoute(
     // Sync the related expense if cost/currency changed
     const expDesc = `Alloggio: ${acc.name}`;
     if (acc.cost && acc.cost > 0) {
-        const amount_eur = await convertCurrency(acc.cost, acc.currency, 'EUR');
+        const amount_eur = await convertCurrency(acc.cost, acc.currency, 'EUR', { supabase });
         const { data: existing } = await supabase
             .from('expenses')
             .select('id')
