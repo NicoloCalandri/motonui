@@ -12,6 +12,7 @@
     "test:pages": "vitest run src/app",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:rls": "sh scripts/run-sql-tests.sh",
     "predev": "npm test",
     "db:start": "supabase start",
     "db:stop": "supabase stop",

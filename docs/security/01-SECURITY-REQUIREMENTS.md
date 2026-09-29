@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 24 | 17 | 25 |
+| **66** | 25 | 17 | 24 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -27,7 +27,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-PRIV · Privacy e dati personali | 7 | 1 | 2 | 4 | 1 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
 | SR-WEB · Sicurezza web | 6 | 2 | 3 | 1 | 0 |
-| SR-SDLC · Ciclo di sviluppo | 7 | 2 | 1 | 4 | 0 |
+| SR-SDLC · Ciclo di sviluppo | 7 | 3 | 1 | 3 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
 
@@ -54,7 +54,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-AUTHZ-01 | RLS abilitata su tutte le tabelle dello schema `public` | P1 | ✅ Fatto | `supabase/migrations/*` (25/25 tabelle con `enable row level security`) | Manca un test automatico che lo garantisca per le tabelle future (SR-SDLC-04). |
+| SR-AUTHZ-01 | RLS abilitata su tutte le tabelle dello schema `public` | P1 | ✅ Fatto | `supabase/migrations/*`; meta-controllo in `supabase/tests/rls_matrix.test.sql` (job `rls-tests`) | Il test fallisce se una tabella di `public` non ha RLS o una policy UPDATE non ha `WITH CHECK`. |
 | SR-AUTHZ-02 | I dati di viaggio sono visibili e modificabili solo dai membri del viaggio | P1 | ✅ Fatto | `0001_initial.sql` (`is_trip_member`), `0015_packing.sql` | — |
 | SR-AUTHZ-03 | Ogni route `/api/trips/[id]/**` verifica l'appartenenza (`requireTripMember`) oltre alla RLS | P2 | 🟡 Parziale | `src/lib/authz.ts`; 19 route su 30 lo chiamano | Mancano, tra le altre, `expenses/[expenseId]`, `media/[mediaId]`, `stats`, `days/*`, `posts/[postId]`, `/api/expenses/[id]`. `authz.ts` ha coverage 0%. |
 | SR-AUTHZ-04 | Un utente non può modificare `role`, `plan`, `premium_until`, `suspended_at` del proprio profilo | P0 | ✅ Fatto | `0016_harden_rls_structural_columns.sql`; test `supabase/tests/0016_phase0_rls.test.sql` | T-0.4. Unica policy UPDATE con `WITH CHECK`; UPDATE concesso solo su `display_name`, `avatar_url`, `updated_at`. Da verificare sul cloud dopo il deploy (checklist B8). |
@@ -149,7 +149,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-SDLC-01 | CI su ogni PR: type-check, lint, test, build | P1 | ✅ Fatto | `.github/workflows/ci.yml` | Il job `unit-tests` non genera coverage ma la carica su Codecov. |
 | SR-SDLC-02 | Lint con zero warning, come richiesto da CLAUDE.md | P3 | 🔴 Da fare | `npx eslint .` → 0 errori, 306 warning | — |
 | SR-SDLC-03 | Coverage ≥ 70% su `src/lib/`, imposta in CI | P2 | 🔴 Da fare | `vitest --coverage` → 29,6% righe su `src/lib` | Nessuna soglia in `vitest.config.ts`. |
-| SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | 🔴 Da fare | assenti | Avrebbero intercettato SR-AUTHZ-04/05/06. |
+| SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | ✅ Fatto | `supabase/tests/rls_matrix.test.sql` (matrice SELECT/INSERT/UPDATE/DELETE × anonimo/estraneo/partner/owner su ogni tabella con `trip_id`), `supabase/tests/0016_phase0_rls.test.sql` (regressioni S-02/S-03/S-04); job CI `rls-tests` con Supabase locale | T-1.1, T-1.2. Una nuova tabella di viaggio senza fixture fa fallire il test. |
 | SR-SDLC-05 | Secret scanning in CI e pre-commit | P1 | ✅ Fatto | job `secrets-scan` in `.github/workflows/ci.yml` (bloccante), `.gitleaks.toml`, `.pre-commit-config.yaml` | T-0.3. Scansiona l'albero, non la storia (già esposta: vedi SR-DEV-01). |
 | SR-SDLC-06 | Aggiornamenti e audit delle dipendenze | P2 | 🟡 Parziale | Dependabot attivo (PR #19–#48), commit c8d939c `npm audit fix` | Manca `npm audit` bloccante in CI e `dependabot.yml` versionato. |
 | SR-SDLC-07 | GitHub Actions con permessi minimi e azioni fissate per SHA | P2 | 🔴 Da fare | `.github/workflows/*.yml` | `amondnet/vercel-action@v25` riceve il token Vercel. |
