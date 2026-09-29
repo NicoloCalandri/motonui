@@ -48,12 +48,17 @@ const mockFrom = vi.fn((table: string) => {
     return {};
 });
 
+const mockRpc = vi.fn();
+const mockDrain = vi.fn();
+
 vi.mock('@/lib/supabase/server', () => ({
     createAdminClient: vi.fn(() => ({
         from: mockFrom,
+        rpc: mockRpc,
         auth: { admin: { deleteUser: mockDeleteUser } },
     })),
 }));
+vi.mock('@/lib/storage-deletion', () => ({ drainStorageDeletionQueue: mockDrain }));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -73,6 +78,32 @@ describe('DELETE /api/admin/users/[id]', () => {
         mockRequireAdmin.mockResolvedValue({ adminId: ADMIN_ID });
         mockAdminUserViewSingle.mockResolvedValue({ data: { email: TARGET_EMAIL } });
         mockDeleteUser.mockResolvedValue({ error: null });
+        mockRpc.mockResolvedValue({ data: { transferred_trips: 1, deleted_trips: 0 }, error: null });
+        mockDrain.mockResolvedValue(3);
+    });
+
+    it('purges data (trip transfer, file queue) before deleting the auth user, then removes files (T-2.9)', async () => {
+        const order: string[] = [];
+        mockRpc.mockImplementation(async () => { order.push('purge'); return { data: {}, error: null }; });
+        mockDeleteUser.mockImplementation(async () => { order.push('deleteUser'); return { error: null }; });
+        mockDrain.mockImplementation(async () => { order.push('drain'); return 0; });
+
+        const { DELETE } = await import('@/app/api/admin/users/[id]/route');
+        await DELETE(makeDeleteRequest({ confirmEmail: TARGET_EMAIL }), { params: Promise.resolve({ id: TARGET_ID }) });
+
+        expect(mockRpc).toHaveBeenCalledWith('purge_user_data', { p_user: TARGET_ID });
+        expect(order).toEqual(['purge', 'deleteUser', 'drain']);
+    });
+
+    it('does not delete the auth user when the purge fails', async () => {
+        mockRpc.mockResolvedValue({ data: null, error: { message: 'purge failed' } });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const { DELETE } = await import('@/app/api/admin/users/[id]/route');
+        const result = await DELETE(makeDeleteRequest({ confirmEmail: TARGET_EMAIL }), { params: Promise.resolve({ id: TARGET_ID }) });
+
+        expect((result as { status: number }).status).toBe(500);
+        expect(mockDeleteUser).not.toHaveBeenCalled();
     });
 
     it('returns 401 when not authenticated', async () => {

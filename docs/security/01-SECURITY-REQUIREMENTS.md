@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 45 | 10 | 11 |
+| **66** | 46 | 9 | 11 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -24,7 +24,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 5 | 0 | 0 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 5 | 1 | 1 | 0 |
-| SR-PRIV · Privacy e dati personali | 7 | 5 | 2 | 0 | 0 |
+| SR-PRIV · Privacy e dati personali | 7 | 6 | 1 | 0 | 0 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
 | SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 3 | 1 | 3 | 0 |
@@ -115,7 +115,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-PRIV-01 | EXIF (in particolare GPS) rimossi dalle foto prima di qualunque esposizione | P1 | ✅ Fatto | `src/lib/media/pipeline.ts` (`processImage`: `sharp().rotate()` e ricodifica WebP senza metadati; originale e thumbnail 400×400), route `…/media/uploads` e `…/media/confirm`; test `pipeline.test.ts` (JPEG con GPS in ingresso → nessun EXIF in uscita) | T-2.2. Il file grezzo resta solo in `incoming/` (bucket privato, leggibile solo dai membri) fino alla conferma; gli upload mai confermati sono rimossi dal cron dopo 24 h. Data, fotocamera e posizione restano come colonne del DB, visibili ai soli membri. I video MP4 non sono ricodificati: eventuali metadati di posizione nel contenitore restano. |
 | SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | ✅ Fatto | `0017_trip_documents_bucket.sql`, `0020_private_trip_media.sql` (`trip-media` privato, sola policy `SELECT` per i membri su `trips/{trip_id}/`, path vincolati al viaggio e immutabili); proxy `…/boarding-pass` e `…/documents/[documentId]/file`; test `supabase/tests/0017_trip_documents.test.sql`, `0020_private_media.test.sql`, `documents/route.test.ts` | T-0.9 e T-2.1/T-2.3. I vecchi URL pubblici `/object/public/trip-media/…` smettono di funzionare con la migration; le righe esistenti sono convertite in `storage_path`. Da verificare sul cloud dopo `supabase db push`: bucket privato e nessuna policy residua creata dalla dashboard. Le copertine dei post (`post-covers`) restano pubbliche per scelta (blog pubblico). |
 | SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | ✅ Fatto | `boarding-pass/route.ts` (DELETE e sostituzione), `legs/[legId]` DELETE, `documents/[documentId]` DELETE, `src/lib/trip-storage.ts` (path ricontrollati sul prefisso del viaggio); test `route.test.ts`, `trip-storage.test.ts`, `documents/route.test.ts` | T-0.9 e T-2.3. Path non prevedibili (`{legId}-{uuid}.{ext}`, `documents/{uuid}.{ext}`). Anche eliminare lo spostamento o il documento rimuove il file. |
-| SR-PRIV-04 | Cancellazione account self-service completa (DB + storage) | P1 | 🟡 Parziale | `0014_self_delete_account.sql`; `mobile/app/profile/delete-account.tsx` | Rimuove gli avatar ma non i media dei viaggi. |
+| SR-PRIV-04 | Cancellazione account self-service completa (DB + storage) | P1 | ✅ Fatto | `0022_account_deletion.sql` (`purge_user_data`: viaggi condivisi trasferiti al partner, viaggi in solitaria eliminati, file in `storage_deletion_queue`), `src/lib/storage-deletion.ts` (svuotata con la Storage API da `POST /api/account/delete`, dalla DELETE admin e dal cron `cleanup`); test `supabase/tests/0022_account_deletion.test.sql`, `storage-deletion.test.ts`, `account/delete/route.test.ts`, `delete.test.ts` | T-2.9. Dal mobile (`delete_my_account` diretta) i file sono rimossi entro 24 h dal cron. Nei viaggi condivisi si eliminano foto, documenti e spese pagate dall'utente. Lo storico dell'audit admin sull'utente resta (`target_id` a null). |
 | SR-PRIV-05 | Nessun dato personale nei log applicativi | P2 | 🟡 Parziale | `src/app/api/trips/route.ts:28` (`console.log` dei viaggi) | — |
 | SR-PRIV-06 | Gli ZIP Instagram (file, non solo riga DB) sono eliminati dopo 24 h | P2 | ✅ Fatto | `src/lib/instagram-cleanup.ts` (oggetti > 24 h nel bucket, orfani compresi), `cleanup/route.ts`; test `instagram-cleanup.test.ts` | T-2.6. Cron giornaliero: uno ZIP vive al massimo ~48 h. |
 | SR-PRIV-07 | I post pubblicati non espongono dati privati del viaggio | P1 | ✅ Fatto | `src/app/api/posts/[slug]/route.ts` (colonne esplicite), RLS `trips_select` | — |

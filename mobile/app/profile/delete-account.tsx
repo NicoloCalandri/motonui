@@ -75,7 +75,7 @@ export default function DeleteAccountScreen() {
           <Ionicons name="warning-outline" size={20} color={colors.destructive} />
           <Text style={styles.warningTitle}>Azione irreversibile</Text>
           <Text style={styles.warningText}>
-            Eliminando l account perderai accesso a profilo, viaggi, post e contenuti associati.
+            {"Eliminando l'account perderai accesso a profilo, viaggi e post. I viaggi in cui sei da solo vengono eliminati con foto e documenti; quelli condivisi passano al tuo partner, senza le tue foto, i tuoi documenti e le spese che hai pagato."}
           </Text>
 
           <TouchableOpacity style={styles.checkRow} onPress={() => setConfirmCheck((prev) => !prev)} activeOpacity={0.8}>
