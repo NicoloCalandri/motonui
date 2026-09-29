@@ -152,10 +152,9 @@ import type { Trip } from '@/lib/types'
 ## Regole per le chiamate AI (Claude API)
 
 - **Le API key non devono mai arrivare al browser** — solo route server-side
-- Usa `claude-haiku-4-5` per task brevi (categorizzazione, suggerimenti rapidi)
-- Usa `claude-sonnet-4-6` per generazione long-form (post completi, caption elaborate)
+- Model id solo da `src/lib/ai/models.ts`: `AI_MODELS.fast` (`claude-haiku-4-5`) per task brevi, `AI_MODELS.longForm` (`claude-sonnet-4-6`) per generazione long-form
 - Fai sempre streaming per testo lungo — non far aspettare l'utente con una chiamata bloccante
-- Traccia l'utilizzo in `ai_usage` table — limite 20 chiamate AI/giorno per utente
+- Ogni chiamata AI passa da `requireFeatureAccess` (`src/lib/premium/access.ts`), che consuma la quota in modo atomico con la RPC `consume_feature_quota` — limite 20 chiamate AI/giorno per utente (`AI_DAILY_LIMIT`). `ai_usage` non si scrive più
 - Cache le risposte riusabili (es. briefing destinazione) per 30 giorni
 
 ---
@@ -165,6 +164,7 @@ import type { Trip } from '@/lib/types'
 - **UI e messaggi all'utente**: italiano
 - **Codice, commenti, nomi di variabili**: inglese
 - **Messaggi di errore user-facing**: italiano, warm, con l'emoji 🏝️ quando appropriato
+- **Testo utente**: `sanitizePlainText` normalizza (trim, caratteri di controllo, lunghezza) senza fare escape; l'escape si fa in output (React, `escapeHtml`/`escapeFields` di `src/lib/html.ts` negli HTML generati a mano come le email)
   - Esempio: `"Ops! Non riusciamo a caricare le foto. Riprova tra poco 🏝️"`
 - **Commit message**: inglese, formato `feat(scope): description`
 
