@@ -6,10 +6,7 @@ import type { Post } from '@/lib/types';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Clock, MapPin, ArrowLeft } from 'lucide-react';
-import { generateHTML } from '@tiptap/html';
-import StarterKit from '@tiptap/starter-kit';
-import TiptapImage from '@tiptap/extension-image';
-import TiptapLink from '@tiptap/extension-link';
+import { renderPostHtml } from '@/lib/blog/render';
 import ShareButton from '../_components/ShareButton';
 
 // Revalidate every hour for caching
@@ -73,19 +70,8 @@ export default async function BlogPostPage({ params }: Props) {
             .limit(3)
         : { data: [] };
 
-    // Convert Tiptap JSON → HTML for server-side rendering
-    let htmlContent = '';
-    if (post.content_json) {
-        try {
-            htmlContent = generateHTML(post.content_json as Parameters<typeof generateHTML>[0], [
-                StarterKit,
-                TiptapImage,
-                TiptapLink,
-            ]);
-        } catch {
-            htmlContent = '<p>Contenuto non disponibile.</p>';
-        }
-    }
+    // Tiptap JSON → sanitized HTML for server-side rendering
+    const htmlContent = renderPostHtml(post.content_json);
 
     const typedPost = post as Post & { trips: { destination: string; title: string } | null };
 

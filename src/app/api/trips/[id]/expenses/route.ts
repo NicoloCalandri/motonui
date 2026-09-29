@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
+import { formatZodError } from '@/lib/validation';
 import { getTripExpenseSummary, convertCurrency, splitExpenses } from '@/lib/expenses';
 import { requireTripMember, requireDayInTrip, requireTripPayer } from '@/lib/authz';
 import { sanitizePlainText } from '@/lib/sanitize';
@@ -88,7 +89,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
     await requireTripMember(supabase, id, user.id);
     const body: unknown = await request.json();
     const parsed = CreateExpenseSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
     const input = parsed.data;
     const payerId = input.paid_by ?? user.id;

@@ -12,13 +12,39 @@ export const FEATURE_KEYS = [
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
 
+/** Features that call the Anthropic API: they also count towards AI_DAILY_LIMIT. */
+export const AI_FEATURES: ReadonlySet<FeatureKey> = new Set([
+    'ai_blog',
+    'ai_generate_post',
+    'ai_destination',
+    'instagram_caption',
+    'packing_checklist',
+]);
+
+/** Project policy (CLAUDE.md): at most 20 AI calls per user per day, across all AI features. */
+export const AI_DAILY_LIMIT = 20;
+const AI_TOTAL_COUNTER = 'ai_total';
+
 const DEFAULT_LIMITS: Record<FeatureKey, { daily: number; monthly: number }> = {
-    ai_blog: { daily: 30, monthly: 300 },
+    ai_blog: { daily: 20, monthly: 300 },
     ai_generate_post: { daily: 10, monthly: 100 },
     ai_destination: { daily: 20, monthly: 200 },
     instagram_caption: { daily: 20, monthly: 200 },
     advanced_reminders: { daily: 100, monthly: 2000 },
     packing_checklist: { daily: 20, monthly: 200 },
+};
+
+interface QuotaCounter {
+    feature_key: string;
+    period_type: 'day' | 'month';
+    period_start: string;
+    limit: number;
+}
+
+const QUOTA_ERRORS: Record<string, { code: string; message: string }> = {
+    day: { code: 'DAILY_QUOTA_EXCEEDED', message: 'Hai raggiunto il limite giornaliero per questa funzionalità premium.' },
+    month: { code: 'MONTHLY_QUOTA_EXCEEDED', message: 'Hai raggiunto il limite mensile per questa funzionalità premium.' },
+    [`${AI_TOTAL_COUNTER}:day`]: { code: 'AI_DAILY_LIMIT_REACHED', message: `Hai raggiunto il limite di ${AI_DAILY_LIMIT} richieste AI per oggi. Riprova domani 🏝️` },
 };
 
 interface RequireFeatureAccessInput {
@@ -85,6 +111,8 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
         throw new AppError('Funzionalità disponibile solo per utenti premium.', 'PREMIUM_REQUIRED', 403);
     }
 
+    const counters: QuotaCounter[] = [];
+
     if (!canBypass) {
         const { data: entitlement } = await (supabase.from('feature_entitlements') as any)
             .select('enabled, daily_limit, monthly_limit')
@@ -96,85 +124,68 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
             throw new AppError('Funzionalità premium non abilitata per questo account.', 'FEATURE_NOT_ENTITLED', 403);
         }
 
-        const dailyLimit = entitlement?.daily_limit ?? DEFAULT_LIMITS[feature].daily;
-        const monthlyLimit = entitlement?.monthly_limit ?? DEFAULT_LIMITS[feature].monthly;
-
-        await enforceUserLimit({
-            supabase,
-            userId,
-            feature,
-            periodType: 'day',
-            periodStart: today,
-            incrementBy,
-            limit: dailyLimit,
-            errorCode: 'DAILY_QUOTA_EXCEEDED',
-            errorMessage: 'Hai raggiunto il limite giornaliero per questa funzionalità premium.',
-        });
-
-        await enforceUserLimit({
-            supabase,
-            userId,
-            feature,
-            periodType: 'month',
-            periodStart: monthStart,
-            incrementBy,
-            limit: monthlyLimit,
-            errorCode: 'MONTHLY_QUOTA_EXCEEDED',
-            errorMessage: 'Hai raggiunto il limite mensile per questa funzionalità premium.',
-        });
-    }
-
-    const usageDate = controlRow.usage_date ?? today;
-    const currentDailyUsage = usageDate === today ? Number(controlRow.daily_usage ?? 0) : 0;
-    const nextDailyUsage = currentDailyUsage + incrementBy;
-
-    if (
-        controlRow.hard_daily_cap !== null &&
-        controlRow.hard_daily_cap !== undefined &&
-        nextDailyUsage > Number(controlRow.hard_daily_cap)
-    ) {
-        throw new AppError(
-            'Limite giornaliero globale raggiunto. Riprova più tardi.',
-            'GLOBAL_DAILY_CAP_REACHED',
-            429
+        counters.push(
+            { feature_key: feature, period_type: 'day', period_start: today, limit: entitlement?.daily_limit ?? DEFAULT_LIMITS[feature].daily },
+            { feature_key: feature, period_type: 'month', period_start: monthStart, limit: entitlement?.monthly_limit ?? DEFAULT_LIMITS[feature].monthly },
         );
+        if (AI_FEATURES.has(feature)) {
+            counters.push({ feature_key: AI_TOTAL_COUNTER, period_type: 'day', period_start: today, limit: AI_DAILY_LIMIT });
+        }
     }
 
-    const alertThresholds: number[] = Array.isArray(controlRow.alert_thresholds)
-        ? controlRow.alert_thresholds
-        : [70, 85, 100];
-    const alertedThresholds: number[] = Array.isArray(controlRow.alerted_thresholds)
+    // Every counter and the global daily cap are incremented atomically, or
+    // none is (migration 0018): no read-then-write race between requests.
+    const { data: globalUsage, error: quotaError } = await (supabase as any).rpc('consume_feature_quota', {
+        p_user_id: userId,
+        p_feature: feature,
+        p_counters: counters,
+        p_amount: incrementBy,
+    });
+
+    if (quotaError) throw quotaErrorToAppError(quotaError);
+
+    await recordCostAlerts(supabase, feature, controlRow, Number(globalUsage ?? 0));
+}
+
+function quotaErrorToAppError(error: { message?: string; details?: string | null }): Error {
+    if (error.message === 'GLOBAL_DAILY_CAP_REACHED') {
+        return new AppError('Limite giornaliero globale raggiunto. Riprova più tardi.', 'GLOBAL_DAILY_CAP_REACHED', 429);
+    }
+    if (error.message === 'QUOTA_EXCEEDED') {
+        const [counter, period] = (error.details ?? '').split(':');
+        const known = QUOTA_ERRORS[`${counter}:${period}`] ?? QUOTA_ERRORS[period] ?? QUOTA_ERRORS.day;
+        return new AppError(known.message, known.code, 429);
+    }
+    return new Error(`[motonui][premium][quota] ${error.message ?? 'unknown error'}`);
+}
+
+/** Logs and records newly crossed cost-alert thresholds for the global daily cap. */
+async function recordCostAlerts(
+    supabase: Awaited<ReturnType<typeof createAdminClient>>,
+    feature: FeatureKey,
+    controlRow: { hard_daily_cap?: number | null; alert_thresholds?: unknown; alerted_thresholds?: unknown; usage_date?: string | null },
+    dailyUsage: number,
+): Promise<void> {
+    const alertThresholds: number[] = Array.isArray(controlRow.alert_thresholds) ? controlRow.alert_thresholds : [70, 85, 100];
+    // Thresholds already alerted on a previous day do not count.
+    const today = new Date().toISOString().slice(0, 10);
+    const alreadyAlerted: number[] = controlRow.usage_date === today && Array.isArray(controlRow.alerted_thresholds)
         ? controlRow.alerted_thresholds
         : [];
 
-    const newlyCrossed = computeCrossedThresholds(
-        nextDailyUsage,
-        Number(controlRow.hard_daily_cap ?? 0),
-        alertThresholds,
-        alertedThresholds
-    );
+    const newlyCrossed = computeCrossedThresholds(dailyUsage, Number(controlRow.hard_daily_cap ?? 0), alertThresholds, alreadyAlerted);
+    if (newlyCrossed.length === 0) return;
+
+    console.warn('[motonui][premium][cost-alert]', {
+        feature,
+        hardDailyCap: controlRow.hard_daily_cap,
+        dailyUsage,
+        thresholds: newlyCrossed,
+    });
 
     await (supabase.from('feature_controls') as any)
-        .upsert({
-            feature_key: feature,
-            enabled: controlRow.enabled ?? true,
-            hard_daily_cap: controlRow.hard_daily_cap ?? null,
-            daily_usage: nextDailyUsage,
-            usage_date: today,
-            alert_thresholds: alertThresholds,
-            alerted_thresholds: [...alertedThresholds, ...newlyCrossed].sort((a, b) => a - b),
-            updated_at: now.toISOString(),
-            updated_by: isAdmin ? userId : null,
-        });
-
-    if (newlyCrossed.length > 0) {
-        console.warn('[motonui][premium][cost-alert]', {
-            feature,
-            hardDailyCap: controlRow.hard_daily_cap,
-            dailyUsage: nextDailyUsage,
-            thresholds: newlyCrossed,
-        });
-    }
+        .update({ alerted_thresholds: [...alreadyAlerted, ...newlyCrossed].sort((a, b) => a - b) })
+        .eq('feature_key', feature);
 }
 
 function computeCrossedThresholds(
@@ -186,51 +197,4 @@ function computeCrossedThresholds(
     if (!cap || cap <= 0) return [];
     const pct = Math.floor((usage / cap) * 100);
     return thresholds.filter((t) => pct >= t && !alreadyAlerted.includes(t));
-}
-
-async function enforceUserLimit(input: {
-    supabase: Awaited<ReturnType<typeof createAdminClient>>;
-    userId: string;
-    feature: FeatureKey;
-    periodType: 'day' | 'month';
-    periodStart: string;
-    incrementBy: number;
-    limit: number;
-    errorCode: string;
-    errorMessage: string;
-}) {
-    const {
-        supabase,
-        userId,
-        feature,
-        periodType,
-        periodStart,
-        incrementBy,
-        limit,
-        errorCode,
-        errorMessage,
-    } = input;
-
-    const { data: existing } = await (supabase.from('usage_counters') as any)
-        .select('id, usage_count')
-        .eq('user_id', userId)
-        .eq('feature_key', feature)
-        .eq('period_type', periodType)
-        .eq('period_start', periodStart)
-        .maybeSingle();
-
-    const current = Number(existing?.usage_count ?? 0);
-    const next = current + incrementBy;
-    if (next > limit) {
-        throw new AppError(errorMessage, errorCode, 429);
-    }
-
-    await (supabase.from('usage_counters') as any).upsert({
-        user_id: userId,
-        feature_key: feature,
-        period_type: periodType,
-        period_start: periodStart,
-        usage_count: next,
-        updated_at: new Date().toISOString(),
-    });
 }

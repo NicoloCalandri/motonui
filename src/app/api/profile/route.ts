@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { formatZodError } from '@/lib/validation';
 import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 
@@ -33,7 +34,7 @@ export const PATCH = withErrorHandler(async (request) => {
 
     const body: unknown = await request.json();
     const parsed = UpdateProfileSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
     const { error } = await supabase
         .from('profiles')

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
+import { formatZodError } from '@/lib/validation';
 
 const CreateTripSchema = z.object({
     title: z.string().min(1).max(200),
@@ -48,7 +49,7 @@ export const POST = withErrorHandler(async (request) => {
 
     const body: unknown = await request.json();
     const parsed = CreateTripSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
     const input = parsed.data;
 

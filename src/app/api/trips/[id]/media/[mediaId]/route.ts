@@ -1,17 +1,13 @@
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { Errors, ok } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
 import { Buckets } from '@/lib/storage';
 
-type Params = { params: Promise<{ id: string; mediaId: string }> };
-
 /** DELETE /api/trips/[id]/media/[mediaId] — delete a media item and its storage object */
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, mediaId } = await params;
+export const DELETE = withRoute(
+    { name: 'trips/[id]/media/[mediaId] DELETE', params: tripParams('mediaId'), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id, mediaId } = params;
 
     // Fetch to get storage path before deleting
     const { data: media, error: fetchError } = await supabase
@@ -27,8 +23,9 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
         const prefix = `${supabaseUrl}/storage/v1/object/public/${Buckets.tripMedia}/`;
-        if (media.url.startsWith(prefix)) {
-            const storagePath = media.url.slice(prefix.length);
+        const storagePath = media.url.startsWith(prefix) ? media.url.slice(prefix.length) : null;
+        // Only files of this trip: media.url is set by the client at insert time.
+        if (storagePath && storagePath.startsWith(`trips/${id}/`) && !storagePath.includes('..')) {
             await supabase.storage.from(Buckets.tripMedia).remove([storagePath]);
         }
     } catch {
@@ -44,4 +41,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (error) throw Errors.notFound('Media');
 
     return ok({ success: true });
-}, 'trips/[id]/media/[mediaId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

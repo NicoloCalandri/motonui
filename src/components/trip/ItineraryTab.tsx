@@ -9,6 +9,7 @@ import DayDrawer from './DayDrawer';
 import LegDrawer from './LegDrawer';
 import AccommodationDrawer from './AccommodationDrawer';
 import BoardingPassViewer from './BoardingPassViewer';
+import { hasBoardingPass } from '@/lib/boarding-pass';
 import ActivityDrawer from '@/components/booking/ActivityDrawer';
 
 const LEG_ICONS: Record<string, React.ElementType> = {
@@ -189,7 +190,7 @@ export default function ItineraryTab({ trip, onDaysChange, onDataChange }: Itine
                                             </span>
                                         )}
                                         <div className="flex gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                            {leg.type === 'flight' && leg.boarding_pass_url && (
+                                            {leg.type === 'flight' && hasBoardingPass(leg) && (
                                                 <button
                                                     aria-label="Vedi carta d'imbarco"
                                                     onClick={(e) => { e.stopPropagation(); setBoardingPassLeg(leg); }}

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { formatZodError } from '@/lib/validation';
 import { requireTripMember } from '@/lib/authz';
 
 const UpdateDaySchema = z.object({
@@ -20,7 +21,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
 
     const body = await request.json();
     const parsed = UpdateDaySchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
     const { data: day, error } = await supabase
         .from('days')

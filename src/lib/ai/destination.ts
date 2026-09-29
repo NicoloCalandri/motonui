@@ -5,6 +5,7 @@ import { Database } from '../supabase/database.types';
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
 import { DestinationBriefing } from '@/lib/types';
+import { AI_MODELS } from '@/lib/ai/models';
 
 
 /**
@@ -56,7 +57,7 @@ async function generateBriefing(destination: string, language: 'it' | 'en'): Pro
        localTips (array 3-4 practical tips), currencyTip (1 sentence), languageTip (1 sentence)`;
 
     const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: AI_MODELS.fast,
         max_tokens: 768,
         messages: [{ role: 'user', content: prompt }],
     });

@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
+import { ok, created } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
 
 const CreateDaySchema = z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -10,15 +10,11 @@ const CreateDaySchema = z.object({
     sort_order: z.number().int().optional(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
 /** GET /api/trips/[id]/days — list days with legs + accommodations + activities */
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
+export const GET = withRoute(
+    { name: 'trips/[id]/days GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
 
     const { data, error } = await supabase
         .from('days')
@@ -29,26 +25,21 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (error) throw new Error(`[motonui][days][GET] ${error.message}`);
 
     return ok(data ?? []);
-}, 'trips/[id]/days GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** POST /api/trips/[id]/days — add a day */
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    const body: unknown = await request.json();
-    const parsed = CreateDaySchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+export const POST = withRoute(
+    { name: 'trips/[id]/days POST', params: tripParams(), body: CreateDaySchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+    const { id } = params;
 
     const { data: day, error } = await supabase
         .from('days')
-        .insert({ ...parsed.data, trip_id: id })
+        .insert({ ...body, trip_id: id })
         .select()
         .single();
 
     if (error) throw new Error(`[motonui][days][POST] ${error.message}`);
 
     return created(day);
-}, 'trips/[id]/days POST') as (req: Request, ctx: Params) => Promise<Response>;
+});

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { requireFeatureAccess } from '@/lib/premium/access';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { formatZodError } from '@/lib/validation';
 import type { InstagramGenerateResponse } from '@/lib/types';
 
 const GenerateSchema = z.object({
@@ -22,7 +23,7 @@ export const POST = withErrorHandler(async (request) => {
 
     const body: unknown = await request.json();
     const parsed = GenerateSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
     const { tripId, mediaIds, type, options, generateCaption, language } = parsed.data;
 
