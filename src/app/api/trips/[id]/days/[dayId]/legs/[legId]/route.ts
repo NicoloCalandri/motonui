@@ -1,11 +1,9 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { Errors, ok } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertFlightCheckinReminder } from '@/lib/reminders';
-
-type Params = { params: Promise<{ id: string; dayId: string; legId: string }> };
 
 const UpdateLegSchema = z.object({
     type: z.enum(['flight', 'train', 'car', 'ferry', 'walk', 'bus', 'other']).optional(),
@@ -26,19 +24,14 @@ const UpdateLegSchema = z.object({
     checkin_opens_at: z.string().nullable().optional().transform((v) => v || null),
 });
 
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId, legId } = await params;
-    const body: unknown = await request.json();
-    const parsed = UpdateLegSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+export const PUT = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs/[legId] PUT', params: tripParams('dayId', 'legId'), body: UpdateLegSchema, tripMember: true, dayInTrip: true },
+    async ({ supabase, user, params, body }) => {
+    const { id, dayId, legId } = params;
 
     const { data: leg, error } = await supabase
         .from('legs')
-        .update(parsed.data)
+        .update(body)
         .eq('id', legId)
         .eq('day_id', dayId)
         .eq('trip_id', id)
@@ -102,14 +95,12 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     }
 
     return ok(leg);
-}, 'trips/[id]/days/[dayId]/legs/[legId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId, legId } = await params;
+export const DELETE = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs/[legId] DELETE', params: tripParams('dayId', 'legId'), tripMember: true, dayInTrip: true },
+    async ({ supabase, params }) => {
+    const { id, dayId, legId } = params;
 
     // Delete linked expense first (if any)
     await supabase
@@ -129,4 +120,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (error) throw new Error(`[motonui][legs][DELETE] ${error.message}`);
 
     return ok({ success: true });
-}, 'trips/[id]/days/[dayId]/legs/[legId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

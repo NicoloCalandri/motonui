@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
+import { withRoute } from '@/lib/api/with-route';
+import { requireTripMember } from '@/lib/authz';
 import { generateTripSummary } from '@/lib/ai/trip-summary';
 import { checkRateLimit } from '@/lib/ai/blog-assistant';
 import { requireFeatureAccess } from '@/lib/premium/access';
-import { ok, withErrorHandler, Errors } from '@/lib/errors';
-import type { TripWithDetails } from '@/lib/types';
+import { ok, Errors } from '@/lib/errors';
 
 const Schema = z.object({
     tripId: z.string().uuid(),
@@ -16,16 +15,13 @@ const Schema = z.object({
 });
 
 /** POST /api/ai/generate-post — generates a full blog post from trip data */
-export const POST = withErrorHandler(async (request) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
+export const POST = withRoute(
+    { name: 'ai/generate-post POST', body: Schema },
+    async ({ supabase, user, body }) => {
+    const { tripId, language, save, title, slug } = body;
+    // The trip comes from the body, so membership is checked here rather than by withRoute.
+    await requireTripMember(supabase, tripId, user.id);
     await requireFeatureAccess({ userId: user.id, feature: 'ai_generate_post', allowAdminBypass: true });
-
-    const body: unknown = await request.json();
-    const parsed = Schema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
-
-    const { tripId, language, save, title, slug } = parsed.data;
 
     // Rate limit check (Sonnet: 50/day)
     const allowed = await checkRateLimit(user.id, 'sonnet', supabase);
@@ -84,4 +80,4 @@ export const POST = withErrorHandler(async (request) => {
     }
 
     return ok({ content });
-}, 'ai/generate-post POST');
+});

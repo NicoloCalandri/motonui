@@ -1,6 +1,5 @@
-﻿import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
+import { z } from 'zod';
+import { withRoute } from '@/lib/api/with-route';
 import { streamBlogAssistant, checkRateLimit } from '@/lib/ai/blog-assistant';
 import { requireFeatureAccess } from '@/lib/premium/access';
 import { Errors } from '@/lib/errors';
@@ -16,25 +15,16 @@ const Schema = z.object({
  * POST /api/ai/blog — Streams Claude blog writing suggestions.
  * Returns Server-Sent Events (text/event-stream).
  */
-export async function POST(request: Request): Promise<Response> {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
+export const POST = withRoute(
+    { name: 'ai/blog POST', body: Schema },
+    async ({ supabase, user, body }) => {
     await requireFeatureAccess({ userId: user.id, feature: 'ai_blog', allowAdminBypass: true });
-
-    const body: unknown = await request.json();
-    const parsed = Schema.safeParse(body);
-    if (!parsed.success) {
-        return Response.json({ error: parsed.error.message }, { status: 400 });
-    }
 
     // Rate limit check (Sonnet: 50/day per user)
     const allowed = await checkRateLimit(user.id, 'sonnet', supabase);
-    if (!allowed) {
-        const err = Errors.rateLimited();
-        return Response.json({ error: err.message }, { status: 429 });
-    }
+    if (!allowed) throw Errors.rateLimited();
 
-    const stream = streamBlogAssistant(parsed.data);
+    const stream = streamBlogAssistant(body);
 
     return new Response(stream, {
         headers: {
@@ -43,4 +33,4 @@ export async function POST(request: Request): Promise<Response> {
             'Connection': 'keep-alive',
         },
     });
-}
+});

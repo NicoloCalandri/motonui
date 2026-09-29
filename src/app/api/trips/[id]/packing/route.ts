@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { formatZodError } from '@/lib/validation';
 import { requireTripMember } from '@/lib/authz';
 import { requireFeatureAccess } from '@/lib/premium/access';
 import { geocodeDestination, getTripWeather } from '@/lib/weather';
@@ -170,7 +171,7 @@ export const PATCH = withErrorHandler(async (request, { params }) => {
 
     const body = await request.json();
     const parsed = ToggleSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
     const { data: current, error: fetchError } = await (supabase.from('packing_checklists') as any)
         .select('checked_item_ids')

@@ -19,8 +19,8 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
 | SR-AUTH · Autenticazione | 7 | 4 | 1 | 2 | 0 |
-| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 7 | 2 | 1 | 0 |
-| SR-INPUT · Validazione dell'input | 7 | 2 | 3 | 2 | 0 |
+| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 8 | 1 | 1 | 0 |
+| SR-INPUT · Validazione dell'input | 7 | 3 | 2 | 2 | 0 |
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 2 | 2 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 2 | 1 | 2 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 1 | 2 | 4 | 0 |
@@ -56,7 +56,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 |---|---|---|---|---|---|
 | SR-AUTHZ-01 | RLS abilitata su tutte le tabelle dello schema `public` | P1 | ✅ Fatto | `supabase/migrations/*`; meta-controllo in `supabase/tests/rls_matrix.test.sql` (job `rls-tests`) | Il test fallisce se una tabella di `public` non ha RLS o una policy UPDATE non ha `WITH CHECK`. |
 | SR-AUTHZ-02 | I dati di viaggio sono visibili e modificabili solo dai membri del viaggio | P1 | ✅ Fatto | `0001_initial.sql` (`is_trip_member`), `0015_packing.sql` | — |
-| SR-AUTHZ-03 | Ogni route `/api/trips/[id]/**` verifica l'appartenenza (`requireTripMember`) oltre alla RLS | P2 | 🟡 Parziale | `src/lib/authz.ts`; 19 route su 30 lo chiamano | Mancano, tra le altre, `expenses/[expenseId]`, `media/[mediaId]`, `stats`, `days/*`, `posts/[postId]`, `/api/expenses/[id]`. `authz.ts` ha coverage 0%. |
+| SR-AUTHZ-03 | Ogni route `/api/trips/[id]/**` verifica l'appartenenza (`requireTripMember`) oltre alla RLS | P2 | ✅ Fatto | `src/lib/api/with-route.ts` (`tripMember: true`, `dayInTrip: true`); test statico `src/app/api/trips/route-authz.test.ts` su ogni handler; `with-route.test.ts` | T-1.3. Migrate le 9 route senza controllo, `DELETE /api/trips/[id]`, `/api/expenses/[id]` (membership del viaggio della spesa) e `ai/generate-post` (viaggio nel body). Una nuova route senza controllo fa fallire il test. |
 | SR-AUTHZ-04 | Un utente non può modificare `role`, `plan`, `premium_until`, `suspended_at` del proprio profilo | P0 | ✅ Fatto | `0016_harden_rls_structural_columns.sql`; test `supabase/tests/0016_phase0_rls.test.sql` | T-0.4. Unica policy UPDATE con `WITH CHECK`; UPDATE concesso solo su `display_name`, `avatar_url`, `updated_at`. Da verificare sul cloud dopo il deploy (checklist B8). |
 | SR-AUTHZ-05 | Nessuna vista espone `auth.users` ai ruoli `anon`/`authenticated` | P0 | ✅ Fatto | `0016_harden_rls_structural_columns.sql` (`REVOKE` su `admin_user_view`); test `supabase/tests/0016_phase0_rls.test.sql` | T-0.5. Le route admin usano già il service role. Da verificare sul cloud dopo il deploy (B7, B8). |
 | SR-AUTHZ-06 | Le colonne strutturali non sono modificabili dal client (`trips.owner_id`, `*.trip_id`, `media.url`, `media.uploaded_by`, `expenses.paid_by`…) | P0 | ✅ Fatto | `0016_harden_rls_structural_columns.sql` (trigger `prevent_structural_update`, `WITH CHECK` ovunque, `paid_by` membro del viaggio); test `supabase/tests/0016_phase0_rls.test.sql` | T-0.6. `paid_by` resta modificabile ma solo verso un membro del viaggio. Il mobile non invia più `url` nella modifica dei media. |
@@ -69,9 +69,9 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-INPUT-01 | Tutti gli input delle API sono validati con Zod, compresi query string e `multipart` | P1 | 🟡 Parziale | Zod presente nella maggior parte delle route | `multipart` letto con cast (`media/route.ts`, `boarding-pass`); `day_id` non validato come UUID prima dell'uso; `/api/ai/*` fuori da `withErrorHandler`. |
+| SR-INPUT-01 | Tutti gli input delle API sono validati con Zod, compresi query string e `multipart` | P1 | 🟡 Parziale | `withRoute` valida params (UUID), query e body; `src/lib/validation.ts` | T-1.3. Restano da portare su `withRoute` le route che già verificavano la membership e le route admin; `multipart` ancora letto con cast in `media/route.ts`. |
 | SR-INPUT-02 | Upload: whitelist MIME, controllo magic bytes, limite 50 MB lato server | P1 | ✅ Fatto | `src/lib/storage.ts`; test `src/lib/storage.test.ts` | — |
-| SR-INPUT-03 | Gli errori di validazione restituiscono 400 con messaggio leggibile | P3 | 🟡 Parziale | `src/lib/errors.ts`; test `errors.test.ts` | `validateFile` lancia `Error` semplice (→ 500); `Errors.validation(parsed.error.message)` inoltra il JSON grezzo di Zod. |
+| SR-INPUT-03 | Gli errori di validazione restituiscono 400 con messaggio leggibile | P3 | ✅ Fatto | `formatZodError` in `src/lib/validation.ts` (test `validation.test.ts`), usato da `withRoute` e da tutte le route con `Errors.validation`; `validateFile` lancia un `AppError` 400 | T-1.4. Messaggi `campo: motivo` in italiano, senza valori in ingresso. |
 | SR-INPUT-04 | Il contenuto Tiptap è sanificato in scrittura (whitelist di nodi, marks, protocolli URL, limiti di profondità) | P1 | ✅ Fatto | `src/lib/sanitize.ts`; test `src/lib/sanitize.test.ts` | — |
 | SR-INPUT-05 | Il contenuto del blog è sanificato anche in rendering (difesa contro scritture dirette via REST) | P1 | 🔴 Da fare | `src/app/(app)/blog/[slug]/page.tsx:148` (`dangerouslySetInnerHTML`) | La RLS `posts_update` permette all'autore di scrivere `content_json` saltando l'API. |
 | SR-INPUT-06 | I dati utente nei prompt AI sono delimitati e trattati come non fidati | P2 | 🟡 Parziale | `src/lib/ai/blog-assistant.ts` (`buildPromptBoundary`) | Assente in `destination.ts`, `packing.ts`, `seo.ts`, `trip-summary.ts`, `media/captions.ts`. |
@@ -139,7 +139,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | 🟡 Parziale | `next.config.ts` (CSP con `unsafe-inline` e `unsafe-eval`) | — |
 | SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` | — |
 | SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | 🟡 Parziale | affidata a `SameSite=Lax` | Aggiungere il controllo `Origin`/`Sec-Fetch-Site` nel middleware per i metodi di scrittura. |
-| SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`; test `errors.test.ts` | Le route `/api/ai/*` e parte di `/api/admin/*` non usano `withErrorHandler`. |
+| SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`, `withRoute`; test `errors.test.ts`, `with-route.test.ts` | Le route `/api/ai/*` ora passano da `withRoute`; restano le route `/api/admin/*` senza `withErrorHandler`. |
 | SR-WEB-06 | Rate limiting sulle route pubbliche e su quelle costose (upload, export, AI) | P2 | 🔴 Da fare | `/api/posts/[slug]`, `/api/trips/[id]/media`, `/api/instagram/generate` | — |
 
 ## SR-SDLC — Ciclo di sviluppo

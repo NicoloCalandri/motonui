@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
+import { AppError } from '@/lib/errors';
 
 const FILE_SIGNATURES: Record<string, Array<readonly number[]>> = {
     'image/jpeg': [[0xff, 0xd8, 0xff]],
@@ -26,24 +27,29 @@ export const Buckets = {
 
 export type BucketName = (typeof Buckets)[keyof typeof Buckets];
 
+/** A 400 with the (Italian, user-facing) reason, instead of a generic 500. */
+function invalidFile(message: string): AppError {
+    return new AppError(message, 'VALIDATION_ERROR', 400);
+}
+
 /**
  * Validates a file's MIME type and size before uploading.
  * Throws an error with a user-friendly message if invalid.
  */
 export function validateFile(mimeType: string, size: number, file?: Buffer | Uint8Array): void {
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-        throw new Error(
+        throw invalidFile(
             `Tipo di file non supportato: ${mimeType}. Carica JPEG, PNG, WebP, HEIC, MP4 o PDF.`
         );
     }
     if (size > MAX_FILE_SIZE) {
-        throw new Error(
+        throw invalidFile(
             `File troppo grande (${(size / 1024 / 1024).toFixed(1)} MB). Massimo consentito: 50 MB.`
         );
     }
 
     if (file && !matchesSignature(mimeType, file)) {
-        throw new Error('Il contenuto del file non corrisponde al tipo dichiarato.');
+        throw invalidFile('Il contenuto del file non corrisponde al tipo dichiarato.');
     }
 }
 

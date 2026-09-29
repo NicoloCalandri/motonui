@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { formatZodError } from '@/lib/validation';
 import { requireTripMember } from '@/lib/authz';
 
 const UpdateTripSchema = z.object({
@@ -67,7 +68,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     await requireTripMember(supabase, id, user.id);
     const body: unknown = await request.json();
     const parsed = UpdateTripSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
 
     const { data: trip, error } = await (supabase.from('trips') as any)
         .update(parsed.data)
@@ -87,6 +88,7 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     const user = await getAuthUser(supabase);
 
     const { id } = await params;
+    await requireTripMember(supabase, id, user.id);
 
     const { error } = await (supabase.from('trips') as any)
         .update({ status: 'archived' })
