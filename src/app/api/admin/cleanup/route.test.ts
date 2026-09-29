@@ -8,6 +8,7 @@ const { createAdminClientMock, removeExpiredMock } = vi.hoisted(() => ({
 
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: createAdminClientMock }));
 vi.mock('@/lib/instagram-cleanup', () => ({ removeExpiredExportObjects: removeExpiredMock }));
+vi.mock('@/lib/media/pipeline', () => ({ removeStaleIncomingUploads: vi.fn(async () => 2) }));
 
 import { GET } from './route';
 import { GET as sendReminders } from '../send-reminders/route';
@@ -61,7 +62,7 @@ describe('cron routes', () => {
         expect(res.status).toBe(200);
         expect(removeExpiredMock).toHaveBeenCalledTimes(1);
         const body = await res.json();
-        expect(body.results).toMatchObject({ removedExportObjects: 4, expiredExports: 3 });
+        expect(body.results).toMatchObject({ removedExportObjects: 4, expiredExports: 3, staleIncomingUploads: 2 });
     });
 
     it('cleanup reports a failure without leaking storage details', async () => {

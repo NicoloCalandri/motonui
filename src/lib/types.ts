@@ -406,18 +406,6 @@ export interface ImageMetadata {
   orientation: number;
 }
 
-/** Result of the upload pipeline */
-export interface UploadResult {
-  id: string;
-  url: string;
-  thumbnailUrl: string;
-  width: number;
-  height: number;
-  size: number;
-  mimeType: string;
-  metadata: ImageMetadata;
-}
-
 /** Set of responsive image URLs for a photo */
 export interface ResponsiveImageSet {
   sm: string;
