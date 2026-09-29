@@ -1666,15 +1666,16 @@ function MediaForm({
         throw new Error('Inserisci una URL valida (http/https).');
       }
 
-      const payload = {
-        url: cleanUrl,
+      const editablePayload = {
         thumbnail_url: thumbnailUrl.trim() || null,
         caption: sanitizeTextInput(caption, 300) || null,
       };
 
+      // media.url is immutable once created (DB trigger, migration 0016):
+      // editing only touches thumbnail and caption.
       const { error } = media
-        ? await supabase.from('media').update(payload).eq('id', media.id).eq('trip_id', tripId)
-        : await supabase.from('media').insert({ ...payload, trip_id: tripId, uploaded_by: userId });
+        ? await supabase.from('media').update(editablePayload).eq('id', media.id).eq('trip_id', tripId)
+        : await supabase.from('media').insert({ ...editablePayload, url: cleanUrl, trip_id: tripId, uploaded_by: userId });
       if (error) throw error;
     },
     onSuccess: () => {
