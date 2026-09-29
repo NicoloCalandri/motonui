@@ -4,6 +4,7 @@ import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertFlightCheckinReminder } from '@/lib/reminders';
+import { removeLegFiles } from '@/lib/trip-storage';
 
 const UpdateLegSchema = z.object({
     type: z.enum(['flight', 'train', 'car', 'ferry', 'walk', 'bus', 'other']).optional(),
@@ -110,14 +111,19 @@ export const DELETE = withRoute(
         .eq('day_id', dayId)
         .like('description', 'Spostamento:%');
 
-    const { error } = await supabase
+    const { data: leg, error } = await supabase
         .from('legs')
         .delete()
         .eq('id', legId)
         .eq('day_id', dayId)
-        .eq('trip_id', id);
+        .eq('trip_id', id)
+        .select('boarding_pass_path, boarding_pass_url')
+        .maybeSingle();
 
     if (error) throw new Error(`[motonui][legs][DELETE] ${error.message}`);
+
+    // The boarding pass file goes with the leg (T-2.3).
+    if (leg) await removeLegFiles(id, leg);
 
     return ok({ success: true });
 });

@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth/get-user';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 import { formatZodError } from '@/lib/validation';
 import { requireTripMember } from '@/lib/authz';
+import { removeLegFiles } from '@/lib/trip-storage';
 
 const UpdateLegSchema = z.object({
     type: z.enum(['flight', 'train', 'car', 'ferry', 'walk', 'bus', 'other']),
@@ -53,12 +54,17 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
 
     await requireTripMember(supabase, id, user.id);
 
-    const { error } = await supabase
+    const { data: leg, error } = await supabase
         .from('legs')
         .delete()
         .eq('id', legId)
-        .eq('trip_id', id);
+        .eq('trip_id', id)
+        .select('boarding_pass_path, boarding_pass_url')
+        .maybeSingle();
 
     if (error) throw new Error(`[motonui][legs][DELETE] ${error.message}`);
+
+    // The boarding pass file goes with the leg (T-2.3).
+    if (leg) await removeLegFiles(id, leg);
     return ok({ success: true });
 }, 'trips/[id]/legs/[legId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;

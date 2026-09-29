@@ -7,6 +7,7 @@ import {
     Plane, Hotel, Utensils, Ticket, FileText, Shield, CreditCard,
     Download, X, QrCode, Eye, PlusCircle, ChevronRight,
 } from 'lucide-react';
+import { documentHref } from '@/lib/trip-files';
 import type { TripWithDetails, Document as TravelDocument, DocumentType } from '@/lib/types';
 
 const DOC_TYPE_CONFIG: Record<DocumentType, { label: string; icon: React.ElementType; bgColor: string; textColor: string; borderColor: string }> = {
@@ -206,10 +207,14 @@ function DocumentViewer({ document: doc, onClose }: { document: TravelDocument; 
     const config = DOC_TYPE_CONFIG[doc.type] ?? DOC_TYPE_CONFIG.other;
     const Icon = config.icon;
     const isPdf = doc.file_type === 'pdf';
+    // Uploaded files go through the authenticated route; external links only if https.
+    const href = documentHref(doc);
+    const downloadHref = documentHref(doc, { download: true });
 
     const handleDownload = () => {
+        if (!downloadHref) return;
         const a = document.createElement('a');
-        a.href = doc.file_url;
+        a.href = downloadHref;
         a.download = `${doc.title}.${isPdf ? 'pdf' : 'jpg'}`;
         a.target = '_blank';
         a.click();
@@ -260,16 +265,18 @@ function DocumentViewer({ document: doc, onClose }: { document: TravelDocument; 
 
             {/* Content */}
             <div className="flex-1 overflow-auto flex items-center justify-center p-4">
-                {isPdf ? (
+                {!href ? (
+                    <p className="text-neutral-300 text-sm">Il link di questo documento non è valido 🏝️</p>
+                ) : isPdf ? (
                     <iframe
-                        src={doc.file_url}
+                        src={href}
                         className="w-full h-full max-w-2xl rounded-2xl border-0"
                         title={doc.title}
                     />
                 ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                        src={doc.file_url}
+                        src={href}
                         alt={doc.title}
                         className="max-w-full max-h-full object-contain rounded-2xl"
                     />
@@ -300,6 +307,7 @@ function AddDocumentDrawer({ tripId, onClose, onSaved }: {
     const [title, setTitle] = useState('');
     const [type, setType] = useState<DocumentType>('other');
     const [fileUrl, setFileUrl] = useState('');
+    const [file, setFile] = useState<File | null>(null);
     const [fileType, setFileType] = useState<'pdf' | 'image'>('image');
     const [validFrom, setValidFrom] = useState('');
     const [validUntil, setValidUntil] = useState('');
@@ -309,15 +317,26 @@ function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title || !fileUrl) return;
+        if (!title || (!file && !fileUrl)) return;
         setSaving(true);
         setError(null);
 
         try {
-            const res = await fetch(`/api/trips/${tripId}/documents`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            let body: BodyInit;
+            let headers: HeadersInit | undefined;
+            if (file) {
+                // Uploaded to the private bucket; the server sets file_type from the file.
+                const form = new FormData();
+                form.append('file', file);
+                form.append('title', title);
+                form.append('type', type);
+                if (validFrom) form.append('valid_from', validFrom);
+                if (validUntil) form.append('valid_until', validUntil);
+                if (barcodeData) form.append('barcode_data', barcodeData);
+                body = form;
+            } else {
+                headers = { 'Content-Type': 'application/json' };
+                body = JSON.stringify({
                     title,
                     type,
                     file_url: fileUrl,
@@ -325,8 +344,10 @@ function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                     valid_from: validFrom || null,
                     valid_until: validUntil || null,
                     barcode_data: barcodeData || null,
-                }),
-            });
+                });
+            }
+
+            const res = await fetch(`/api/trips/${tripId}/documents`, { method: 'POST', headers, body });
 
             if (!res.ok) {
                 const data = await res.json();
@@ -399,15 +420,30 @@ function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">URL del file *</label>
+                                    <label htmlFor="document-file" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">File (PDF o immagine, max 20 MB)</label>
                                     <input
-                                        value={fileUrl}
-                                        onChange={e => setFileUrl(e.target.value)}
-                                        placeholder="https://..."
-                                        required
-                                        className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                        id="document-file"
+                                        type="file"
+                                        accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
+                                        onChange={e => setFile(e.target.files?.[0] ?? null)}
+                                        className="w-full text-sm text-neutral-600 file:mr-4 file:px-4 file:py-2 file:rounded-xl file:border-0 file:bg-neutral-100 file:font-bold"
                                     />
                                 </div>
+
+                                {!file && (
+                                    <div>
+                                        <label htmlFor="document-url" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Oppure link https</label>
+                                        <input
+                                            id="document-url"
+                                            type="url"
+                                            value={fileUrl}
+                                            onChange={e => setFileUrl(e.target.value)}
+                                            placeholder="https://..."
+                                            pattern="https://.*"
+                                            className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -456,7 +492,7 @@ function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                 <div className="pt-6">
                                     <button
                                         type="submit"
-                                        disabled={saving || !title || !fileUrl}
+                                        disabled={saving || !title || (!file && !fileUrl)}
                                         className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-[24px] font-bold text-lg transition-all duration-300 hover:shadow-panel active:scale-95 disabled:opacity-50"
                                     >
                                         {saving ? 'Salvataggio...' : 'Aggiungi documento'}

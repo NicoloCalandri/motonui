@@ -441,13 +441,15 @@ export type Database = {
           mime_type: string | null
           size: number | null
           sort_order: number
+          storage_path: string | null
           tags: string[] | null
           taken_at: string | null
+          thumb_path: string | null
           thumbnail_url: string | null
           trip_id: string
           updated_at: string
           uploaded_by: string
-          url: string
+          url: string | null
           width: number | null
         }
         Insert: {
@@ -462,13 +464,15 @@ export type Database = {
           mime_type?: string | null
           size?: number | null
           sort_order?: number
+          storage_path?: string | null
           tags?: string[] | null
           taken_at?: string | null
+          thumb_path?: string | null
           thumbnail_url?: string | null
           trip_id: string
           updated_at?: string
           uploaded_by: string
-          url: string
+          url?: string | null
           width?: number | null
         }
         Update: {
@@ -483,13 +487,15 @@ export type Database = {
           mime_type?: string | null
           size?: number | null
           sort_order?: number
+          storage_path?: string | null
           tags?: string[] | null
           taken_at?: string | null
+          thumb_path?: string | null
           thumbnail_url?: string | null
           trip_id?: string
           updated_at?: string
           uploaded_by?: string
-          url?: string
+          url?: string | null
           width?: number | null
         }
         Relationships: [
