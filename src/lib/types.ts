@@ -650,23 +650,17 @@ export interface CreateDocumentInput {
   notes?: string;
 }
 
-/** Request body for Instagram export */
-export interface InstagramGenerateInput {
-  tripId: string;
-  mediaIds: string[];
-  type: InstagramExportType;
-  options: CarouselOptions | StoryOptions | ReelOptions;
-  generateCaption: boolean;
-  language: ContentLanguage;
-}
-
-/** Response from Instagram export endpoint */
-export interface InstagramGenerateResponse {
-  exportId: string;
-  downloadUrl: string;
-  caption?: CaptionResult;
-  expiresAt: string;
-}
+/** Instagram export job as returned by GET /api/trips/[id]/instagram/exports/[exportId] */
+export type InstagramExportStatusResponse = {
+  id: string;
+  status: InstagramExportStatus;
+  error: string | null;
+  caption: string | null;
+  hashtags: string[];
+  expires_at: string | null;
+  /** Signed URL of the ZIP, only when status is 'ready' (valid until expires_at, max 24 h) */
+  download_url: string | null;
+};
 
 // =============================================================================
 // REMINDERS

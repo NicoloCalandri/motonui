@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyFilter, cropToAspect } from './process';
+import { applyFilter, cropToAspect, overlayText, safeHexColor } from './process';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -24,6 +24,28 @@ describe('applyFilter', () => {
         const bw = await applyFilter(tinyBuffer(), 'bw');
         // Buffers may have same length for 1×1 but won't be identical (color values differ)
         expect(warm.equals(bw)).toBe(false);
+    });
+});
+
+describe('overlayText hardening (T-2.7)', () => {
+    it('accepts only #RRGGBB colors', () => {
+        expect(safeHexColor('#C4622D')).toBe('#C4622D');
+        for (const value of ['red', '#fff', '"/><image href="file:///etc/passwd"/>', 'url(#x)', 42, undefined]) {
+            expect(safeHexColor(value)).toBeUndefined();
+        }
+    });
+
+    it('renders safely when color, size and text carry SVG markup', async () => {
+        const base = await cropToAspect(tinyBuffer(), '1:1');
+        const result = await overlayText(base, {
+            text: '</text><image href="file:///etc/passwd"/><text>',
+            position: 'bottom-left',
+            fontSize: '48"/><image href="x"/>' as unknown as number,
+            color: '"/><image href="file:///etc/passwd"/>',
+            backgroundColor: 'red" onload="x',
+        });
+        expect(result).toBeInstanceOf(Buffer);
+        expect(result.byteLength).toBeGreaterThan(0);
     });
 });
 
