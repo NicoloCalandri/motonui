@@ -199,7 +199,16 @@ export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: Expe
                     </div>
 
                     {/* Balance */}
-                    {split && (
+                    {split?.awaiting_partner && (
+                        // T-2.8: with one member there is no balance to show yet.
+                        <div className="rounded-2xl p-4 bg-sand-100 border border-sand-200" role="status">
+                            <p className="text-ink-700 font-medium text-sm">In attesa del partner 🏝️</p>
+                            <p className="text-ink-500 text-xs mt-1">
+                                Il saldo di chi deve cosa a chi apparirà quando il partner accetterà l&apos;invito.
+                            </p>
+                        </div>
+                    )}
+                    {split && !split.awaiting_partner && (
                         <div className={`rounded-2xl p-4 ${split.is_even ? 'bg-sage-50 border border-sage-200' : 'bg-terracotta-50 border border-terracotta-200'}`}>
                             {split.is_even ? (
                                 <p className="text-sage-600 font-medium text-sm">✓ Siete in pari!</p>

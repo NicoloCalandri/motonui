@@ -20,6 +20,7 @@ const BookingsTab = dynamic(() => import('@/components/booking/BookingsTab'));
 const TravelWallet = dynamic(() => import('@/components/wallet/TravelWallet'));
 const TripCalendar = dynamic(() => import('@/components/calendar/TripCalendar'));
 const PackingTab = dynamic(() => import('@/components/trip/PackingTab'));
+const InvitePartnerCard = dynamic(() => import('@/components/trip/InvitePartnerCard'));
 
 type TabId = 'overview' | 'itinerary' | 'bookings' | 'wallet' | 'calendar' | 'expenses' | 'media' | 'blog' | 'packing';
 
@@ -141,6 +142,7 @@ export default function TripPage() {
 
             {/* Active Tab Content */}
             <div className="flex-1 pb-24 md:pb-8">
+                {(trip.members?.length ?? 0) < 2 && activeTab === 'overview' && <InvitePartnerCard tripId={trip.id} />}
                 {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} onTripUpdate={(updates) => setTrip(prev => prev ? { ...prev, ...updates } : prev)} />}
                 {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} onDataChange={fetchTrip} />}
                 {activeTab === 'bookings' && <BookingsTab trip={trip} onDataChange={fetchTrip} />}

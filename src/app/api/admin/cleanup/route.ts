@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { isAuthorizedCronRequest } from '@/lib/auth/cron';
 import { Errors, ok, withErrorHandler } from '@/lib/errors';
 import { removeExpiredExportObjects } from '@/lib/instagram-cleanup';
+import { removeStaleIncomingUploads } from '@/lib/media/pipeline';
+import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
 
 /**
  * GET /api/admin/cleanup — daily cleanup, called by Vercel Cron (vercel.json)
@@ -27,6 +29,13 @@ export const GET = withErrorHandler(async (request) => {
         .lt('expires_at', new Date().toISOString());
 
     results.expiredExports = exportCount ?? 0;
+
+    // 2. Uploads signed but never confirmed (T-2.2): raw files, EXIF included
+    results.staleIncomingUploads = await removeStaleIncomingUploads(supabase);
+
+    // 3. Files of deleted accounts (T-2.9): queued by purge_user_data(), e.g.
+    //    after a deletion from the mobile app, which has no server step
+    results.deletedAccountFiles = await drainStorageDeletionQueue(supabase);
 
     // 2. Prune AI usage older than 90 days
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

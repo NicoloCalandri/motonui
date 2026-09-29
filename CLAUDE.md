@@ -108,6 +108,7 @@ import type { Trip } from '@/lib/types'
 - **La RLS è il confine primario** (SADR-01): il mobile e i client component parlano direttamente con Supabase, quindi ogni invariante di sicurezza va espressa anche nel DB
 - Ogni policy `UPDATE` ha `WITH CHECK`; non aggiungere policy permissive che ne allargano un'altra sulla stessa operazione (sono in OR)
 - Le colonne strutturali (`id`, `trip_id`, `owner_id`, `uploaded_by`, `author_id`, `media.url`, `media.storage_path`, `media.thumb_path`, `documents.file_path`, `created_at`) sono protette dal trigger `prevent_structural_update()`: aggiungilo alle nuove tabelle di viaggio
+- Un viaggio ha al massimo due membri (trigger `enforce_trip_member_limit`): i viaggi si creano con la RPC `create_trip()` e il partner entra solo con `accept_trip_invite()` (`src/lib/invites.ts`, migration `0021`), mai inserendo direttamente in `trip_members`
 - Le colonne sensibili di `profiles` (`role`, `plan`, `premium_*`, `suspended_*`) si scrivono solo con il service role
 - Funzioni `SECURITY DEFINER` sempre con `set search_path = public, pg_temp`; nessuna vista su `auth.users` leggibile da `anon`/`authenticated`
 - Service role solo alle condizioni di `docs/security/03-SECURITY-ARCHITECTURE.md` §3.3
@@ -148,8 +149,10 @@ import type { Trip } from '@/lib/types'
 - Non esporre mai URL diretti di Supabase Storage al client — passa sempre per URL firmati o proxy
 - I file dei viaggi stanno in bucket privati sotto `trips/{trip_id}/` (`trip-media`, `trip-documents`): path costruiti dal server (`buildMediaPath`, `buildDocumentPath` in `src/lib/trip-files.ts`) e ricontrollati con `isTripFilePath()` prima di usare il service role; foto servite con `withSignedUrls()` (1 h), documenti tramite proxy autenticato
 - Chi cancella una riga con un file (media, documento, spostamento) cancella anche il file (`src/lib/trip-storage.ts`)
-- Thumbnail sempre generati al momento dell'upload (400×400, WebP)
-- ZIP degli export Instagram eliminati automaticamente dopo 24h
+- Le cancellazioni fatte in SQL (account, viaggi) mettono i file in `storage_deletion_queue`; il server li rimuove con la Storage API (`drainStorageDeletionQueue`). Non cancellare mai da `storage.objects` in SQL: resta il file
+- Upload di foto e video: `…/media/uploads` (URL di upload firmato verso `incoming/`) → upload diretto allo storage (`uploadTripMedia` in `src/lib/media/upload-client.ts`) → `…/media/confirm`, che passa da `src/lib/media/pipeline.ts`. Nessun file attraversa il corpo di una route (limite ~4,5 MB su Vercel)
+- Thumbnail sempre generati al momento dell'upload (400×400, WebP); le foto salvate non hanno metadati EXIF
+- Export Instagram: job asincrono (`POST …/instagram/exports` risponde 202, il lavoro gira in `after()`, il client fa polling con SWR); lo ZIP sta nel bucket privato `instagram-exports`, si scarica con URL firmato ≤ 24 h e il cron lo elimina dopo 24 h. Le opzioni che finiscono in un SVG (testo, colori) si validano con Zod e `safeHexColor`
 
 ---
 

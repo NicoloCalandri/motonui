@@ -374,6 +374,8 @@ export interface SplitResult {
   settlements: Settlement[];
   /** Is the split already even? */
   is_even: boolean;
+  /** Only one member so far: no balance to show until the partner joins (T-2.8) */
+  awaiting_partner: boolean;
 }
 
 /** A single debt settlement instruction */
@@ -404,18 +406,6 @@ export interface ImageMetadata {
   gps?: { lat: number; lng: number };
   camera?: string;
   orientation: number;
-}
-
-/** Result of the upload pipeline */
-export interface UploadResult {
-  id: string;
-  url: string;
-  thumbnailUrl: string;
-  width: number;
-  height: number;
-  size: number;
-  mimeType: string;
-  metadata: ImageMetadata;
 }
 
 /** Set of responsive image URLs for a photo */
@@ -660,23 +650,17 @@ export interface CreateDocumentInput {
   notes?: string;
 }
 
-/** Request body for Instagram export */
-export interface InstagramGenerateInput {
-  tripId: string;
-  mediaIds: string[];
-  type: InstagramExportType;
-  options: CarouselOptions | StoryOptions | ReelOptions;
-  generateCaption: boolean;
-  language: ContentLanguage;
-}
-
-/** Response from Instagram export endpoint */
-export interface InstagramGenerateResponse {
-  exportId: string;
-  downloadUrl: string;
-  caption?: CaptionResult;
-  expiresAt: string;
-}
+/** Instagram export job as returned by GET /api/trips/[id]/instagram/exports/[exportId] */
+export type InstagramExportStatusResponse = {
+  id: string;
+  status: InstagramExportStatus;
+  error: string | null;
+  caption: string | null;
+  hashtags: string[];
+  expires_at: string | null;
+  /** Signed URL of the ZIP, only when status is 'ready' (valid until expires_at, max 24 h) */
+  download_url: string | null;
+};
 
 // =============================================================================
 // REMINDERS

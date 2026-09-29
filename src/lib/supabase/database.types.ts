@@ -657,6 +657,34 @@ export type Database = {
     }
     Functions: {
       is_trip_member: { Args: { trip_id: string }; Returns: boolean }
+      create_trip: {
+        Args: {
+          p_title: string
+          p_destination: string
+          p_start_date?: string | null
+          p_end_date?: string | null
+          p_description?: string | null
+          p_cover_image?: string | null
+        }
+        Returns: Database["public"]["Tables"]["trips"]["Row"]
+      }
+      create_trip_invite: {
+        Args: { p_trip_id: string; p_email: string; p_token_hash: string }
+        Returns: {
+          id: string
+          created_at: string
+          trip_id: string
+          invited_by: string
+          email: string
+          token_hash: string
+          expires_at: string
+          accepted_at: string | null
+          accepted_by: string | null
+        }
+      }
+      accept_trip_invite: { Args: { p_token: string }; Returns: string }
+      purge_user_data: { Args: { p_user: string }; Returns: Json }
+      delete_my_account: { Args: { confirm_text: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

@@ -50,6 +50,12 @@ describe('splitExpenses', () => {
         ...overrides,
     });
 
+    it('does not report "even" while the partner has not joined (T-2.8)', () => {
+        const result = splitExpenses([makeExpense({ paid_by: USER_A, amount: 80, amount_eur: 80 })], [USER_A]);
+
+        expect(result).toEqual({ settlements: [], is_even: false, awaiting_partner: true });
+    });
+
     it('should return even split when expenses balance out', () => {
         const expenses = [
             makeExpense({ paid_by: USER_A, amount: 50, amount_eur: 50 }),
@@ -156,10 +162,11 @@ describe('splitExpenses with 3 members', () => {
         expect(result.settlements).toHaveLength(0);
     });
 
-    it('handles single member group with no settlements', () => {
+    it('handles single member group with no settlements, awaiting the partner (T-2.8)', () => {
         const expenses = [makeExpense3({ paid_by: USER_A, amount: 100, amount_eur: 100 })];
         const result = splitExpenses(expenses, [USER_A]);
-        expect(result.is_even).toBe(true);
+        expect(result.is_even).toBe(false);
+        expect(result.awaiting_partner).toBe(true);
         expect(result.settlements).toHaveLength(0);
     });
 
