@@ -14,26 +14,26 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 22 | 18 | 26 |
+| **66** | 24 | 17 | 25 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
 | SR-AUTH · Autenticazione | 7 | 4 | 1 | 2 | 0 |
 | SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 7 | 2 | 1 | 0 |
 | SR-INPUT · Validazione dell'input | 7 | 2 | 3 | 2 | 0 |
-| SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 1 | 2 | 2 | 1 |
+| SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 2 | 2 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 2 | 1 | 2 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 1 | 2 | 4 | 0 |
 | SR-PRIV · Privacy e dati personali | 7 | 1 | 2 | 4 | 1 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
 | SR-WEB · Sicurezza web | 6 | 2 | 3 | 1 | 0 |
-| SR-SDLC · Ciclo di sviluppo | 7 | 1 | 2 | 4 | 0 |
+| SR-SDLC · Ciclo di sviluppo | 7 | 2 | 1 | 4 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
 
 ### Requisiti P0 aperti
 
-- **SR-DEV-01** — Nessun segreto nel repository, né nella storia git. Presenti chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, email admin e una stringa commentata che sembra una password. `.env.example` è stato riscritto con placeholder; restano da rimuovere `.env.local` e `mobile/.env` e da ruotare i segreti (T-0.1, T-0.2).
+- **SR-DEV-01** — Nessun segreto nel repository, né nella storia git. Presenti chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, email admin e una stringa commentata che sembra una password. File `.env` rimossi dal tracking e `.env.example` con placeholder; resta da ruotare i segreti, già pubblici nella storia git (T-0.1).
 - **SR-PRIV-02** — Foto, carte d'imbarco e documenti stanno in bucket privati. `docs/archive/SECURITY.md` lo riconosce: bucket pubblico (T-0.9, T-2.1).
 
 Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy): SR-AUTHZ-04, SR-AUTHZ-05, SR-AUTHZ-06.
@@ -81,8 +81,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-DEV-01 | Nessun segreto nel repository, né nella storia git | P0 | 🔴 Da fare | `.env.local`, `.env.example`, `mobile/.env` committati; repo pubblico | Presenti chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, email admin e una stringa commentata che sembra una password. |
-| SR-DEV-02 | `.gitignore` copre `.env*`, `coverage/`, `tmp/`, `*.tsbuildinfo`, `.expo/` | P1 | 🔴 Da fare | `.gitignore` | Contiene quasi solo voci `.next/*`. |
+| SR-DEV-01 | Nessun segreto nel repository, né nella storia git | P0 | 🔴 Da fare | `git ls-files` contiene solo i `.env.example` con placeholder; job `secrets-scan` verde | Rimossi dal tracking `.env.local` e `mobile/.env` (T-0.2). Resta aperto finché i valori esposti (chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, stringa simile a password) non sono ruotati (T-0.1): restano nella storia git pubblica. |
+| SR-DEV-02 | `.gitignore` copre `.env*`, `coverage/`, `tmp/`, `*.tsbuildinfo`, `.expo/` | P1 | ✅ Fatto | `.gitignore`; `git ls-files` senza `.env` reali, `.expo/`, `supabase/.temp`, `*.tsbuildinfo` | T-0.2. `tmp/`, `undefined/`, `chat.py`, `.replit` ancora tracciati (pulizia T-0.3). |
 | SR-DEV-03 | I bypass di sviluppo non possono attivarsi in produzione | P1 | 🟡 Parziale | `src/lib/auth/require-admin.ts:20` | Opt-in con `ADMIN_AUTH_BYPASS`, ma nessun blocco se la variabile è impostata con `NODE_ENV=production`. |
 | SR-DEV-04 | Lo sviluppo locale usa Supabase locale, senza chiavi di produzione | P2 | 🟡 Parziale | `.env.local` → `127.0.0.1:54321` | `mobile/.env` punta al progetto cloud. |
 | SR-DEV-05 | Seed con credenziali note solo in locale, mai eseguito in produzione | P2 | ✅ Fatto | `supabase/seed.sql` (utente dev `password123`), `deploy-production.yml` esegue solo `db push` | — |
@@ -150,7 +150,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-SDLC-02 | Lint con zero warning, come richiesto da CLAUDE.md | P3 | 🔴 Da fare | `npx eslint .` → 0 errori, 306 warning | — |
 | SR-SDLC-03 | Coverage ≥ 70% su `src/lib/`, imposta in CI | P2 | 🔴 Da fare | `vitest --coverage` → 29,6% righe su `src/lib` | Nessuna soglia in `vitest.config.ts`. |
 | SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | 🔴 Da fare | assenti | Avrebbero intercettato SR-AUTHZ-04/05/06. |
-| SR-SDLC-05 | Secret scanning in CI e pre-commit | P1 | 🟡 Parziale | job `secrets-scan` in `.github/workflows/ci.yml`, `.gitleaks.toml`, `.pre-commit-config.yaml` | T-0.3. Il job resta rosso finché `.env.local` e `mobile/.env` sono tracciati (vedi SR-DEV-01). |
+| SR-SDLC-05 | Secret scanning in CI e pre-commit | P1 | ✅ Fatto | job `secrets-scan` in `.github/workflows/ci.yml` (bloccante), `.gitleaks.toml`, `.pre-commit-config.yaml` | T-0.3. Scansiona l'albero, non la storia (già esposta: vedi SR-DEV-01). |
 | SR-SDLC-06 | Aggiornamenti e audit delle dipendenze | P2 | 🟡 Parziale | Dependabot attivo (PR #19–#48), commit c8d939c `npm audit fix` | Manca `npm audit` bloccante in CI e `dependabot.yml` versionato. |
 | SR-SDLC-07 | GitHub Actions con permessi minimi e azioni fissate per SHA | P2 | 🔴 Da fare | `.github/workflows/*.yml` | `amondnet/vercel-action@v25` riceve il token Vercel. |
 
