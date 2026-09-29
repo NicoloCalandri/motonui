@@ -26,6 +26,40 @@ jobs:
           docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:v8.21.2 \
             dir /repo --config /repo/.gitleaks.toml --redact --no-banner --verbose --exit-code 1
 
+  rls-tests:
+    name: RLS Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Plain Postgres + supabase/tests/support/supabase-stub.sql (roles, grants,
+    # auth.uid/auth.role, auth/storage tables) instead of `supabase start`:
+    # pulling the ~11 Supabase images from public.ecr.aws hits its anonymous
+    # rate limit on shared runners. `npm run test:rls` still runs the same
+    # suite against a real local Supabase.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Applies every migration, then runs supabase/tests/*.test.sql: RLS
+      # matrix (anon, stranger, partner, owner) and regressions for REVIEW.md
+      # S-02/S-03/S-04 (T-1.1, T-1.2).
+      - name: Run RLS tests
+        env:
+          SQL_TESTS_BOOTSTRAP: '1'
+          SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: sh scripts/run-sql-tests.sh
+
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ubuntu-latest
