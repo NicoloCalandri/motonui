@@ -124,7 +124,8 @@ import type { Trip } from '@/lib/types'
   ```
 - Log strutturato: `[motonui][/api/trips][GET] errore descrittivo`
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
-- Le route sotto `/api/trips/[id]/**` chiamano sempre `requireTripMember`
+- Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`
+- Le route sotto `/api/trips/[id]/**` dichiarano `tripMember: true` (o chiamano `requireTripMember`): lo verifica `src/app/api/trips/route-authz.test.ts`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
 
 ---
