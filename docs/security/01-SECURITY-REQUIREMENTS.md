@@ -14,17 +14,17 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 40 | 13 | 13 |
+| **66** | 43 | 10 | 13 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
 | SR-AUTH · Autenticazione | 7 | 5 | 1 | 1 | 0 |
 | SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 9 | 0 | 1 | 0 |
-| SR-INPUT · Validazione dell'input | 7 | 4 | 3 | 0 | 0 |
+| SR-INPUT · Validazione dell'input | 7 | 5 | 2 | 0 | 0 |
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
-| SR-CRYPTO · Crittografia e token | 5 | 4 | 1 | 0 | 0 |
+| SR-CRYPTO · Crittografia e token | 5 | 5 | 0 | 0 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 5 | 1 | 1 | 0 |
-| SR-PRIV · Privacy e dati personali | 7 | 3 | 3 | 1 | 1 |
+| SR-PRIV · Privacy e dati personali | 7 | 4 | 2 | 1 | 0 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
 | SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 3 | 1 | 3 | 0 |
@@ -34,9 +34,8 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 ### Requisiti P0 aperti
 
 - **SR-DEV-01** — Nessun segreto nel repository, né nella storia git. Presenti chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, email admin e una stringa commentata che sembra una password. File `.env` rimossi dal tracking e `.env.example` con placeholder; resta da ruotare i segreti, già pubblici nella storia git (T-0.1).
-- **SR-PRIV-02** — Foto, carte d'imbarco e documenti stanno in bucket privati. Mitigato per le carte d'imbarco (T-0.9, bucket privato `trip-documents`); le foto restano pubbliche fino a T-2.1.
 
-Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy): SR-AUTHZ-04, SR-AUTHZ-05, SR-AUTHZ-06.
+Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy): SR-AUTHZ-04, SR-AUTHZ-05, SR-AUTHZ-06. Chiuso in codice con la migration `0020` (stessa verifica): SR-PRIV-02.
 
 ## SR-AUTH — Autenticazione
 
@@ -75,7 +74,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-INPUT-04 | Il contenuto Tiptap è sanificato in scrittura (whitelist di nodi, marks, protocolli URL, limiti di profondità) | P1 | ✅ Fatto | `src/lib/sanitize.ts`; test `src/lib/sanitize.test.ts` | — |
 | SR-INPUT-05 | Il contenuto del blog è sanificato anche in rendering (difesa contro scritture dirette via REST) | P1 | ✅ Fatto | `src/lib/blog/render.ts` (`sanitizeTiptapDocument` prima di `generateHTML`), usato da `blog/[slug]/page.tsx`; test `render.test.ts` | T-1.6. Il test fallisce se si toglie la sanificazione (link `javascript:` scritto via REST). |
 | SR-INPUT-06 | I dati utente nei prompt AI sono delimitati e trattati come non fidati | P2 | 🟡 Parziale | `src/lib/ai/blog-assistant.ts` (`buildPromptBoundary`) | Assente in `destination.ts`, `packing.ts`, `seo.ts`, `trip-summary.ts`, `media/captions.ts`. |
-| SR-INPUT-07 | Le richieste HTTP lato server vanno solo verso host in allowlist (anti-SSRF) | P1 | 🟡 Parziale | `src/lib/safe-fetch.ts` (HTTPS, allowlist, niente redirect, timeout) usato da `weather.ts` ed `expenses.ts`; test `safe-fetch.test.ts` | Resta `src/lib/media/instagram-export.ts` (`fetch(media.url)`): passa allo storage privato con path ricostruito dal server in T-2.1/T-2.4. |
+| SR-INPUT-07 | Le richieste HTTP lato server vanno solo verso host in allowlist (anti-SSRF) | P1 | ✅ Fatto | `src/lib/safe-fetch.ts` (HTTPS, allowlist, niente redirect, timeout) usato da `weather.ts` ed `expenses.ts`; `src/lib/media/instagram-export.ts` legge dal bucket privato con path ricontrollato (`isTripFilePath`), nessun `fetch` verso URL salvati nel DB; test `safe-fetch.test.ts`, `instagram-export.test.ts` | T-2.4. I media con solo un link esterno non sono esportabili (errore 400). |
 
 ## SR-DEV — Ambiente di sviluppo e segreti nel repo
 
@@ -95,7 +94,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-CRYPTO-02 | Token di impersonazione firmato HS256, segreto ≥ 32 caratteri, scadenza 30 min | P1 | ✅ Fatto | `src/app/api/admin/users/[id]/impersonate/route.ts`; test `impersonation.test.ts` | Il segreto attuale è compromesso (SR-DEV-01). |
 | SR-CRYPTO-03 | I token persistiti nel DB sono salvati come hash, non in chiaro | P2 | ✅ Fatto | `impersonation_tokens.token` contiene SHA-256 del `jti` (`0019_impersonation_token_hash.sql`); test `impersonation.test.ts` | T-1.8. La migration elimina le righe in chiaro esistenti. Gli inviti (T-2.5) seguiranno lo stesso schema. |
 | SR-CRYPTO-04 | Revoca del token di impersonazione verificata a ogni richiesta (`jti` + lista revoche) | P2 | ✅ Fatto | `isImpersonationTokenActive` in `middleware.ts`; test `impersonation-token.test.ts`, `middleware.test.ts` | T-1.8. Fail closed: un errore di rete o di configurazione equivale a token revocato. |
-| SR-CRYPTO-05 | I media privati sono serviti con URL firmati a breve durata | P1 | 🟡 Parziale | `src/lib/storage.ts` (`getSignedUrl` esiste ma non è usato) | `uploadFile` restituisce sempre l'URL pubblico. |
+| SR-CRYPTO-05 | I media privati sono serviti con URL firmati a breve durata | P1 | ✅ Fatto | `src/lib/trip-storage.ts` (`withSignedUrls`, TTL 1 h, firmati con il client dell'utente), `GET /api/trips/[id]/media`; mobile `withSignedMediaUrls`; test `trip-storage.test.ts`, `media/route.test.ts` | T-2.1. Documenti e carte d'imbarco passano invece da un proxy autenticato (nessun URL di storage al browser). |
 
 ## SR-INT — Integrazioni esterne
 
@@ -114,8 +113,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
 | SR-PRIV-01 | EXIF (in particolare GPS) rimossi dalle foto prima di qualunque esposizione | P1 | 🔴 Da fare | `src/app/api/trips/[id]/media/route.ts` (upload originale senza processing) | — |
-| SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | 🟡 Parziale | `0017_trip_documents_bucket.sql` (bucket `trip-documents` privato, nessuna policy client); route `…/legs/[legId]/boarding-pass` (GET proxy autenticato); test `route.test.ts`, `supabase/tests/0017_trip_documents.test.sql` | T-0.9: carte d'imbarco private, servite solo dopo il controllo di membership, file esistenti spostati da `scripts/migrate-boarding-passes.ts` (da eseguire in produzione). `documents.file_url` contiene solo link inseriti dall'utente, nessun file in storage. Le foto restano nel bucket pubblico `trip-media` fino a T-2.1. |
-| SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | ✅ Fatto | `boarding-pass/route.ts` (DELETE e sostituzione eliminano il file, path ricontrollato sul prefisso del viaggio); test `route.test.ts` | T-0.9. Path non più prevedibili (`{legId}-{uuid}.{ext}`). Gli orfani pubblici lasciati dalla vecchia DELETE sono rimossi dallo script di migrazione. |
+| SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | ✅ Fatto | `0017_trip_documents_bucket.sql`, `0020_private_trip_media.sql` (`trip-media` privato, sola policy `SELECT` per i membri su `trips/{trip_id}/`, path vincolati al viaggio e immutabili); proxy `…/boarding-pass` e `…/documents/[documentId]/file`; test `supabase/tests/0017_trip_documents.test.sql`, `0020_private_media.test.sql`, `documents/route.test.ts` | T-0.9 e T-2.1/T-2.3. I vecchi URL pubblici `/object/public/trip-media/…` smettono di funzionare con la migration; le righe esistenti sono convertite in `storage_path`. Da verificare sul cloud dopo `supabase db push`: bucket privato e nessuna policy residua creata dalla dashboard. Le copertine dei post (`post-covers`) restano pubbliche per scelta (blog pubblico). |
+| SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | ✅ Fatto | `boarding-pass/route.ts` (DELETE e sostituzione), `legs/[legId]` DELETE, `documents/[documentId]` DELETE, `src/lib/trip-storage.ts` (path ricontrollati sul prefisso del viaggio); test `route.test.ts`, `trip-storage.test.ts`, `documents/route.test.ts` | T-0.9 e T-2.3. Path non prevedibili (`{legId}-{uuid}.{ext}`, `documents/{uuid}.{ext}`). Anche eliminare lo spostamento o il documento rimuove il file. |
 | SR-PRIV-04 | Cancellazione account self-service completa (DB + storage) | P1 | 🟡 Parziale | `0014_self_delete_account.sql`; `mobile/app/profile/delete-account.tsx` | Rimuove gli avatar ma non i media dei viaggi. |
 | SR-PRIV-05 | Nessun dato personale nei log applicativi | P2 | 🟡 Parziale | `src/app/api/trips/route.ts:28` (`console.log` dei viaggi) | — |
 | SR-PRIV-06 | Gli ZIP Instagram (file, non solo riga DB) sono eliminati dopo 24 h | P2 | ✅ Fatto | `src/lib/instagram-cleanup.ts` (oggetti > 24 h nel bucket, orfani compresi), `cleanup/route.ts`; test `instagram-cleanup.test.ts` | T-2.6. Cron giornaliero: uno ZIP vive al massimo ~48 h. |

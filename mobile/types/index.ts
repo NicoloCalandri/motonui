@@ -109,13 +109,20 @@ export interface Media {
   trip_id: string;
   day_id: string | null;
   uploaded_by: string;
-  url: string;
+  /** External link only; photos uploaded to motonui use storage_path. */
+  url: string | null;
   thumbnail_url: string | null;
+  /** Paths in the private trip-media bucket (migration 0020). */
+  storage_path: string | null;
+  thumb_path: string | null;
   width: number | null;
   height: number | null;
   caption: string | null;
   taken_at: string | null;
   sort_order: number;
+  /** Signed URLs (1 h) added by fetchMedia. */
+  signed_url?: string | null;
+  signed_thumb_url?: string | null;
 }
 
 export interface Restaurant {

@@ -1,63 +1,43 @@
-import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { Errors, ok } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { removeDocumentFile } from '@/lib/trip-storage';
+import { UpdateDocumentSchema } from '../schema';
 
-const UpdateDocumentSchema = z.object({
-    entity_type: z.enum(['leg', 'accommodation', 'restaurant', 'activity', 'trip']).optional().nullable(),
-    entity_id: z.string().uuid().optional().nullable(),
-    type: z.enum(['boarding_pass', 'hotel_voucher', 'ticket', 'reservation_confirmation', 'insurance', 'visa', 'other']).optional(),
-    title: z.string().min(1).max(200).optional(),
-    file_url: z.string().min(1).optional(),
-    file_type: z.enum(['pdf', 'image']).optional(),
-    valid_from: z.string().optional().nullable(),
-    valid_until: z.string().optional().nullable(),
-    barcode_data: z.string().max(1000).optional().nullable(),
-    notes: z.string().max(2000).optional().nullable(),
-});
+const params = tripParams('documentId');
 
-type Params = { params: Promise<{ id: string; documentId: string }> };
+/** PUT /api/trips/[id]/documents/[documentId] — the uploaded file itself cannot be replaced */
+export const PUT = withRoute(
+    { name: 'trips/[id]/documents/[documentId] PUT', params, body: UpdateDocumentSchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+        const { data: doc, error } = await supabase
+            .from('documents')
+            .update(body)
+            .eq('id', params.documentId)
+            .eq('trip_id', params.id)
+            .select()
+            .single();
 
-/** PUT /api/trips/[id]/documents/[documentId] */
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, documentId } = await params;
-    await requireTripMember(supabase, id, user.id);
+        if (error || !doc) throw Errors.notFound('Documento');
+        return ok(doc);
+    },
+);
 
-    const body: unknown = await request.json();
-    const parsed = UpdateDocumentSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
+/** DELETE /api/trips/[id]/documents/[documentId] — deletes the row and its uploaded file (T-2.3) */
+export const DELETE = withRoute(
+    { name: 'trips/[id]/documents/[documentId] DELETE', params, tripMember: true },
+    async ({ supabase, params }) => {
+        const { data: doc, error } = await supabase
+            .from('documents')
+            .delete()
+            .eq('id', params.documentId)
+            .eq('trip_id', params.id)
+            .select('file_path')
+            .maybeSingle();
 
-    const { data: doc, error } = await supabase
-        .from('documents')
-        .update(parsed.data)
-        .eq('id', documentId)
-        .eq('trip_id', id)
-        .select()
-        .single();
+        if (error || !doc) throw Errors.notFound('Documento');
 
-    if (error) throw Errors.notFound('Documento');
-
-    return ok(doc);
-}, 'trips/[id]/documents/[documentId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
-
-/** DELETE /api/trips/[id]/documents/[documentId] */
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, documentId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
-    const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', documentId)
-        .eq('trip_id', id);
-
-    if (error) throw Errors.notFound('Documento');
-
-    return ok({ success: true });
-}, 'trips/[id]/documents/[documentId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+        await removeDocumentFile(params.id, doc.file_path);
+        return ok({ success: true });
+    },
+);

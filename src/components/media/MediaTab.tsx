@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import type { Media } from '@/lib/types';
+import { mediaFullSrc, mediaThumbSrc } from '@/lib/trip-files';
+import type { MediaWithUrls } from '@/lib/types';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, Image, Loader2, Trash2 } from 'lucide-react';
 
@@ -11,16 +12,16 @@ interface MediaTabProps { tripId: string }
  * Media tab: masonry photo grid, drag-and-drop upload, lightbox.
  */
 export default function MediaTab({ tripId }: MediaTabProps) {
-    const [media, setMedia] = useState<Media[]>([]);
+    const [media, setMedia] = useState<MediaWithUrls[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [lightbox, setLightbox] = useState<Media | null>(null);
+    const [lightbox, setLightbox] = useState<MediaWithUrls | null>(null);
 
     const fetchMedia = () => {
         fetch(`/api/trips/${tripId}/media`)
             .then((r) => r.json())
-            .then((data: Media[]) => { setMedia(data); setLoading(false); })
+            .then((data: MediaWithUrls[]) => { setMedia(data); setLoading(false); })
             .catch(() => setLoading(false));
     };
 
@@ -121,7 +122,7 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                             onClick={() => setLightbox(item)}
                         >
                             <img
-                                src={item.thumbnail_url ?? item.url}
+                                src={mediaThumbSrc(item)}
                                 alt={item.caption ?? ''}
                                 className="w-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 loading="lazy"
@@ -173,12 +174,21 @@ export default function MediaTab({ tripId }: MediaTabProps) {
                     >
                         <Trash2 className="w-6 h-6" />
                     </button>
-                    <img
-                        src={lightbox.url}
-                        alt={lightbox.caption ?? ''}
-                        className="max-w-full max-h-full rounded-xl object-contain"
-                        onClick={(e) => e.stopPropagation()}
-                    />
+                    {lightbox.mime_type?.startsWith('video/') ? (
+                        <video
+                            src={mediaFullSrc(lightbox)}
+                            controls
+                            className="max-w-full max-h-full rounded-xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <img
+                            src={mediaFullSrc(lightbox)}
+                            alt={lightbox.caption ?? ''}
+                            className="max-w-full max-h-full rounded-xl object-contain"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    )}
                     {lightbox.caption && (
                         <p className="absolute bottom-6 left-0 right-0 text-center text-white/80 text-sm px-4">
                             {lightbox.caption}

@@ -1,7 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { InstagramExportOptions, InstagramType, Media } from '@/lib/types';
 import { cropToAspect, applyFilter, overlayText } from '@/lib/media/process';
-import { uploadFile, Buckets } from '@/lib/storage';
+import { AppError } from '@/lib/errors';
+import { downloadFile, uploadFile, Buckets } from '@/lib/storage';
+import { isTripFilePath } from '@/lib/trip-files';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,10 +54,11 @@ export async function generateExport(input: GenerateExportInput): Promise<Genera
     const config = TYPE_CONFIG[type];
     const exportOptions = options as Partial<InstagramExportOptions>;
 
-    // 1. Fetch media records
+    // 1. Fetch media records of this trip only
     const { data: mediaRows, error } = await supabase
         .from('media')
-        .select('id, url, caption')
+        .select('id, trip_id, storage_path, caption')
+        .eq('trip_id', tripId)
         .in('id', mediaIds.slice(0, config.maxSlides));
 
     if (error || !mediaRows?.length) {
@@ -65,13 +68,21 @@ export async function generateExport(input: GenerateExportInput): Promise<Genera
     // 2. Process each image
     const processedBuffers: Buffer[] = [];
 
-    for (const media of mediaRows as Media[]) {
-        // Fetch source image
-        const res = await fetch(media.url);
-        if (!res.ok) {
-            throw new Error(`[motonui][instagram-export] Cannot fetch media ${media.id}: ${res.status}`);
+    for (const media of mediaRows as Pick<Media, 'id' | 'trip_id' | 'storage_path' | 'caption'>[]) {
+        // Read from the private bucket by a path re-checked against the trip
+        // (T-2.4): no server fetch towards a URL stored in the DB.
+        if (!isTripFilePath(media.storage_path, tripId)) {
+            throw new AppError(
+                'Alcune foto selezionate non sono state caricate su motonui e non si possono esportare.',
+                'MEDIA_NOT_EXPORTABLE',
+                400,
+            );
         }
-        let buffer = Buffer.from(await res.arrayBuffer() as ArrayBuffer);
+        const blob = await downloadFile(Buckets.tripMedia, media.storage_path);
+        if (!blob) {
+            throw new Error(`[motonui][instagram-export] Cannot download media ${media.id}`);
+        }
+        let buffer = Buffer.from(await blob.arrayBuffer());
 
         // Crop to correct aspect ratio
         buffer = await cropToAspect(buffer, config.ratio) as any;

@@ -134,7 +134,36 @@ async function fetchMedia(tripId: string): Promise<Media[]> {
     .eq('trip_id', tripId)
     .order('sort_order', { ascending: true });
   if (error) return [];
-  return data ?? [];
+  return withSignedMediaUrls(tripId, data ?? []);
+}
+
+/**
+ * trip-media is private (migration 0020): sign the stored paths for one hour.
+ * The storage policy lets only trip members read, and so sign, these objects.
+ */
+async function withSignedMediaUrls(tripId: string, rows: Media[]): Promise<Media[]> {
+  const prefix = `trips/${tripId}/`;
+  const paths = [...new Set(
+    rows.flatMap((row) => [row.storage_path, row.thumb_path])
+      .filter((path): path is string => Boolean(path && path.startsWith(prefix) && !path.includes('..'))),
+  )];
+  if (paths.length === 0) return rows;
+
+  const { data } = await supabase.storage.from('trip-media').createSignedUrls(paths, 60 * 60);
+  const signed = new Map<string, string>();
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) signed.set(entry.path, entry.signedUrl);
+  }
+  return rows.map((row) => ({
+    ...row,
+    signed_url: (row.storage_path && signed.get(row.storage_path)) || null,
+    signed_thumb_url: (row.thumb_path && signed.get(row.thumb_path)) || null,
+  }));
+}
+
+function mediaImageUri(item: Media): string | undefined {
+  const external = [item.thumbnail_url, item.url].find((url) => url?.startsWith('https://'));
+  return item.signed_thumb_url ?? item.signed_url ?? external ?? undefined;
 }
 
 async function fetchRestaurants(tripId: string): Promise<Restaurant[]> {
@@ -972,7 +1001,7 @@ export default function TripDetailScreen() {
             <View style={styles.mediaGridInner}>
               {media.map((item) => (
                 <TouchableOpacity key={item.id} style={styles.mediaCell} activeOpacity={0.85}>
-                  <Image source={{ uri: item.thumbnail_url ?? item.url }} style={styles.mediaCellImage} />
+                  <Image source={{ uri: mediaImageUri(item) }} style={styles.mediaCellImage} />
                   <TouchableOpacity
                     style={styles.mediaEditBtn}
                     onPress={() => {
@@ -1662,8 +1691,9 @@ function MediaForm({
     mutationFn: async () => {
       await requireTripMember(tripId, userId);
       const cleanUrl = url.trim();
-      if (!/^https?:\/\//i.test(cleanUrl)) {
-        throw new Error('Inserisci una URL valida (http/https).');
+      // Only new external links need a URL; photos in the bucket have none.
+      if (!media && !/^https:\/\//i.test(cleanUrl)) {
+        throw new Error('Inserisci una URL valida (https).');
       }
 
       const editablePayload = {
