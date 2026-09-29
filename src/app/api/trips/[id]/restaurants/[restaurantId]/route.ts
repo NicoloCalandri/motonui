@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { Errors, ok } from '@/lib/errors';
 import { upsertRestaurantReminder } from '@/lib/reminders';
 
 const UpdateRestaurantSchema = z.object({
@@ -22,22 +20,14 @@ const UpdateRestaurantSchema = z.object({
     day_id: z.string().uuid().optional().nullable(),
 });
 
-type Params = { params: Promise<{ id: string; restaurantId: string }> };
-
 /** PUT /api/trips/[id]/restaurants/[restaurantId] */
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, restaurantId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
-    const body: unknown = await request.json();
-    const parsed = UpdateRestaurantSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
+export const PUT = withRoute(
+    { name: 'trips/[id]/restaurants/[restaurantId] PUT', params: tripParams('restaurantId'), body: UpdateRestaurantSchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id, restaurantId } = params;
     const { data: restaurant, error } = await supabase
         .from('restaurants')
-        .update(parsed.data)
+        .update(body)
         .eq('id', restaurantId)
         .eq('trip_id', id)
         .select()
@@ -46,8 +36,8 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     if (error) throw Errors.notFound('Ristorante');
 
     // Update reminder
-    const date = parsed.data.date ?? restaurant.date;
-    const time = parsed.data.time ?? restaurant.time;
+    const date = body.date ?? restaurant.date;
+    const time = body.time ?? restaurant.time;
     if (date && time) {
         await upsertRestaurantReminder(supabase, {
             userId: user.id,
@@ -60,15 +50,13 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     }
 
     return ok(restaurant);
-}, 'trips/[id]/restaurants/[restaurantId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** DELETE /api/trips/[id]/restaurants/[restaurantId] */
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, restaurantId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const DELETE = withRoute(
+    { name: 'trips/[id]/restaurants/[restaurantId] DELETE', params: tripParams('restaurantId'), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id, restaurantId } = params;
     const { error } = await supabase
         .from('restaurants')
         .delete()
@@ -78,11 +66,11 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (error) throw Errors.notFound('Ristorante');
 
     // Clean up reminders
-    await (supabase as any)
+    await supabase
         .from('reminders')
         .delete()
         .eq('entity_id', restaurantId)
         .eq('entity_type', 'restaurant');
 
     return ok({ success: true });
-}, 'trips/[id]/restaurants/[restaurantId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

@@ -5,11 +5,10 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
-import {
-    Bold, Italic, Quote, Link as LinkIcon, Image as ImageIcon,
-    Heading1, Heading2, Minus, Undo, Redo, Sparkles, Check, X, Loader2,
-} from 'lucide-react';
+import { Bold, Italic, Quote, Link as LinkIcon, Image as ImageIcon, Heading1, Heading2, Minus, Undo, Redo, Sparkles, Loader2 } from 'lucide-react';
 import type { TiptapDoc } from '@/lib/types';
+import { readSseText } from '@/lib/ai/sse';
+import { AiSuggestionPanel, ToolbarButton } from './editor-parts';
 
 interface PostEditorProps {
     initialContent?: TiptapDoc | null;
@@ -115,28 +114,7 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
                 return;
             }
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let full = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() ?? '';
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-                    const payload = line.slice(6).trim();
-                    if (payload === '[DONE]') { reader.cancel(); break; }
-                    try {
-                        const { text } = JSON.parse(payload) as { text: string };
-                        full += text;
-                        setAiSuggestion(full);
-                    } catch { /* ignore malformed chunks */ }
-                }
-            }
+            const full = await readSseText(res.body, setAiSuggestion);
 
             if (!full) setAiError('Nessuna risposta dall\'AI');
         } catch {
@@ -159,30 +137,6 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
     }, [editor, aiSuggestion]);
 
     if (!editor) return null;
-
-    const ToolbarButton = ({
-        onClick,
-        active,
-        title,
-        children,
-    }: {
-        onClick: () => void;
-        active?: boolean;
-        title: string;
-        children: React.ReactNode;
-    }) => (
-        <button
-            type="button"
-            onClick={onClick}
-            title={title}
-            className={`p-1.5 rounded-lg transition-colors ${active
-                    ? 'bg-terracotta-100 text-terracotta-600'
-                    : 'text-ink-400 hover:text-ink-700 hover:bg-sand-100'
-                }`}
-        >
-            {children}
-        </button>
-    );
 
     const setLink = () => {
         const url = window.prompt('URL del link:');
@@ -302,50 +256,14 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
 
             {/* AI Suggestion Panel */}
             {(isAiLoading || aiSuggestion || aiError) && (
-                <div className="border-b border-sand-200 bg-terracotta-50 px-4 py-3">
-                    {aiError ? (
-                        <div className="flex items-center justify-between text-sm text-red-600">
-                            <span>{aiError}</span>
-                            <button type="button" title="Chiudi" onClick={() => setAiError(null)}>
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                    ) : isAiLoading && !aiSuggestion ? (
-                        <div className="flex items-center gap-2 text-sm text-terracotta-500">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>L&apos;AI sta elaborando…</span>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            <p className="text-xs font-medium text-terracotta-500 uppercase tracking-wide">
-                                Suggerimento AI {isAiLoading && <Loader2 className="w-3 h-3 animate-spin inline ml-1" />}
-                            </p>
-                            <p className="text-sm text-ink-700 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
-                                {aiSuggestion}
-                            </p>
-                            {!isAiLoading && (
-                                <div className="flex gap-2 pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={acceptAiSuggestion}
-                                        className="flex items-center gap-1 px-3 py-1 bg-terracotta-500 text-white rounded-lg text-xs font-medium hover:bg-terracotta-600 transition-colors"
-                                    >
-                                        <Check className="w-3 h-3" />
-                                        Inserisci nel post
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setAiSuggestion(null)}
-                                        className="flex items-center gap-1 px-3 py-1 bg-white border border-sand-200 text-ink-500 rounded-lg text-xs font-medium hover:bg-sand-50 transition-colors"
-                                    >
-                                        <X className="w-3 h-3" />
-                                        Scarta
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                <AiSuggestionPanel
+                    loading={isAiLoading}
+                    suggestion={aiSuggestion}
+                    error={aiError}
+                    onDismissError={() => setAiError(null)}
+                    onAccept={acceptAiSuggestion}
+                    onDiscard={() => setAiSuggestion(null)}
+                />
             )}
 
             {/* Editor Content */}

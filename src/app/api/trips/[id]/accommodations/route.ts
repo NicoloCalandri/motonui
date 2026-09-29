@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok } from '@/lib/errors';
 import { convertCurrency } from '@/lib/expenses';
 
 const CreateAccommodationSchema = z.object({
@@ -18,20 +16,11 @@ const CreateAccommodationSchema = z.object({
     url: z.string().nullable().optional(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
-    const body = await request.json();
-    const parsed = CreateAccommodationSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
-    const data = parsed.data;
+export const POST = withRoute(
+    { name: 'trips/[id]/accommodations POST', params: tripParams(), body: CreateAccommodationSchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id } = params;
+    const data = body;
 
     const { error } = await supabase.from('accommodations').insert({
         trip_id: id,
@@ -50,7 +39,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
 
     // Auto-create expense if cost provided
     if (data.cost && data.cost > 0) {
-        const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+        const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
         await supabase.from('expenses').insert({
             trip_id: id,
             description: `Alloggio: ${data.name}`,
@@ -65,15 +54,12 @@ export const POST = withErrorHandler(async (request, { params }) => {
     }
 
     return ok({ success: true });
-}, 'trips/[id]/accommodations POST') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id]/accommodations GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
     const { data: accommodations, error } = await supabase
         .from('accommodations')
         .select('*')
@@ -83,4 +69,4 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (error) throw new Error(`[motonui][accommodations][GET] ${error.message}`);
 
     return ok(accommodations || []);
-}, 'trips/[id]/accommodations GET') as (req: Request, ctx: Params) => Promise<Response>;
+});

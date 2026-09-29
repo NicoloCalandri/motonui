@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { MockResponse } from '@/test/mock-response';
 
 vi.mock('next/server', () => ({
     NextResponse: {
@@ -53,7 +54,7 @@ describe('GET /api/profile', () => {
         mockGetUser.mockResolvedValue({ data: { user: null } });
 
         const { GET } = await import('@/app/api/profile/route');
-        const result = (await GET(new Request('http://localhost/api/profile'), emptyParams)) as any;
+        const result = (await GET(new Request('http://localhost/api/profile'), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(401);
     });
@@ -62,7 +63,7 @@ describe('GET /api/profile', () => {
         mockSingle.mockResolvedValue({ data: { display_name: 'Nico', avatar_url: 'http://x/y.png' } });
 
         const { GET } = await import('@/app/api/profile/route');
-        const result = (await GET(new Request('http://localhost/api/profile'), emptyParams)) as any;
+        const result = (await GET(new Request('http://localhost/api/profile'), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(200);
         expect(result.body).toMatchObject({ id: USER_ID, fullName: 'Nico', avatarUrl: 'http://x/y.png' });
@@ -80,14 +81,14 @@ describe('PATCH /api/profile', () => {
         mockGetUser.mockResolvedValue({ data: { user: null } });
 
         const { PATCH } = await import('@/app/api/profile/route');
-        const result = (await PATCH(makePatchRequest({ fullName: 'Nico' }), emptyParams)) as any;
+        const result = (await PATCH(makePatchRequest({ fullName: 'Nico' }), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(401);
     });
 
     it('returns 400 when fullName is missing', async () => {
         const { PATCH } = await import('@/app/api/profile/route');
-        const result = (await PATCH(makePatchRequest({}), emptyParams)) as any;
+        const result = (await PATCH(makePatchRequest({}), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(400);
         expect(result.body.code).toBe('VALIDATION_ERROR');
@@ -95,7 +96,7 @@ describe('PATCH /api/profile', () => {
 
     it('returns 400 when fullName is empty after trimming', async () => {
         const { PATCH } = await import('@/app/api/profile/route');
-        const result = (await PATCH(makePatchRequest({ fullName: '   ' }), emptyParams)) as any;
+        const result = (await PATCH(makePatchRequest({ fullName: '   ' }), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(400);
     });
@@ -103,7 +104,7 @@ describe('PATCH /api/profile', () => {
     it('returns 400 when fullName exceeds 100 characters', async () => {
         const { PATCH } = await import('@/app/api/profile/route');
         const tooLong = 'a'.repeat(101);
-        const result = (await PATCH(makePatchRequest({ fullName: tooLong }), emptyParams)) as any;
+        const result = (await PATCH(makePatchRequest({ fullName: tooLong }), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(400);
         expect(result.body.code).toBe('VALIDATION_ERROR');
@@ -111,7 +112,7 @@ describe('PATCH /api/profile', () => {
 
     it('updates the display name and returns it when valid', async () => {
         const { PATCH } = await import('@/app/api/profile/route');
-        const result = (await PATCH(makePatchRequest({ fullName: 'Nico Calandri' }), emptyParams)) as any;
+        const result = (await PATCH(makePatchRequest({ fullName: 'Nico Calandri' }), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(200);
         expect(result.body).toEqual({ fullName: 'Nico Calandri' });
@@ -122,7 +123,7 @@ describe('PATCH /api/profile', () => {
         mockUpdateEq.mockResolvedValue({ error: { message: 'db down' } });
 
         const { PATCH } = await import('@/app/api/profile/route');
-        const result = (await PATCH(makePatchRequest({ fullName: 'Nico' }), emptyParams)) as any;
+        const result = (await PATCH(makePatchRequest({ fullName: 'Nico' }), emptyParams)) as unknown as MockResponse;
 
         expect(result.status).toBe(500);
     });

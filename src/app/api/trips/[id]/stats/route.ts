@@ -6,9 +6,9 @@ import { getTripStats } from '@/lib/trips';
 /** GET /api/trips/[id]/stats — return aggregated trip statistics */
 export const GET = withRoute(
     { name: 'trips/[id]/stats GET', params: tripParams(), tripMember: true },
-    async ({ params }) => {
+    async ({ supabase, params }) => {
     const { id } = params;
-    const stats = await getTripStats(id);
+    const stats = await getTripStats(id, { supabase });
 
     return ok(stats);
 });

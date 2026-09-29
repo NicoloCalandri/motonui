@@ -20,7 +20,7 @@ Il nome viene da *Motu Nui*, l'isolotto più vicino al Point Nemo — il posto p
 2. Leggi il file agente rilevante in `agents/` per la fase su cui stai lavorando
 3. Leggi `docs/architecture.md` (architettura attuale, obiettivo e ADR) e `docs/tasks.md` (piano a fasi)
 4. Se il task tocca sicurezza, DB, storage, API o CI, leggi `docs/security/` — in particolare `04-SECURITY-CHECKLIST.md`
-5. Controlla `src/lib/types.ts` prima di creare nuovi tipi — potrebbe già esistere quello che cerchi
+5. Controlla `src/lib/types/` (importato come `@/lib/types`) prima di creare nuovi tipi — potrebbe già esistere quello che cerchi
 
 Documenti di riferimento:
 
@@ -57,7 +57,7 @@ Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** segue
 | Database | Supabase (Postgres + RLS) |
 | Auth | Supabase Auth (email + password + Google OAuth; niente magic link, vedi ADR-06) |
 | Storage | Supabase Storage |
-| Styling | Tailwind CSS + shadcn/ui |
+| Styling | Tailwind CSS + shadcn/ui (config unica: `tailwind.config.ts`) |
 | Mappe | Mapbox GL |
 | Blog editor | Tiptap |
 | Grafici | Recharts |
@@ -72,8 +72,10 @@ Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** segue
 
 ### TypeScript
 - Strict mode attivo — zero `any`, zero `// @ts-ignore`
-- Tutti i tipi di dominio vivono in `src/lib/types.ts`
-- Usa i tipi generati da Supabase (`src/lib/supabase/database.types.ts`) come base, wrappali in tipi di dominio più leggibili
+- Tutti i tipi di dominio vivono in `src/lib/types/`, un file per dominio (`rows.ts`, `api.ts`, `planning.ts`…) riesportato da `index.ts`: si importano sempre da `@/lib/types`
+- Usa i tipi generati da Supabase (`src/lib/supabase/database.types.ts`) come base, wrappali in tipi di dominio più leggibili. I client (`createClient`, `createAdminClient`, middleware) sono tipizzati `<Database>`: niente cast `as any` su `from()`/`rpc()`. Dopo ogni migration rigenera i tipi (`npm run db:types`)
+- Le colonne `jsonb` si scrivono con `toJson()` e si leggono con `fromJson<T>()` (`src/lib/json.ts`)
+- Una colonna polimorfica senza FK (es. `reminders.entity_id`) non si può embeddare in PostgREST: carica le entità con una query per tipo (`src/lib/reminder-emails.ts`)
 - Preferisci `type` a `interface` per i tipi di dominio, `interface` per i props dei componenti React
 
 ### Naming
@@ -108,6 +110,7 @@ import type { Trip } from '@/lib/types'
 - **La RLS è il confine primario** (SADR-01): il mobile e i client component parlano direttamente con Supabase, quindi ogni invariante di sicurezza va espressa anche nel DB
 - Ogni policy `UPDATE` ha `WITH CHECK`; non aggiungere policy permissive che ne allargano un'altra sulla stessa operazione (sono in OR)
 - Le colonne strutturali (`id`, `trip_id`, `owner_id`, `uploaded_by`, `author_id`, `media.url`, `media.storage_path`, `media.thumb_path`, `documents.file_path`, `created_at`) sono protette dal trigger `prevent_structural_update()`: aggiungilo alle nuove tabelle di viaggio
+- Un viaggio ha al massimo due membri (trigger `enforce_trip_member_limit`): i viaggi si creano con la RPC `create_trip()` e il partner entra solo con `accept_trip_invite()` (`src/lib/invites.ts`, migration `0021`), mai inserendo direttamente in `trip_members`
 - Le colonne sensibili di `profiles` (`role`, `plan`, `premium_*`, `suspended_*`) si scrivono solo con il service role
 - Funzioni `SECURITY DEFINER` sempre con `set search_path = public, pg_temp`; nessuna vista su `auth.users` leggibile da `anon`/`authenticated`
 - Service role solo alle condizioni di `docs/security/03-SECURITY-ARCHITECTURE.md` §3.3
@@ -126,7 +129,7 @@ import type { Trip } from '@/lib/types'
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
 - Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `middleware.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`)
 - Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`
-- Le route sotto `/api/trips/[id]/**` dichiarano `tripMember: true` (o chiamano `requireTripMember`): lo verifica `src/app/api/trips/route-authz.test.ts`
+- Le route sotto `/api/trips/**` usano tutte `withRoute` e quelle sotto `/api/trips/[id]/**` dichiarano `tripMember: true`: lo verifica `src/app/api/trips/route-authz.test.ts`. `route-contract.test.ts` genera dagli schemi (`handler.route`) tre richieste per handler: valida, non valida (400), non membro (403). Se un input valido non si ricava dallo schema (`refine`, path costruiti dal server) aggiungi un esempio in `VALID_BODIES`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
 - Ogni `fetch` lato server verso un servizio esterno passa da `safeFetch()` (`src/lib/safe-fetch.ts`) con un'allowlist di host in `EXTERNAL_HOSTS`
 
@@ -134,11 +137,12 @@ import type { Trip } from '@/lib/types'
 
 ## Regole per i componenti React
 
-- **Mai** `useEffect` per fetching dati — usa Server Components o SWR/React Query
+- **Mai** `useEffect` per fetching dati — usa Server Components o SWR con `jsonFetcher` (`src/lib/fetcher.ts`, lancia `FetchError` con il messaggio dell'API). Dopo una scrittura si chiama `mutate()`; la stessa chiave in più componenti condivide la cache (es. `useProfile()` in `src/lib/hooks/use-profile.ts` per shell e pagina profilo). Nei form precompilati niente revalidate on focus (sovrascriverebbe le modifiche). Nei test si renderizza con `SWRTestProvider` (`src/test/swr.tsx`)
 - Form sempre con `react-hook-form` + resolver Zod — niente `useState` per i form
 - Componenti server per default, `'use client'` solo quando necessario (eventi, hooks, browser API)
 - Drawer invece di Dialog su mobile (breakpoint `md`)
-- Ogni componente interattivo deve funzionare con tastiera e avere `aria-label` appropriati
+- Ogni componente interattivo deve funzionare con tastiera e avere `aria-label` appropriati. Drawer e dialog: `role="dialog"`, `aria-modal`, `aria-labelledby` sul titolo e `useDialogA11y` (`src/components/ui/use-dialog-a11y.ts`: focus dentro, Tab intrappolato, Escape chiude, focus restituito); ogni `<label>` ha `htmlFor` e il controllo il suo `id`
+- I test delle pagine principali e dei drawer controllano axe con `seriousA11yViolations` (`src/test/axe.ts`): zero violazioni serie o critiche
 
 ---
 
@@ -148,8 +152,10 @@ import type { Trip } from '@/lib/types'
 - Non esporre mai URL diretti di Supabase Storage al client — passa sempre per URL firmati o proxy
 - I file dei viaggi stanno in bucket privati sotto `trips/{trip_id}/` (`trip-media`, `trip-documents`): path costruiti dal server (`buildMediaPath`, `buildDocumentPath` in `src/lib/trip-files.ts`) e ricontrollati con `isTripFilePath()` prima di usare il service role; foto servite con `withSignedUrls()` (1 h), documenti tramite proxy autenticato
 - Chi cancella una riga con un file (media, documento, spostamento) cancella anche il file (`src/lib/trip-storage.ts`)
-- Thumbnail sempre generati al momento dell'upload (400×400, WebP)
-- ZIP degli export Instagram eliminati automaticamente dopo 24h
+- Le cancellazioni fatte in SQL (account, viaggi) mettono i file in `storage_deletion_queue`; il server li rimuove con la Storage API (`drainStorageDeletionQueue`). Non cancellare mai da `storage.objects` in SQL: resta il file
+- Upload di foto e video: `…/media/uploads` (URL di upload firmato verso `incoming/`) → upload diretto allo storage (`uploadTripMedia` in `src/lib/media/upload-client.ts`) → `…/media/confirm`, che passa da `src/lib/media/pipeline.ts`. Nessun file attraversa il corpo di una route (limite ~4,5 MB su Vercel)
+- Thumbnail sempre generati al momento dell'upload (400×400, WebP); le foto salvate non hanno metadati EXIF
+- Export Instagram: job asincrono (`POST …/instagram/exports` risponde 202, il lavoro gira in `after()`, il client fa polling con SWR); lo ZIP sta nel bucket privato `instagram-exports`, si scarica con URL firmato ≤ 24 h e il cron lo elimina dopo 24 h. Le opzioni che finiscono in un SVG (testo, colori) si validano con Zod e `safeHexColor`
 
 ---
 
@@ -180,7 +186,7 @@ Prima di ogni PR:
 
 ```bash
 npm run type-check   # zero errori TypeScript
-npm run lint         # zero warning ESLint
+npm run lint         # zero warning ESLint (--max-warnings=0: un warning fa fallire la CI)
 npm run test         # tutti i test passano
 npm run build        # build di produzione completa
 npm run test:rls     # test RLS su Supabase locale (npm run db:start prima); in CI il job rls-tests li esegue su Postgres + stub
@@ -188,10 +194,12 @@ npm run test:rls     # test RLS su Supabase locale (npm run db:start prima); in 
 
 Ogni migration che aggiunge una tabella di viaggio (con `trip_id`) aggiunge anche la sua fixture in `supabase/tests/rls_matrix.test.sql`: senza, il test RLS fallisce.
 
-Copertura minima su `src/lib/`: **70%**
+Copertura minima su `src/lib/`: **70%** (righe, istruzioni, funzioni; 60% branch), imposta da `vitest.config.ts`: `npm run test:coverage` fallisce sotto soglia, in CI e in locale
+
+Le funzioni di dominio ricevono le dipendenze invece di crearle (T-3.4): client Supabase (`{ supabase }` o parametro) e orologio (`now`) iniettabili, così i test usano `queryChain` di `src/test/supabase-mock.ts` senza `vi.mock` del modulo
 
 Priorità di test:
-1. Logica spese (`src/lib/expenses.ts`) — calcoli critici
+1. Logica spese (`src/lib/expenses.ts`, `src/lib/currency.ts`) — calcoli critici, sempre in centesimi interi; senza tasso di cambio `amount_eur` resta `null` (spesa "da convertire"), mai l'importo non convertito
 2. Processing media (`src/lib/media/`) — pipeline complessa
 3. API route handlers — integrazione DB
 4. Componenti con logica complessa (ExpenseDrawer, InstagramGenerator)
@@ -261,7 +269,7 @@ src/
 │   ├── supabase/        # Client setup (client, server, middleware)
 │   ├── ai/              # Integrazioni Claude API
 │   ├── media/           # Image processing pipeline
-│   ├── types.ts         # TUTTI i tipi di dominio — fonte della verità
+│   ├── types/           # TUTTI i tipi di dominio, per dominio — fonte della verità
 │   ├── expenses.ts      # Business logic spese
 │   └── trips.ts         # Statistiche viaggio
 supabase/

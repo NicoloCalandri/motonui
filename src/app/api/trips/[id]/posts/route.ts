@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok, created } from '@/lib/errors';
 import { sanitizeTiptapDocument } from '@/lib/sanitize';
 
 const CreatePostSchema = z.object({
@@ -14,17 +12,11 @@ const CreatePostSchema = z.object({
     status: z.enum(['draft', 'published']).default('draft'),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
 /** GET /api/trips/[id]/posts — list posts for a trip */
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id]/posts GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
     const { data, error } = await supabase
         .from('posts')
         .select('id, title, slug, status, published_at, cover_image, reading_time, created_at')
@@ -34,30 +26,23 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (error) throw new Error(`[motonui][posts][GET] ${error.message}`);
 
     return ok(data ?? []);
-}, 'trips/[id]/posts GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** POST /api/trips/[id]/posts — create a blog post */
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-    const body: unknown = await request.json();
-    const parsed = CreatePostSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
-    const contentJson = parsed.data.content_json ? sanitizeTiptapDocument(parsed.data.content_json) : null;
+export const POST = withRoute(
+    { name: 'trips/[id]/posts POST', params: tripParams(), body: CreatePostSchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id } = params;
+    const contentJson = body.content_json ? sanitizeTiptapDocument(body.content_json) : null;
 
     const { data: post, error } = await supabase
         .from('posts')
         .insert({
-            ...parsed.data,
+            ...body,
             content_json: contentJson,
             trip_id: id,
             author_id: user.id,
-            published_at: parsed.data.status === 'published' ? new Date().toISOString() : null,
+            published_at: body.status === 'published' ? new Date().toISOString() : null,
         })
         .select()
         .single();
@@ -65,4 +50,4 @@ export const POST = withErrorHandler(async (request, { params }) => {
     if (error) throw new Error(`[motonui][posts][POST] ${error.message}`);
 
     return created(post);
-}, 'trips/[id]/posts POST') as (req: Request, ctx: Params) => Promise<Response>;
+});

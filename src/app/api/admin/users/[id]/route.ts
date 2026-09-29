@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import type { Database } from '@/lib/supabase/database.types';
+import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
+import { toJson } from '@/lib/json';
 
 const DeleteSchema = z.object({
     confirmEmail: z.string().email(),
@@ -31,11 +34,11 @@ async function writeAuditLog(
     targetId: string,
     metadata?: Record<string, unknown>
 ) {
-    await (supabase.from('admin_audit_log') as any).insert({
+    await supabase.from('admin_audit_log').insert({
         admin_id: adminId,
         action,
         target_id: targetId,
-        metadata: metadata ?? null,
+        metadata: metadata ? toJson(metadata) : null,
     });
 }
 
@@ -48,7 +51,7 @@ export async function GET(_req: Request, { params }: Params) {
 
     const supabase = await createAdminClient();
 
-    const { data: userRow, error } = await (supabase.from('admin_user_view') as any)
+    const { data: userRow, error } = await supabase.from('admin_user_view')
         .select('*')
         .eq('id', id)
         .single();
@@ -61,17 +64,17 @@ export async function GET(_req: Request, { params }: Params) {
     }
 
     const [tripsRes, postsRes, expensesRes] = await Promise.all([
-        (supabase.from('trips') as any)
+        supabase.from('trips')
             .select('id, title, destination, status, start_date, end_date')
             .eq('owner_id', id)
             .order('created_at', { ascending: false })
             .limit(5),
-        (supabase.from('posts') as any)
+        supabase.from('posts')
             .select('id, title, status, published_at')
             .eq('author_id', id)
             .order('created_at', { ascending: false })
             .limit(5),
-        (supabase.from('expenses') as any)
+        supabase.from('expenses')
             .select('amount_eur, currency')
             .eq('paid_by', id),
     ]);
@@ -132,7 +135,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     const supabase = await createAdminClient();
 
-    const updates: Record<string, any> = {};
+    const updates: Database['public']['Tables']['profiles']['Update'] = {};
     if (parsed.data.displayName !== undefined) updates.display_name = parsed.data.displayName;
     if (parsed.data.role !== undefined) updates.role = parsed.data.role;
     if (parsed.data.plan !== undefined) updates.plan = parsed.data.plan;
@@ -159,7 +162,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     if (parsed.data.entitlements) {
         for (const entitlement of parsed.data.entitlements) {
-            await (supabase.from('feature_entitlements') as any).upsert({
+            await supabase.from('feature_entitlements').upsert({
                 user_id: id,
                 feature_key: entitlement.featureKey,
                 enabled: entitlement.enabled,
@@ -214,7 +217,7 @@ export async function DELETE(request: Request, { params }: Params) {
     const supabase = await createAdminClient();
 
     // Fetch target user email to verify confirmation
-    const { data: userRow } = await (supabase.from('admin_user_view') as any)
+    const { data: userRow } = await supabase.from('admin_user_view')
         .select('email')
         .eq('id', id)
         .single();
@@ -236,14 +239,22 @@ export async function DELETE(request: Request, { params }: Params) {
     // Write audit log before deletion (target_id preserved for history)
     await writeAuditLog(supabase, adminId, 'delete', id, { email: userRow.email });
 
-    // Delete from auth.users — cascade deletes profile and all related data
-    const { error } = await supabase.auth.admin.deleteUser(id);
+    // Same purge as self-service deletion (migration 0022, T-2.9): shared
+    // trips pass to the partner instead of cascading away, files are queued.
+    const { error: purgeError } = await supabase.rpc('purge_user_data', { p_user: id });
+    const { error } = purgeError ? { error: purgeError } : await supabase.auth.admin.deleteUser(id);
     if (error) {
         console.error('[admin/users DELETE]', error.message);
         return NextResponse.json(
             { error: 'Impossibile eliminare l\'utente.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
         );
+    }
+
+    try {
+        await drainStorageDeletionQueue(supabase);
+    } catch (err) {
+        console.error('[admin/users DELETE] storage cleanup deferred', err);
     }
 
     return ok({ deleted: true });
@@ -253,11 +264,11 @@ async function loadEntitlements(
     supabase: Awaited<ReturnType<typeof createAdminClient>>,
     userId: string
 ) {
-    const { data } = await (supabase.from('feature_entitlements') as any)
+    const { data } = await supabase.from('feature_entitlements')
         .select('feature_key, enabled, daily_limit, monthly_limit')
         .eq('user_id', userId)
         .order('feature_key', { ascending: true });
-    return (data ?? []).map((e: any) => ({
+    return (data ?? []).map((e) => ({
         featureKey: e.feature_key,
         enabled: Boolean(e.enabled),
         dailyLimit: e.daily_limit ?? null,

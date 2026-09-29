@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { ArrowLeft, MapPin, Calendar, Users, Map, DollarSign, Images, BookOpen, ClipboardList, Wallet, CalendarDays, Backpack } from 'lucide-react';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { TripWithDetails } from '@/lib/types';
 
 // Tab imports are lazy-loaded to reduce initial bundle
@@ -20,6 +22,7 @@ const BookingsTab = dynamic(() => import('@/components/booking/BookingsTab'));
 const TravelWallet = dynamic(() => import('@/components/wallet/TravelWallet'));
 const TripCalendar = dynamic(() => import('@/components/calendar/TripCalendar'));
 const PackingTab = dynamic(() => import('@/components/trip/PackingTab'));
+const InvitePartnerCard = dynamic(() => import('@/components/trip/InvitePartnerCard'));
 
 type TabId = 'overview' | 'itinerary' | 'bookings' | 'wallet' | 'calendar' | 'expenses' | 'media' | 'blog' | 'packing';
 
@@ -45,28 +48,16 @@ export default function TripPage() {
     const [activeTab, setActiveTab] = useState<TabId>(
         (searchParams.get('tab') as TabId) ?? 'overview'
     );
-    const [trip, setTrip] = useState<TripWithDetails | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { data: trip, isLoading, mutate } = useSWR<TripWithDetails>(id ? `/api/trips/${id}` : null, jsonFetcher);
 
-    const handleDaysChange = (days: TripWithDetails['days']) => {
-        setTrip((prev) => prev ? { ...prev, days } : prev);
+    // Local edits from the tabs: update the cache without refetching.
+    const patchTrip = (updates: Partial<TripWithDetails>) => {
+        void mutate((prev) => (prev ? { ...prev, ...updates } : prev), { revalidate: false });
     };
+    const handleDaysChange = (days: TripWithDetails['days']) => patchTrip({ days });
+    const fetchTrip = () => { void mutate(); };
 
-    const fetchTrip = () => {
-        fetch(`/api/trips/${id}`)
-            .then((r) => r.json())
-            .then((data: TripWithDetails) => {
-                setTrip(data);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        fetchTrip();
-    }, [id]);
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3 text-ink-400">
@@ -141,7 +132,8 @@ export default function TripPage() {
 
             {/* Active Tab Content */}
             <div className="flex-1 pb-24 md:pb-8">
-                {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} onTripUpdate={(updates) => setTrip(prev => prev ? { ...prev, ...updates } : prev)} />}
+                {(trip.members?.length ?? 0) < 2 && activeTab === 'overview' && <InvitePartnerCard tripId={trip.id} />}
+                {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} onTripUpdate={patchTrip} />}
                 {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} onDataChange={fetchTrip} />}
                 {activeTab === 'bookings' && <BookingsTab trip={trip} onDataChange={fetchTrip} />}
                 {activeTab === 'wallet' && <TravelWallet trip={trip} onDataChange={fetchTrip} />}

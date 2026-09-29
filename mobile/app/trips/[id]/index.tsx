@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/hooks/useAuth';
 import { queryClient } from '@/lib/queryClient';
-import { splitExpenses } from '@/lib/expenses';
+import { splitExpenses, sumEur } from '@/lib/expenses';
 import { sanitizeTextInput, validateExpenseInput, validateTripInput, type NewTripData } from '@/lib/validation';
 import { EmptyState } from '@/components/EmptyState';
 import {
@@ -217,12 +217,17 @@ async function requireTripMember(tripId: string, userId: string): Promise<void> 
   }
 }
 
-async function convertCurrencyToEur(amount: number, currency: string): Promise<number> {
+/**
+ * EUR value of an amount, or null when no rate is available: the expense is
+ * saved "da convertire" and left out of totals, as on the web (T-3.2). Never
+ * the unconverted amount.
+ */
+async function convertCurrencyToEur(amount: number, currency: string): Promise<number | null> {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Importo non valido per la conversione.');
   }
 
-  if (currency === 'EUR') {
+  if (currency.toUpperCase() === 'EUR') {
     return Math.round(amount * 100) / 100;
   }
 
@@ -236,15 +241,14 @@ async function convertCurrencyToEur(amount: number, currency: string): Promise<n
     .maybeSingle();
 
   if (error || !data?.rates) {
-    // Graceful fallback aligned with web behavior when rates are unavailable.
-    return Math.round(amount * 100) / 100;
+    return null;
   }
 
   const rates = data.rates as Record<string, number>;
-  const fromRate = rates[currency];
+  const fromRate = rates[currency.toUpperCase()];
 
-  if (!fromRate || fromRate <= 0) {
-    return Math.round(amount * 100) / 100;
+  if (!Number.isFinite(fromRate) || !fromRate || fromRate <= 0) {
+    return null;
   }
 
   const converted = amount / fromRate;
@@ -434,7 +438,8 @@ export default function TripDetailScreen() {
     });
   }, []);
 
-  const totalEur = expenses.reduce((sum, e) => sum + (e.amount_eur ?? e.amount), 0);
+  // Expenses without a rate are "da convertire" and stay out of the total (T-3.2).
+  const { total: totalEur } = sumEur(expenses);
   const splitResult = useMemo(() => splitExpenses(expenses, tripMemberIds), [expenses, tripMemberIds]);
   const mySettlement = splitResult.settlements.find((s) => s.from_user_id === user?.id || s.to_user_id === user?.id);
 

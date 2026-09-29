@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Loader2 } from 'lucide-react';
+import { useDialogA11y } from '@/components/ui/use-dialog-a11y';
 import type { ExpenseCategory, Expense } from '@/lib/types';
 
 const CATEGORIES: { id: ExpenseCategory; label: string; emoji: string }[] = [
@@ -44,6 +45,7 @@ interface ExpenseDrawerProps {
  * Slide-up drawer for adding or editing an expense.
  */
 export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialData, tripStartDate, tripEndDate }: ExpenseDrawerProps) {
+    const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
@@ -86,7 +88,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                 });
             }
         }
-    }, [open, initialData]);
+    }, [open, initialData, reset]);
 
     const selectedCategory = watch('category');
 
@@ -135,7 +137,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                 <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
                     
                     {/* Panel */}
-                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in flex flex-col relative">
+                    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="expense-drawer-title" tabIndex={-1} className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in flex flex-col relative">
                         
                         <div className="p-6 sm:p-10">
                             {/* Handle (mobile only) */}
@@ -143,8 +145,8 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
 
                             {/* Header */}
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica spesa' : 'Nuova spesa'}</h2>
-                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <h2 id="expense-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica spesa' : 'Nuova spesa'}</h2>
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -158,10 +160,10 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 {/* Description */}
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="expense-description" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Cosa hai acquistato? *
                                     </label>
-                                    <input
+                                    <input id="expense-description"
                                         {...register('description')}
                                         placeholder="es. Cena romantica al molo, Biglietti treno..."
                                         className="w-full px-6 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
@@ -173,10 +175,10 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                 {/* Amount + Currency */}
                                 <div className="flex gap-4">
                                     <div className="flex-1">
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        <label htmlFor="expense-amount" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                             Importo *
                                         </label>
-                                        <input
+                                        <input id="expense-amount"
                                             {...register('amount')}
                                             type="number"
                                             step="0.01"
@@ -187,10 +189,10 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                         {errors.amount && <p className="text-xs font-bold text-red-500 mt-2">{errors.amount.message}</p>}
                                     </div>
                                     <div className="w-36">
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        <label htmlFor="expense-currency" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                             Valuta
                                         </label>
-                                        <select
+                                        <select id="expense-currency"
                                             {...register('currency')}
                                             className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg appearance-none cursor-pointer text-center"
                                         >
@@ -229,10 +231,10 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                 {/* Date & Split */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        <label htmlFor="expense-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                             Data
                                         </label>
-                                        <input
+                                        <input id="expense-date"
                                             {...register('date')}
                                             type="date"
                                             min={tripStartDate || undefined}
@@ -263,10 +265,10 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
 
                                 {/* Notes */}
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="expense-notes" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Note (Opzionale)
                                     </label>
-                                    <textarea
+                                    <textarea id="expense-notes"
                                         {...register('notes')}
                                         rows={2}
                                         placeholder="Dettagli aggiuntivi da ricordare..."

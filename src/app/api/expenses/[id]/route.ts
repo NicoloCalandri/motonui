@@ -33,14 +33,14 @@ export const PUT = withRoute(
     await requireTripMember(supabase, currentExpense.trip_id, user.id);
 
     // Recalculate EUR if amount or currency changed
-    let amount_eur: number | undefined;
+    let amount_eur: number | null | undefined;
     if (body.amount !== undefined || body.currency !== undefined) {
         const { convertCurrency } = await import('@/lib/expenses');
 
         // Get current expense to fill in missing values
         const amount = body.amount ?? currentExpense.amount ?? 0;
         const currency = body.currency ?? currentExpense.currency ?? 'EUR';
-        amount_eur = await convertCurrency(amount, currency, 'EUR');
+        amount_eur = await convertCurrency(amount, currency, 'EUR', { supabase });
     }
 
     await requireDayInTrip(supabase, currentExpense.trip_id, body.day_id ?? undefined);

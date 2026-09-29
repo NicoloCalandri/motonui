@@ -1,4 +1,5 @@
 import { AppError } from '@/lib/errors';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const FEATURE_KEYS = [
@@ -52,6 +53,10 @@ interface RequireFeatureAccessInput {
     feature: FeatureKey;
     incrementBy?: number;
     allowAdminBypass?: boolean;
+    /** Service-role client; injected in tests (T-3.4). */
+    supabase?: SupabaseClient;
+    /** Clock; injected in tests (T-3.4). */
+    now?: Date;
 }
 
 interface ProfileRow {
@@ -68,12 +73,12 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
         allowAdminBypass = false,
     } = input;
 
-    const supabase = await createAdminClient();
-    const now = new Date();
+    const supabase: SupabaseClient = input.supabase ?? (await createAdminClient());
+    const now = input.now ?? new Date();
     const today = now.toISOString().slice(0, 10);
     const monthStart = `${today.slice(0, 7)}-01`;
 
-    const { data: profile, error: profileError } = await (supabase.from('profiles') as any)
+    const { data: profile, error: profileError } = await supabase.from('profiles')
         .select('role, plan, premium_until')
         .eq('id', userId)
         .single();
@@ -89,7 +94,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
     );
     const canBypass = isAdmin && allowAdminBypass;
 
-    const { data: control } = await (supabase.from('feature_controls') as any)
+    const { data: control } = await supabase.from('feature_controls')
         .select('enabled, hard_daily_cap, daily_usage, usage_date, alert_thresholds, alerted_thresholds')
         .eq('feature_key', feature)
         .single();
@@ -114,7 +119,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
     const counters: QuotaCounter[] = [];
 
     if (!canBypass) {
-        const { data: entitlement } = await (supabase.from('feature_entitlements') as any)
+        const { data: entitlement } = await supabase.from('feature_entitlements')
             .select('enabled, daily_limit, monthly_limit')
             .eq('user_id', userId)
             .eq('feature_key', feature)
@@ -135,7 +140,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
 
     // Every counter and the global daily cap are incremented atomically, or
     // none is (migration 0018): no read-then-write race between requests.
-    const { data: globalUsage, error: quotaError } = await (supabase as any).rpc('consume_feature_quota', {
+    const { data: globalUsage, error: quotaError } = await supabase.rpc('consume_feature_quota', {
         p_user_id: userId,
         p_feature: feature,
         p_counters: counters,
@@ -144,7 +149,7 @@ export async function requireFeatureAccess(input: RequireFeatureAccessInput): Pr
 
     if (quotaError) throw quotaErrorToAppError(quotaError);
 
-    await recordCostAlerts(supabase, feature, controlRow, Number(globalUsage ?? 0));
+    await recordCostAlerts(supabase, feature, controlRow, Number(globalUsage ?? 0), today);
 }
 
 function quotaErrorToAppError(error: { message?: string; details?: string | null }): Error {
@@ -161,14 +166,14 @@ function quotaErrorToAppError(error: { message?: string; details?: string | null
 
 /** Logs and records newly crossed cost-alert thresholds for the global daily cap. */
 async function recordCostAlerts(
-    supabase: Awaited<ReturnType<typeof createAdminClient>>,
+    supabase: SupabaseClient,
     feature: FeatureKey,
     controlRow: { hard_daily_cap?: number | null; alert_thresholds?: unknown; alerted_thresholds?: unknown; usage_date?: string | null },
     dailyUsage: number,
+    today: string,
 ): Promise<void> {
     const alertThresholds: number[] = Array.isArray(controlRow.alert_thresholds) ? controlRow.alert_thresholds : [70, 85, 100];
     // Thresholds already alerted on a previous day do not count.
-    const today = new Date().toISOString().slice(0, 10);
     const alreadyAlerted: number[] = controlRow.usage_date === today && Array.isArray(controlRow.alerted_thresholds)
         ? controlRow.alerted_thresholds
         : [];
@@ -183,7 +188,7 @@ async function recordCostAlerts(
         thresholds: newlyCrossed,
     });
 
-    await (supabase.from('feature_controls') as any)
+    await supabase.from('feature_controls')
         .update({ alerted_thresholds: [...alreadyAlerted, ...newlyCrossed].sort((a, b) => a - b) })
         .eq('feature_key', feature);
 }

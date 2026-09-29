@@ -1,7 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { isAuthorizedCronRequest } from '@/lib/auth/cron';
 import { Errors, ok, withErrorHandler } from '@/lib/errors';
-import { sendEmail, flightCheckinEmail, paymentDeadlineEmail, restaurantReminderEmail, activityReminderEmail } from '@/lib/email';
+import { sendEmail } from '@/lib/email';
+import { buildReminderEmail, loadReminderEntities } from '@/lib/reminder-emails';
 
 /**
  * GET /api/admin/send-reminders — sends due travel reminders via email.
@@ -17,17 +18,10 @@ export const GET = withErrorHandler(async (request) => {
     const supabase = await createAdminClient();
     const now = new Date().toISOString();
 
-    // Fetch all unsent due reminders
-    const { data: reminders, error: fetchError } = await (supabase as any)
+    // Unsent due reminders; their entities are loaded per type (no FK to embed).
+    const { data: reminders, error: fetchError } = await supabase
         .from('reminders')
-        .select(`
-            *,
-            trips ( id, title, owner_id ),
-            legs:entity_id ( id, from_name, to_name, carrier, pnr, booking_ref, departure_at, checkin_opens_at ),
-            accommodations:entity_id ( id, name, booking_ref ),
-            restaurants:entity_id ( id, name, booking_ref, date, time ),
-            activities:entity_id ( id, name, booking_ref, date, time )
-        `)
+        .select('*')
         .lte('remind_at', now)
         .is('sent_at', null);
 
@@ -35,6 +29,7 @@ export const GET = withErrorHandler(async (request) => {
         throw new Error(`[motonui][send-reminders] fetch error: ${fetchError.message}`);
     }
 
+    const entities = await loadReminderEntities(supabase, reminders ?? []);
     let sent = 0;
     let failed = 0;
 
@@ -45,70 +40,14 @@ export const GET = withErrorHandler(async (request) => {
             const email = userResp?.user?.email;
             if (!email) continue;
 
-            const userName = email.split('@')[0];
-
-            let html = '';
-            let subject = '';
-
-            if (reminder.type === 'flight_checkin' && reminder.entity_type === 'leg') {
-                const leg = reminder.legs;
-                if (!leg) continue;
-                subject = `✈️ Check-in aperto: ${leg.from_name?.split(',')[0]} → ${leg.to_name?.split(',')[0]}`;
-                html = flightCheckinEmail({
-                    userName,
-                    from: leg.from_name ?? '',
-                    to: leg.to_name ?? '',
-                    carrier: leg.carrier ?? 'Compagnia aerea',
-                    pnr: leg.pnr ?? leg.booking_ref,
-                    departureAt: leg.departure_at ?? '',
-                    checkinOpensAt: leg.checkin_opens_at ?? '',
-                });
-            } else if (
-                (reminder.type === 'payment_deadline' || reminder.type === 'cancellation_deadline') &&
-                reminder.entity_type === 'accommodation'
-            ) {
-                const acc = reminder.accommodations;
-                if (!acc) continue;
-                subject = reminder.type === 'payment_deadline'
-                    ? `💳 Scadenza pagamento: ${acc.name}`
-                    : `⚠️ Scadenza cancellazione: ${acc.name}`;
-                html = paymentDeadlineEmail({
-                    userName,
-                    hotelName: acc.name ?? '',
-                    bookingRef: acc.booking_ref,
-                    deadline: reminder.remind_at,
-                    type: reminder.type,
-                });
-            } else if (reminder.type === 'restaurant_reservation' && reminder.entity_type === 'restaurant') {
-                const rest = reminder.restaurants;
-                if (!rest) continue;
-                subject = `🍽️ Prenotazione ristorante: ${rest.name}`;
-                html = restaurantReminderEmail({
-                    userName,
-                    restaurantName: rest.name ?? '',
-                    bookingRef: rest.booking_ref,
-                    date: rest.date ?? '',
-                    time: rest.time ?? '',
-                });
-            } else if (reminder.type === 'activity_ticket' && reminder.entity_type === 'activity') {
-                const act = reminder.activities;
-                if (!act) continue;
-                subject = `🎟️ Attività: ${act.name}`;
-                html = activityReminderEmail({
-                    userName,
-                    activityName: act.name ?? '',
-                    bookingRef: act.booking_ref,
-                    date: act.date ?? '',
-                    time: act.time ?? '',
-                });
-            } else {
-                continue;
-            }
+            const message = buildReminderEmail(reminder, entities, email.split('@')[0]);
+            if (!message) continue;
+            const { subject, html } = message;
 
             await sendEmail({ to: email, subject, html });
 
             // Mark as sent
-            await (supabase as any)
+            await supabase
                 .from('reminders')
                 .update({ sent_at: now })
                 .eq('id', reminder.id);

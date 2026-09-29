@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plane, MapPin, Calendar, Users, Loader2, ArrowLeft, ArrowRight, Check, Mail } from 'lucide-react';
+import StepIndicator from '@/components/trip/WizardStepIndicator';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -23,53 +24,6 @@ const Step2Schema = z.object({
 
 type Step1Values = z.infer<typeof Step1Schema>;
 type Step2Values = z.infer<typeof Step2Schema>;
-
-// ─── Wizard Step Indicator ────────────────────────────────────────────────────
-
-// ─── Wizard Step Indicator ────────────────────────────────────────────────────
-
-function StepIndicator({ current, total }: { current: number; total: number }) {
-  const steps = [
-    { label: 'Dettagli', icon: Plane },
-    { label: 'Compagno', icon: Users },
-    { label: 'Finito', icon: Check },
-  ];
-
-  return (
-    <div className="flex items-center justify-between mb-12 relative">
-      <div className="absolute top-5 left-0 w-full h-0.5 bg-neutral-100 -z-10" />
-      <div 
-        className="absolute top-5 left-0 h-0.5 bg-neutral-900 transition-all duration-500 -z-10" 
-        style={{ width: `${(current / (total - 1)) * 100}%` }}
-      />
-      
-      {steps.map((s, i) => {
-        const Icon = s.icon;
-        const isActive = i <= current;
-        const isCurrent = i === current;
-
-        return (
-          <div key={i} className="flex flex-col items-center gap-2">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-                isActive 
-                  ? 'bg-neutral-900 border-neutral-900 text-white' 
-                  : 'bg-white border-neutral-200 text-neutral-400'
-              } ${isCurrent ? 'ring-4 ring-neutral-100 scale-110' : ''}`}
-            >
-              <Icon className="w-5 h-5" />
-            </div>
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${
-              isActive ? 'text-neutral-900' : 'text-neutral-400'
-            }`}>
-              {s.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 
@@ -109,10 +63,11 @@ export default function NewTripPage() {
       const trip: { id: string } = await res.json();
 
       if (values.partner_email) {
-        await fetch('/api/trips/invite', {
+        // The trip exists anyway: a failed invite can be resent from the trip page.
+        await fetch(`/api/trips/${trip.id}/invites`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trip_id: trip.id, email: values.partner_email }),
+          body: JSON.stringify({ email: values.partner_email }),
         }).catch(() => {});
       }
 
@@ -132,6 +87,7 @@ export default function NewTripPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => step > 0 ? setStep(step - 1) : router.back()}
+              aria-label="Indietro"
               className="p-3 rounded-full bg-white shadow-sm hover:shadow-md transition-all text-neutral-600 active:scale-95"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -197,10 +153,11 @@ export default function NewTripPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Partenza</label>
+                  <label htmlFor="start_date" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Partenza</label>
                   <div className="relative group">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-300 group-focus-within:text-neutral-900 transition-colors" />
                     <input
+                      id="start_date"
                       {...form1.register('start_date')}
                       type="date"
                       className="w-full pl-12 pr-4 py-4 bg-neutral-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-neutral-200 transition-all cursor-pointer"
@@ -208,10 +165,11 @@ export default function NewTripPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Ritorno</label>
+                  <label htmlFor="end_date" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Ritorno</label>
                   <div className="relative group">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-300 group-focus-within:text-neutral-900 transition-colors" />
                     <input
+                      id="end_date"
                       {...form1.register('end_date')}
                       type="date"
                       min={startDate || undefined}
@@ -222,8 +180,9 @@ export default function NewTripPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Descrizione</label>
+                <label htmlFor="description" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Descrizione</label>
                 <textarea
+                  id="description"
                   {...form1.register('description')}
                   rows={3}
                   placeholder="Appunti rapidi sul viaggio..."
@@ -256,12 +215,13 @@ export default function NewTripPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
+                <label htmlFor="partner_email" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
                   Email del partner
                 </label>
                 <div className="relative group">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-300 group-focus-within:text-neutral-900 transition-colors" />
                   <input
+                    id="partner_email"
                     {...form2.register('partner_email')}
                     type="email"
                     placeholder="partner@example.com"

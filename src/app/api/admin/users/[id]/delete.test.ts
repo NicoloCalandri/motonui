@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { MockResponse } from '@/test/mock-response';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -48,12 +49,17 @@ const mockFrom = vi.fn((table: string) => {
     return {};
 });
 
+const mockRpc = vi.fn();
+const mockDrain = vi.fn();
+
 vi.mock('@/lib/supabase/server', () => ({
     createAdminClient: vi.fn(() => ({
         from: mockFrom,
+        rpc: mockRpc,
         auth: { admin: { deleteUser: mockDeleteUser } },
     })),
 }));
+vi.mock('@/lib/storage-deletion', () => ({ drainStorageDeletionQueue: mockDrain }));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -73,6 +79,32 @@ describe('DELETE /api/admin/users/[id]', () => {
         mockRequireAdmin.mockResolvedValue({ adminId: ADMIN_ID });
         mockAdminUserViewSingle.mockResolvedValue({ data: { email: TARGET_EMAIL } });
         mockDeleteUser.mockResolvedValue({ error: null });
+        mockRpc.mockResolvedValue({ data: { transferred_trips: 1, deleted_trips: 0 }, error: null });
+        mockDrain.mockResolvedValue(3);
+    });
+
+    it('purges data (trip transfer, file queue) before deleting the auth user, then removes files (T-2.9)', async () => {
+        const order: string[] = [];
+        mockRpc.mockImplementation(async () => { order.push('purge'); return { data: {}, error: null }; });
+        mockDeleteUser.mockImplementation(async () => { order.push('deleteUser'); return { error: null }; });
+        mockDrain.mockImplementation(async () => { order.push('drain'); return 0; });
+
+        const { DELETE } = await import('@/app/api/admin/users/[id]/route');
+        await DELETE(makeDeleteRequest({ confirmEmail: TARGET_EMAIL }), { params: Promise.resolve({ id: TARGET_ID }) });
+
+        expect(mockRpc).toHaveBeenCalledWith('purge_user_data', { p_user: TARGET_ID });
+        expect(order).toEqual(['purge', 'deleteUser', 'drain']);
+    });
+
+    it('does not delete the auth user when the purge fails', async () => {
+        mockRpc.mockResolvedValue({ data: null, error: { message: 'purge failed' } });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const { DELETE } = await import('@/app/api/admin/users/[id]/route');
+        const result = await DELETE(makeDeleteRequest({ confirmEmail: TARGET_EMAIL }), { params: Promise.resolve({ id: TARGET_ID }) });
+
+        expect((result as { status: number }).status).toBe(500);
+        expect(mockDeleteUser).not.toHaveBeenCalled();
     });
 
     it('returns 401 when not authenticated', async () => {
@@ -84,7 +116,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: TARGET_EMAIL });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(401);
+        expect((result as unknown as MockResponse).status).toBe(401);
     });
 
     it('returns 403 when admin tries to delete themselves', async () => {
@@ -92,8 +124,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: 'admin@example.com' });
         const result = await DELETE(req, { params: Promise.resolve({ id: ADMIN_ID }) });
 
-        expect((result as any).status).toBe(403);
-        expect((result as any).body).toMatchObject({ code: 'FORBIDDEN' });
+        expect((result as unknown as MockResponse).status).toBe(403);
+        expect((result as unknown as MockResponse).body).toMatchObject({ code: 'FORBIDDEN' });
     });
 
     it('returns 400 when confirmEmail is missing', async () => {
@@ -101,8 +133,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({});
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(400);
-        expect((result as any).body).toMatchObject({ code: 'VALIDATION_ERROR' });
+        expect((result as unknown as MockResponse).status).toBe(400);
+        expect((result as unknown as MockResponse).body).toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('returns 404 when target user does not exist', async () => {
@@ -112,8 +144,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: 'nobody@example.com' });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(404);
-        expect((result as any).body).toMatchObject({ code: 'NOT_FOUND' });
+        expect((result as unknown as MockResponse).status).toBe(404);
+        expect((result as unknown as MockResponse).body).toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('returns 400 when confirmEmail does not match', async () => {
@@ -121,8 +153,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: 'wrong@example.com' });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(400);
-        expect((result as any).body).toMatchObject({ code: 'VALIDATION_ERROR' });
+        expect((result as unknown as MockResponse).status).toBe(400);
+        expect((result as unknown as MockResponse).body).toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('returns 500 when deleteUser fails', async () => {
@@ -132,8 +164,8 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: TARGET_EMAIL });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any).status).toBe(500);
-        expect((result as any).body).toMatchObject({ code: 'INTERNAL_ERROR' });
+        expect((result as unknown as MockResponse).status).toBe(500);
+        expect((result as unknown as MockResponse).body).toMatchObject({ code: 'INTERNAL_ERROR' });
     });
 
     it('deletes successfully when confirmEmail matches', async () => {
@@ -141,7 +173,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         const req = makeDeleteRequest({ confirmEmail: TARGET_EMAIL });
         const result = await DELETE(req, { params: Promise.resolve({ id: TARGET_ID }) });
 
-        expect((result as any)._ok).toBe(true);
+        expect((result as unknown as MockResponse)._ok).toBe(true);
         expect(mockDeleteUser).toHaveBeenCalledWith(TARGET_ID);
     });
 

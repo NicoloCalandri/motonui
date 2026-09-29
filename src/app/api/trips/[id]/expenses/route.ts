@@ -1,10 +1,9 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok, created } from '@/lib/errors';
 import { getTripExpenseSummary, convertCurrency, splitExpenses } from '@/lib/expenses';
-import { requireTripMember, requireDayInTrip, requireTripPayer } from '@/lib/authz';
+import { requireDayInTrip, requireTripPayer } from '@/lib/authz';
 import { sanitizePlainText } from '@/lib/sanitize';
 import type { Expense } from '@/lib/types';
 
@@ -28,25 +27,11 @@ const FilterSchema = z.object({
     day_id: z.string().uuid().optional(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
 /** GET /api/trips/[id]/expenses — list with filters, totals, and split */
-export const GET = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-    const { searchParams } = new URL(request.url);
-
-    const filter = FilterSchema.safeParse({
-        category: searchParams.get('category') ?? undefined,
-        paid_by: searchParams.get('paid_by') ?? undefined,
-        from_date: searchParams.get('from_date') ?? undefined,
-        to_date: searchParams.get('to_date') ?? undefined,
-        day_id: searchParams.get('day_id') ?? undefined,
-    });
+export const GET = withRoute(
+    { name: 'trips/[id]/expenses GET', params: tripParams(), query: FilterSchema, tripMember: true },
+    async ({ supabase, params, query: filter }) => {
+    const { id } = params;
 
     let query = supabase
         .from('expenses')
@@ -55,13 +40,11 @@ export const GET = withErrorHandler(async (request, { params }) => {
         .order('date', { ascending: true })
         .order('created_at', { ascending: false });
 
-    if (filter.success) {
-        if (filter.data.category) query = query.eq('category', filter.data.category);
-        if (filter.data.paid_by) query = query.eq('paid_by', filter.data.paid_by);
-        if (filter.data.from_date) query = query.gte('date', filter.data.from_date);
-        if (filter.data.to_date) query = query.lte('date', filter.data.to_date);
-        if (filter.data.day_id) query = query.eq('day_id', filter.data.day_id);
-    }
+    if (filter.category) query = query.eq('category', filter.category);
+    if (filter.paid_by) query = query.eq('paid_by', filter.paid_by);
+    if (filter.from_date) query = query.gte('date', filter.from_date);
+    if (filter.to_date) query = query.lte('date', filter.to_date);
+    if (filter.day_id) query = query.eq('day_id', filter.day_id);
 
     const { data: expenses, error } = await query;
     if (error) throw new Error(`[motonui][expenses][GET] ${error.message}`);
@@ -73,31 +56,24 @@ export const GET = withErrorHandler(async (request, { params }) => {
         .eq('trip_id', id);
 
     const memberIds = (members ?? []).map((m) => m.user_id);
-    const summary = await getTripExpenseSummary(id);
+    const summary = await getTripExpenseSummary(id, { supabase });
     const split = splitExpenses(expenses as Expense[], memberIds);
 
     return ok({ expenses, summary, split });
-}, 'trips/[id]/expenses GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** POST /api/trips/[id]/expenses — create expense with EUR conversion */
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-    const body: unknown = await request.json();
-    const parsed = CreateExpenseSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
-    const input = parsed.data;
+export const POST = withRoute(
+    { name: 'trips/[id]/expenses POST', params: tripParams(), body: CreateExpenseSchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id } = params;
+    const input = body;
     const payerId = input.paid_by ?? user.id;
     await requireDayInTrip(supabase, id, input.day_id);
     await requireTripPayer(supabase, id, payerId);
 
     // Convert to EUR for unified reporting
-    const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR');
+    const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR', { supabase });
 
     const { data: expense, error } = await supabase
         .from('expenses')
@@ -116,4 +92,4 @@ export const POST = withErrorHandler(async (request, { params }) => {
     if (error) throw new Error(`[motonui][expenses][POST] ${error.message}`);
 
     return created(expense);
-}, 'trips/[id]/expenses POST') as (req: Request, ctx: Params) => Promise<Response>;
+});

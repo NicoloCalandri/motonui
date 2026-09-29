@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember, requireLegInTrip } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok } from '@/lib/errors';
+import { requireLegInTrip } from '@/lib/authz';
 
 const UpdateBaggageItemSchema = z.object({
     leg_id: z.string().uuid().nullable().optional(),
@@ -16,20 +15,11 @@ const UpdateBaggageItemSchema = z.object({
     notes: z.string().nullable().optional(),
 });
 
-type Params = { params: Promise<{ id: string; baggageId: string }> };
-
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, baggageId } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
-    const body = await request.json();
-    const parsed = UpdateBaggageItemSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
-    const data = parsed.data;
+export const PUT = withRoute(
+    { name: 'trips/[id]/baggage/[baggageId] PUT', params: tripParams('baggageId'), body: UpdateBaggageItemSchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+    const { id, baggageId } = params;
+    const data = body;
     await requireLegInTrip(supabase, id, data.leg_id);
 
     const { error } = await supabase
@@ -50,15 +40,12 @@ export const PUT = withErrorHandler(async (request, { params }) => {
 
     if (error) throw new Error(`[motonui][baggage][PUT] ${error.message}`);
     return ok({ success: true });
-}, 'trips/[id]/baggage/[baggageId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, baggageId } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
+export const DELETE = withRoute(
+    { name: 'trips/[id]/baggage/[baggageId] DELETE', params: tripParams('baggageId'), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id, baggageId } = params;
     const { error } = await supabase
         .from('baggage_items')
         .delete()
@@ -67,4 +54,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
 
     if (error) throw new Error(`[motonui][baggage][DELETE] ${error.message}`);
     return ok({ success: true });
-}, 'trips/[id]/baggage/[baggageId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

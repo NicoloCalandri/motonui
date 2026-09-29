@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok, created } from '@/lib/errors';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertActivityReminder } from '@/lib/reminders';
 
@@ -22,15 +20,11 @@ const CreateActivitySchema = z.object({
     day_id: z.string().uuid().optional().nullable(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
 /** GET /api/trips/[id]/activities — list all activities for a trip */
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id]/activities GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
     const { data, error } = await supabase
         .from('activities')
         .select('*')
@@ -39,55 +33,49 @@ export const GET = withErrorHandler(async (_req, { params }) => {
 
     if (error) throw new Error(`[motonui][activities][GET] ${error.message}`);
     return ok(data ?? []);
-}, 'trips/[id]/activities GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** POST /api/trips/[id]/activities — create an activity */
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-
-    const body: unknown = await request.json();
-    const parsed = CreateActivitySchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
+export const POST = withRoute(
+    { name: 'trips/[id]/activities POST', params: tripParams(), body: CreateActivitySchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id } = params;
     const { data: activity, error } = await supabase
         .from('activities')
-        .insert({ ...parsed.data, trip_id: id })
+        .insert({ ...body, trip_id: id })
         .select()
         .single();
 
     if (error) throw new Error(`[motonui][activities][POST] ${error.message}`);
 
     // Auto-create expense if cost provided
-    if (parsed.data.cost && parsed.data.cost > 0) {
-        const amount_eur = await convertCurrency(parsed.data.cost, parsed.data.currency, 'EUR');
+    if (body.cost && body.cost > 0) {
+        const amount_eur = await convertCurrency(body.cost, body.currency, 'EUR', { supabase });
         await supabase.from('expenses').insert({
             trip_id: id,
-            day_id: parsed.data.day_id ?? null,
-            description: `Attività: ${parsed.data.name}`,
-            amount: parsed.data.cost,
-            currency: parsed.data.currency,
+            day_id: body.day_id ?? null,
+            description: `Attività: ${body.name}`,
+            amount: body.cost,
+            currency: body.currency,
             amount_eur,
             category: 'activity',
             paid_by: user.id,
             split: true,
-            date: parsed.data.date ?? null,
+            date: body.date ?? null,
         });
     }
 
     // Create reminder if date and time are set
-    if (parsed.data.date && parsed.data.time) {
+    if (body.date && body.time) {
         await upsertActivityReminder(supabase, {
             userId: user.id,
             tripId: id,
             activityId: activity.id,
-            name: parsed.data.name,
-            date: parsed.data.date,
-            time: parsed.data.time,
+            name: body.name,
+            date: body.date,
+            time: body.time,
         });
     }
 
     return created(activity);
-}, 'trips/[id]/activities POST') as (req: Request, ctx: Params) => Promise<Response>;
+});
