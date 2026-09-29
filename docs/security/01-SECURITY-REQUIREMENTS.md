@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 25 | 17 | 24 |
+| **66** | 25 | 18 | 23 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -24,7 +24,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 2 | 2 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 2 | 1 | 2 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 1 | 2 | 4 | 0 |
-| SR-PRIV · Privacy e dati personali | 7 | 1 | 2 | 4 | 1 |
+| SR-PRIV · Privacy e dati personali | 7 | 2 | 3 | 2 | 1 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
 | SR-WEB · Sicurezza web | 6 | 2 | 3 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 3 | 1 | 3 | 0 |
@@ -34,7 +34,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 ### Requisiti P0 aperti
 
 - **SR-DEV-01** — Nessun segreto nel repository, né nella storia git. Presenti chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, email admin e una stringa commentata che sembra una password. File `.env` rimossi dal tracking e `.env.example` con placeholder; resta da ruotare i segreti, già pubblici nella storia git (T-0.1).
-- **SR-PRIV-02** — Foto, carte d'imbarco e documenti stanno in bucket privati. `docs/archive/SECURITY.md` lo riconosce: bucket pubblico (T-0.9, T-2.1).
+- **SR-PRIV-02** — Foto, carte d'imbarco e documenti stanno in bucket privati. Mitigato per le carte d'imbarco (T-0.9, bucket privato `trip-documents`); le foto restano pubbliche fino a T-2.1.
 
 Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy): SR-AUTHZ-04, SR-AUTHZ-05, SR-AUTHZ-06.
 
@@ -114,8 +114,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
 | SR-PRIV-01 | EXIF (in particolare GPS) rimossi dalle foto prima di qualunque esposizione | P1 | 🔴 Da fare | `src/app/api/trips/[id]/media/route.ts` (upload originale senza processing) | — |
-| SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | 🔴 Da fare | `src/lib/storage.ts` (`getPublicUrl`), bucket `trip-media` non definito in migration | `docs/SECURITY.md` lo riconosce: bucket pubblico. |
-| SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | 🔴 Da fare | `boarding-pass/route.ts:56` (commento: non cancella dallo storage) | Path prevedibile `trips/{tripId}/boarding-passes/{legId}.ext`. |
+| SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | 🟡 Parziale | `0017_trip_documents_bucket.sql` (bucket `trip-documents` privato, nessuna policy client); route `…/legs/[legId]/boarding-pass` (GET proxy autenticato); test `route.test.ts`, `supabase/tests/0017_trip_documents.test.sql` | T-0.9: carte d'imbarco private, servite solo dopo il controllo di membership, file esistenti spostati da `scripts/migrate-boarding-passes.ts` (da eseguire in produzione). `documents.file_url` contiene solo link inseriti dall'utente, nessun file in storage. Le foto restano nel bucket pubblico `trip-media` fino a T-2.1. |
+| SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | ✅ Fatto | `boarding-pass/route.ts` (DELETE e sostituzione eliminano il file, path ricontrollato sul prefisso del viaggio); test `route.test.ts` | T-0.9. Path non più prevedibili (`{legId}-{uuid}.{ext}`). Gli orfani pubblici lasciati dalla vecchia DELETE sono rimossi dallo script di migrazione. |
 | SR-PRIV-04 | Cancellazione account self-service completa (DB + storage) | P1 | 🟡 Parziale | `0014_self_delete_account.sql`; `mobile/app/profile/delete-account.tsx` | Rimuove gli avatar ma non i media dei viaggi. |
 | SR-PRIV-05 | Nessun dato personale nei log applicativi | P2 | 🟡 Parziale | `src/app/api/trips/route.ts:28` (`console.log` dei viaggi) | — |
 | SR-PRIV-06 | Gli ZIP Instagram (file, non solo riga DB) sono eliminati dopo 24 h | P2 | 🔴 Da fare | `cleanup/route.ts` cancella solo le righe; cron non schedulato | — |

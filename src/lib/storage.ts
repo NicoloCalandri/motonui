@@ -18,6 +18,8 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
 /** Supabase Storage bucket names */
 export const Buckets = {
     tripMedia: 'trip-media',
+    /** Private: boarding passes and documents, served only via API routes. */
+    tripDocuments: 'trip-documents',
     postCovers: 'post-covers',
     instagramExports: 'instagram-exports',
 } as const;
@@ -93,6 +95,44 @@ export async function uploadFile(
     }
 
     return getPublicUrl(bucket, path);
+}
+
+/**
+ * Uploads a file to a private bucket. Returns nothing: private files are
+ * served through authenticated API routes, never by URL.
+ */
+export async function uploadPrivateFile(
+    bucket: BucketName,
+    path: string,
+    file: Buffer | ArrayBuffer,
+    contentType: string
+): Promise<void> {
+    const supabase = await createAdminClient();
+
+    const { error } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, { contentType, upsert: false });
+
+    if (error) {
+        throw new Error(`[motonui][storage][upload] ${error.message}`);
+    }
+}
+
+/**
+ * Downloads a file with the service role. Callers must have authorized the
+ * request and validated `path` first.
+ */
+export async function downloadFile(bucket: BucketName, path: string): Promise<Blob | null> {
+    const supabase = await createAdminClient();
+
+    const { data, error } = await supabase.storage.from(bucket).download(path);
+
+    if (error || !data) {
+        console.error(`[motonui][storage][download] ${error?.message ?? 'Empty response'}`);
+        return null;
+    }
+
+    return data;
 }
 
 /**
