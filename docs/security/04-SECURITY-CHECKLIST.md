@@ -28,7 +28,7 @@ Oggi sono automatici solo type-check, lint (senza soglia sui warning), test e bu
 | A5 | Coverage `src/lib/**` ≥ 70% | 🤖⏳ ⛔ | `npm run test:coverage` con soglia (T-3.1) | SDLC-03 | 🔴 29,6% |
 | A6 | Build di produzione | 🤖 ⛔ | `npm run build` | SDLC-01 | ✅ attivo |
 | A7 | Nessun segreto nei file modificati | 🤖⏳ ⛔ | gitleaks in pre-commit e CI (T-0.3) | SDLC-05, DEV-01 | 🔴 assente |
-| A8 | Test RLS verdi (anonimo, estraneo, partner, owner) | 🤖 ⛔ | job `rls-tests` con `supabase start` (`npm run test:rls`) | SDLC-04 | ✅ attivo |
+| A8 | Test RLS verdi (anonimo, estraneo, partner, owner) | 🤖 ⛔ | job `rls-tests` (Postgres + stub Supabase, `scripts/run-sql-tests.sh`); in locale `npm run test:rls` su Supabase | SDLC-04 | ✅ attivo |
 | A9 | Ogni tabella ha RLS e ogni policy UPDATE/INSERT ha `WITH CHECK` | 🤖 ⛔ | meta-controllo in `supabase/tests/rls_matrix.test.sql` | AUTHZ-01, AUTHZ-06 | ✅ attivo |
 | A10 | Nessuna vulnerabilità alta o critica nelle dipendenze | 🤖⏳ ⛔ | `npm audit --audit-level=high` (T-4.7) | SDLC-06 | 🟡 solo Dependabot |
 | A11 | Linter DB di Supabase senza errori | 🤖⏳ | `supabase db lint` | AUTHZ-07 | 🔴 assente |

@@ -31,32 +31,34 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # Plain Postgres + supabase/tests/support/supabase-stub.sql (roles, grants,
+    # auth.uid/auth.role, auth/storage tables) instead of `supabase start`:
+    # pulling the ~11 Supabase images from public.ecr.aws hits its anonymous
+    # rate limit on shared runners. `npm run test:rls` still runs the same
+    # suite against a real local Supabase.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      # Local Supabase (Postgres + Auth + Storage schemas) with every migration
-      # in supabase/migrations applied, using the CLI version pinned in
-      # package.json.
-      - name: Start Supabase
-        run: npx supabase start
-
-      # supabase/tests/*.test.sql: RLS matrix (anon, stranger, partner, owner)
-      # and regression tests for REVIEW.md S-02/S-03/S-04 (T-1.1, T-1.2).
+      # Applies every migration, then runs supabase/tests/*.test.sql: RLS
+      # matrix (anon, stranger, partner, owner) and regressions for REVIEW.md
+      # S-02/S-03/S-04 (T-1.1, T-1.2).
       - name: Run RLS tests
-        run: npm run test:rls
-
-      - name: Stop Supabase
-        if: always()
-        run: npx supabase stop --no-backup
+        env:
+          SQL_TESTS_BOOTSTRAP: '1'
+          SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: sh scripts/run-sql-tests.sh
 
   lint-and-typecheck:
     name: Lint & Type Check
