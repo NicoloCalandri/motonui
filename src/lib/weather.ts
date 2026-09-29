@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { EXTERNAL_HOSTS, safeFetch } from '@/lib/safe-fetch';
 import type { DailyWeather } from '@/lib/types';
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12h
@@ -11,7 +12,7 @@ const HISTORICAL_YEARS = 3; // years averaged for the climate-approximation fall
  */
 export async function geocodeDestination(destination: string): Promise<{ lat: number; lng: number } | null> {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=it`;
-    const response = await fetch(url);
+    const response = await safeFetch(url, { allowedHosts: EXTERNAL_HOSTS.openMeteo });
     if (!response.ok) return null;
 
     const json = (await response.json()) as { results?: { latitude: number; longitude: number }[] };
@@ -72,7 +73,7 @@ async function fetchForecast(lat: number, lng: number, startDate: string, endDat
         `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode` +
         `&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
-    const response = await fetch(url);
+    const response = await safeFetch(url, { allowedHosts: EXTERNAL_HOSTS.openMeteo });
     if (!response.ok) throw new Error(`[motonui][weather][forecast] Open-Meteo error: ${response.status}`);
 
     const json = await response.json();
@@ -101,7 +102,7 @@ async function fetchHistoricalAverage(lat: number, lng: number, startDate: strin
             `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode` +
             `&timezone=auto&start_date=${shiftedStart}&end_date=${shiftedEnd}`;
 
-        const response = await fetch(url);
+        const response = await safeFetch(url, { allowedHosts: EXTERNAL_HOSTS.openMeteo });
         if (!response.ok) continue; // skip a missing year rather than failing the whole request
 
         const json = await response.json();

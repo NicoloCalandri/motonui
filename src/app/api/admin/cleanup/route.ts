@@ -1,33 +1,30 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import { ok } from '@/lib/errors';
-
-const ADMIN_SECRET = process.env.ADMIN_CLEANUP_SECRET;
+import { isAuthorizedCronRequest } from '@/lib/auth/cron';
+import { Errors, ok, withErrorHandler } from '@/lib/errors';
+import { removeExpiredExportObjects } from '@/lib/instagram-cleanup';
 
 /**
- * POST /api/admin/cleanup — runs scheduled cleanup tasks.
- * Protected by a static secret header; intended to be called from a cron job.
+ * GET /api/admin/cleanup — daily cleanup, called by Vercel Cron (vercel.json)
+ * with `Authorization: Bearer ${CRON_SECRET}` (T-2.6).
  *
  * Tasks:
- * - Delete expired instagram_exports (older than expiry and status = 'ready')
+ * - Delete Instagram ZIP objects older than 24 h, then the expired rows
  * - Prune ai_usage records older than 90 days
- * - Remove orphaned media records (media without a trip)
+ * - Prune destination cache older than 30 days
  */
-export async function POST(request: Request): Promise<Response> {
-    // Verify secret
-    const authHeader = request.headers.get('x-admin-secret');
-    if (!ADMIN_SECRET || authHeader !== ADMIN_SECRET) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export const GET = withErrorHandler(async (request) => {
+    if (!isAuthorizedCronRequest(request)) throw Errors.unauthorized();
 
     const supabase = await createAdminClient();
     const results: Record<string, number> = {};
 
-    // 1. Delete expired Instagram exports
+    // 1. Expired Instagram exports: objects first, then rows (any status)
+    results.removedExportObjects = await removeExpiredExportObjects(supabase);
+
     const { count: exportCount } = await (supabase
         .from('instagram_exports') as any)
         .delete({ count: 'exact' })
-        .lt('expires_at', new Date().toISOString())
-        .eq('status', 'ready');
+        .lt('expires_at', new Date().toISOString());
 
     results.expiredExports = exportCount ?? 0;
 
@@ -51,4 +48,4 @@ export async function POST(request: Request): Promise<Response> {
 
     console.info('[motonui][admin][cleanup]', results);
     return ok({ success: true, results });
-}
+}, 'admin/cleanup GET');

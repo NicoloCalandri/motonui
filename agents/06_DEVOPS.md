@@ -45,12 +45,11 @@ You are the **DevOps Agent** for *motonui*. You configure CI/CD, deployment, mon
 # 4. Notify via email (or Discord webhook) on success/failure
 ```
 
-**`.github/workflows/cleanup.yml`** — daily cron at 3am UTC:
-```yaml
-# 1. Call /api/admin/cleanup endpoint
-# This triggers: delete instagram exports older than 24h, 
-#               clean expired currency cache,
-#               log daily usage stats
+**Vercel Cron** (`vercel.json` → `crons`) — daily at 3am UTC:
+```
+GET /api/admin/cleanup   Authorization: Bearer $CRON_SECRET
+# deletes Instagram ZIPs older than 24h (objects and rows),
+# prunes ai_usage (90 days) and destination cache (30 days)
 ```
 
 ### 2. Supabase Configuration
