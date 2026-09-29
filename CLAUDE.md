@@ -108,6 +108,7 @@ import type { Trip } from '@/lib/types'
 - **La RLS è il confine primario** (SADR-01): il mobile e i client component parlano direttamente con Supabase, quindi ogni invariante di sicurezza va espressa anche nel DB
 - Ogni policy `UPDATE` ha `WITH CHECK`; non aggiungere policy permissive che ne allargano un'altra sulla stessa operazione (sono in OR)
 - Le colonne strutturali (`id`, `trip_id`, `owner_id`, `uploaded_by`, `author_id`, `media.url`, `media.storage_path`, `media.thumb_path`, `documents.file_path`, `created_at`) sono protette dal trigger `prevent_structural_update()`: aggiungilo alle nuove tabelle di viaggio
+- Un viaggio ha al massimo due membri (trigger `enforce_trip_member_limit`): i viaggi si creano con la RPC `create_trip()` e il partner entra solo con `accept_trip_invite()` (`src/lib/invites.ts`, migration `0021`), mai inserendo direttamente in `trip_members`
 - Le colonne sensibili di `profiles` (`role`, `plan`, `premium_*`, `suspended_*`) si scrivono solo con il service role
 - Funzioni `SECURITY DEFINER` sempre con `set search_path = public, pg_temp`; nessuna vista su `auth.users` leggibile da `anon`/`authenticated`
 - Service role solo alle condizioni di `docs/security/03-SECURITY-ARCHITECTURE.md` §3.3

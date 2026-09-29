@@ -44,7 +44,7 @@ Legenda: ✅ presente e funzionante · 🟡 presente con lacune · 🔴 assente 
 | ID | Requisito | Stato | Note |
 |---|---|---|---|
 | FR-01 | Registrazione e login con email+password e Google | ✅ | Magic link non presente (ADR-06) |
-| FR-02 | **Invitare il partner** in un viaggio via email o link, accettazione con il proprio account, massimo due membri | 🔴 | La UI chiama `/api/trips/invite`, che non esiste |
+| FR-02 | **Invitare il partner** in un viaggio via email o link, accettazione con il proprio account, massimo due membri | ✅ | `POST /api/trips/[id]/invites`, pagina `/invite/[token]`, RPC della migration `0021` (T-2.5) |
 | FR-03 | Profilo con nome e avatar | ✅ | |
 | FR-04 | Cancellazione account self-service | 🟡 | Non cancella i file dei viaggi |
 | FR-05 | Recupero password | ✅ | `auth/forgot-password`, `reset-password` |
@@ -66,7 +66,7 @@ Legenda: ✅ presente e funzionante · 🟡 presente con lacune · 🔴 assente 
 |---|---|---|---|
 | FR-20 | Registrare una spesa con valuta, categoria, pagatore, giorno | ✅ | |
 | FR-21 | Conversione in EUR con tasso del giorno (cache 24h) e fallback esplicito | 🟡 | Il fallback tratta la valuta estera come EUR |
-| FR-22 | Saldo "chi deve quanto a chi" tra i due membri | 🟡 | Corretto solo con due membri e tassi disponibili |
+| FR-22 | Saldo "chi deve quanto a chi" tra i due membri | 🟡 | Con un solo membro mostra "in attesa del partner" (T-2.8); resta la dipendenza dai tassi disponibili |
 | FR-23 | Riepilogo per categoria e budget del viaggio | ✅ | |
 
 ### 4.4 Media e Instagram
