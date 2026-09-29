@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -13,5 +13,7 @@ export default defineConfig({
     },
     pool: 'forks',
     testTimeout: 15000,
+    // nextgen/ has its own package.json, deps and vitest config.
+    exclude: [...configDefaults.exclude, 'nextgen/**', 'mobile/**'],
   },
 });
