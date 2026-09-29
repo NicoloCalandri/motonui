@@ -69,7 +69,7 @@ flowchart TB
 | Token di impersonazione | JWT HS256 `{adminId, targetId, type, exp}` | 30 min | Cookie `impersonation_token` HttpOnly, Secure, SameSite=Lax; copia in `impersonation_tokens.token` | Middleware | `exit` cancella la riga, **ma il middleware non la controlla** | 🔴 Aggiungere `jti`, salvare hash, verificare revoca (T-1.8) |
 | `impersonation_display_name` | Testo | 30 min | Cookie leggibile da JS | Banner UI | Con l'uscita | ✅ Non sensibile |
 | `user_role` | `user`/`admin` | Sessione | Cookie leggibile da JS | UI | — | ✅ Solo suggerimento UI, mai usato per autorizzare |
-| `ADMIN_CLEANUP_SECRET` → `CRON_SECRET` | Stringa casuale ≥ 32 byte | Fino a rotazione | Env Vercel | Route cron | Rotazione | 🔴 Da sostituire con `CRON_SECRET` di Vercel e header `Authorization: Bearer` (T-2.6) |
+| `CRON_SECRET` | Stringa casuale ≥ 32 caratteri | Fino a rotazione | Env Vercel | Route cron (`src/lib/auth/cron.ts`) | Rotazione | ✅ Header `Authorization: Bearer` inviato da Vercel Cron (T-2.6); `ADMIN_CLEANUP_SECRET` non è più usato |
 | `ANTHROPIC_API_KEY` | `sk-ant-…` | Fino a rotazione | Env server | `lib/ai/*` | Console Anthropic | 🔴 **Nel repo** → ruotare |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | `pk.…` | Fino a rotazione | Bundle client | Browser | Account Mapbox | 🟡 Pubblico per design ma va ristretto per URL; è anche nel repo |
 | `EXCHANGE_RATE_API_KEY` | Stringa | Fino a rotazione | Env server | `lib/expenses.ts` | Dashboard provider | ✅ Placeholder nel repo |
@@ -155,7 +155,7 @@ Nel codice non esiste un componente chiamato "Bridge". In questo documento il te
 | Sessioni | JWT firmati da Supabase; validati con `getUser()` lato server | ✅ |
 | Token di impersonazione | HS256 via `jose`, segreto ≥ 32 byte, `exp` 30 min | 🟡 Aggiungere `jti` e hash SHA-256 in DB |
 | Token persistiti (impersonazione, inviti) | Solo hash SHA-256 in DB; confronto sull'hash | 🔴 Oggi in chiaro |
-| Segreti condivisi (cron) | Confronto `crypto.timingSafeEqual` su buffer di pari lunghezza | 🔴 Oggi `!==` |
+| Segreti condivisi (cron) | Confronto `crypto.timingSafeEqual` su buffer di pari lunghezza | ✅ Digest SHA-256 confrontati con `timingSafeEqual` (`src/lib/auth/cron.ts`) |
 | Casualità | `crypto.randomUUID()` / `crypto.getRandomValues` | ✅ Nomi file upload |
 | URL firmati | Firma Supabase Storage con TTL | 🔴 Da adottare |
 

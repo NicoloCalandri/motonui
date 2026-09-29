@@ -1,23 +1,18 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import { ok } from '@/lib/errors';
+import { isAuthorizedCronRequest } from '@/lib/auth/cron';
+import { Errors, ok, withErrorHandler } from '@/lib/errors';
 import { sendEmail, flightCheckinEmail, paymentDeadlineEmail, restaurantReminderEmail, activityReminderEmail } from '@/lib/email';
 
-const ADMIN_SECRET = process.env.ADMIN_CLEANUP_SECRET;
-
 /**
- * POST /api/admin/send-reminders — sends due travel reminders via email.
+ * GET /api/admin/send-reminders — sends due travel reminders via email.
  *
- * Called daily by Vercel Cron (see vercel.json).
+ * Called daily by Vercel Cron (see vercel.json) with
+ * `Authorization: Bearer ${CRON_SECRET}` (T-2.6).
  * Sends reminders whose `remind_at` is in the past and `sent_at` is null.
  * Uses the trip owner's email from auth.users.
- *
- * Protected by the same ADMIN_CLEANUP_SECRET used for the cleanup cron.
  */
-export async function POST(request: Request): Promise<Response> {
-    const authHeader = request.headers.get('x-admin-secret');
-    if (!ADMIN_SECRET || authHeader !== ADMIN_SECRET) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export const GET = withErrorHandler(async (request) => {
+    if (!isAuthorizedCronRequest(request)) throw Errors.unauthorized();
 
     const supabase = await createAdminClient();
     const now = new Date().toISOString();
@@ -37,8 +32,7 @@ export async function POST(request: Request): Promise<Response> {
         .is('sent_at', null);
 
     if (fetchError) {
-        console.error('[motonui][send-reminders] fetch error', fetchError.message);
-        return Response.json({ error: fetchError.message }, { status: 500 });
+        throw new Error(`[motonui][send-reminders] fetch error: ${fetchError.message}`);
     }
 
     let sent = 0;
@@ -128,4 +122,4 @@ export async function POST(request: Request): Promise<Response> {
 
     console.info('[motonui][send-reminders]', { sent, failed, total: reminders?.length ?? 0 });
     return ok({ success: true, sent, failed });
-}
+}, 'admin/send-reminders GET');

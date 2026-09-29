@@ -1,0 +1,75 @@
+// @vitest-environment node
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { createAdminClientMock, removeExpiredMock } = vi.hoisted(() => ({
+    createAdminClientMock: vi.fn(),
+    removeExpiredMock: vi.fn(),
+}));
+
+vi.mock('@/lib/supabase/server', () => ({ createAdminClient: createAdminClientMock }));
+vi.mock('@/lib/instagram-cleanup', () => ({ removeExpiredExportObjects: removeExpiredMock }));
+
+import { GET } from './route';
+import { GET as sendReminders } from '../send-reminders/route';
+
+const SECRET = 'cron-secret-for-route-tests-0123456789';
+const context = { params: Promise.resolve({}) };
+
+function cronRequest(path: string, authorization?: string) {
+    return new Request(`https://motonui.app${path}`, { headers: authorization ? { authorization } : {} });
+}
+
+function deleteChain(count: number) {
+    const chain = { delete: vi.fn(() => chain), lt: vi.fn(async () => ({ count })) };
+    return chain;
+}
+
+describe('cron routes', () => {
+    beforeEach(() => {
+        vi.stubEnv('CRON_SECRET', SECRET);
+        vi.spyOn(console, 'info').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        vi.restoreAllMocks();
+        createAdminClientMock.mockReset();
+        removeExpiredMock.mockReset();
+    });
+
+    it.each([
+        ['/api/admin/cleanup', GET],
+        ['/api/admin/send-reminders', sendReminders],
+    ])('%s rejects requests without the CRON_SECRET bearer', async (path, handler) => {
+        for (const auth of [undefined, 'Bearer wrong-secret', SECRET]) {
+            const res = await handler(cronRequest(path, auth), context);
+            expect(res.status).toBe(401);
+            expect(await res.json()).toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
+        }
+        expect(createAdminClientMock).not.toHaveBeenCalled();
+    });
+
+    it('cleanup deletes the ZIP objects and then the expired rows', async () => {
+        const chain = deleteChain(3);
+        createAdminClientMock.mockResolvedValue({ from: vi.fn(() => chain) });
+        removeExpiredMock.mockResolvedValue(4);
+
+        const res = await GET(cronRequest('/api/admin/cleanup', `Bearer ${SECRET}`), context);
+
+        expect(res.status).toBe(200);
+        expect(removeExpiredMock).toHaveBeenCalledTimes(1);
+        const body = await res.json();
+        expect(body.results).toMatchObject({ removedExportObjects: 4, expiredExports: 3 });
+    });
+
+    it('cleanup reports a failure without leaking storage details', async () => {
+        createAdminClientMock.mockResolvedValue({ from: vi.fn() });
+        removeExpiredMock.mockRejectedValue(new Error('[motonui][cleanup][instagram] list: secret detail'));
+
+        const res = await GET(cronRequest('/api/admin/cleanup', `Bearer ${SECRET}`), context);
+
+        expect(res.status).toBe(500);
+        expect(JSON.stringify(await res.json())).not.toContain('secret detail');
+    });
+});

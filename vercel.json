@@ -6,7 +6,8 @@
         "fra1"
     ],
     "crons": [
-        { "path": "/api/admin/send-reminders", "schedule": "0 8 * * *" }
+        { "path": "/api/admin/send-reminders", "schedule": "0 8 * * *" },
+        { "path": "/api/admin/cleanup", "schedule": "0 3 * * *" }
     ],
     "headers": [
         {

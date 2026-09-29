@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { EXTERNAL_HOSTS, safeFetch } from '@/lib/safe-fetch';
 import type { Expense, ExpenseCategory, ExpenseSummary, SplitResult, Settlement } from '@/lib/types';
 
 const BASE_CURRENCY = 'EUR';
@@ -33,8 +34,9 @@ async function getCachedRates(): Promise<Record<string, number>> {
         return {};
     }
 
-    const response = await fetch(
-        `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${BASE_CURRENCY}`
+    const response = await safeFetch(
+        `https://v6.exchangerate-api.com/v6/${encodeURIComponent(apiKey)}/latest/${BASE_CURRENCY}`,
+        { allowedHosts: EXTERNAL_HOSTS.exchangeRate }
     );
 
     if (!response.ok) {

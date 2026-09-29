@@ -14,19 +14,19 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 25 | 18 | 23 |
+| **66** | 40 | 13 | 13 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
-| SR-AUTH · Autenticazione | 7 | 4 | 1 | 2 | 0 |
-| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 8 | 1 | 1 | 0 |
-| SR-INPUT · Validazione dell'input | 7 | 4 | 2 | 1 | 0 |
-| SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 2 | 2 | 1 | 1 |
-| SR-CRYPTO · Crittografia e token | 5 | 2 | 1 | 2 | 0 |
-| SR-INT · Integrazioni esterne | 7 | 1 | 2 | 4 | 0 |
-| SR-PRIV · Privacy e dati personali | 7 | 2 | 3 | 2 | 1 |
+| SR-AUTH · Autenticazione | 7 | 5 | 1 | 1 | 0 |
+| SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 9 | 0 | 1 | 0 |
+| SR-INPUT · Validazione dell'input | 7 | 4 | 3 | 0 | 0 |
+| SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
+| SR-CRYPTO · Crittografia e token | 5 | 4 | 1 | 0 | 0 |
+| SR-INT · Integrazioni esterne | 7 | 5 | 1 | 1 | 0 |
+| SR-PRIV · Privacy e dati personali | 7 | 3 | 3 | 1 | 1 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
-| SR-WEB · Sicurezza web | 6 | 2 | 3 | 1 | 0 |
+| SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 3 | 1 | 3 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
@@ -75,7 +75,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-INPUT-04 | Il contenuto Tiptap è sanificato in scrittura (whitelist di nodi, marks, protocolli URL, limiti di profondità) | P1 | ✅ Fatto | `src/lib/sanitize.ts`; test `src/lib/sanitize.test.ts` | — |
 | SR-INPUT-05 | Il contenuto del blog è sanificato anche in rendering (difesa contro scritture dirette via REST) | P1 | ✅ Fatto | `src/lib/blog/render.ts` (`sanitizeTiptapDocument` prima di `generateHTML`), usato da `blog/[slug]/page.tsx`; test `render.test.ts` | T-1.6. Il test fallisce se si toglie la sanificazione (link `javascript:` scritto via REST). |
 | SR-INPUT-06 | I dati utente nei prompt AI sono delimitati e trattati come non fidati | P2 | 🟡 Parziale | `src/lib/ai/blog-assistant.ts` (`buildPromptBoundary`) | Assente in `destination.ts`, `packing.ts`, `seo.ts`, `trip-summary.ts`, `media/captions.ts`. |
-| SR-INPUT-07 | Le richieste HTTP lato server vanno solo verso host in allowlist (anti-SSRF) | P1 | 🔴 Da fare | `src/lib/media/instagram-export.ts:70` (`fetch(media.url)`) | `media.url` è modificabile dal client (SR-AUTHZ-06). |
+| SR-INPUT-07 | Le richieste HTTP lato server vanno solo verso host in allowlist (anti-SSRF) | P1 | 🟡 Parziale | `src/lib/safe-fetch.ts` (HTTPS, allowlist, niente redirect, timeout) usato da `weather.ts` ed `expenses.ts`; test `safe-fetch.test.ts` | Resta `src/lib/media/instagram-export.ts` (`fetch(media.url)`): passa allo storage privato con path ricostruito dal server in T-2.1/T-2.4. |
 
 ## SR-DEV — Ambiente di sviluppo e segreti nel repo
 
@@ -105,8 +105,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-INT-02 | Le quote AI sono imposte lato server in modo atomico | P1 | ✅ Fatto | `0018_atomic_ai_quota.sql` (`consume_feature_quota`: incremento condizionale `ON CONFLICT … WHERE`, tutto-o-niente, eseguibile solo dal service role); `src/lib/premium/access.ts`; test `access.test.ts`, `supabase/tests/0018_ai_quota.test.sql` | T-1.5. Verificato con 50 connessioni parallele: esattamente 20 accettate. `ai_usage` non è più scrivibile dall'utente. |
 | SR-INT-03 | Un solo sistema di quota AI, allineato alla policy di progetto (20 chiamate/giorno per utente) | P2 | ✅ Fatto | contatore `ai_total` (20/giorno) consumato insieme ai limiti per funzionalità; `checkRateLimit` rimosso; model id in `src/lib/ai/models.ts` | T-1.5. Il premium resta configurabile per funzionalità tramite `feature_entitlements`. |
 | SR-INT-04 | Token Mapbox pubblico ristretto per URL/dominio | P2 | 🔴 Da fare | configurazione esterna (dashboard Mapbox) | Il token attuale è anche nel repo. |
-| SR-INT-05 | Degradazione controllata dei servizi esterni (timeout, fallback espliciti) | P2 | 🟡 Parziale | `src/lib/expenses.ts:30-33` | Senza tasso, `amount_eur ?? amount` tratta un importo in valuta estera come EUR (`expenses.ts:133,187`, `trips.ts:120`). Nessun timeout su `fetch`. |
-| SR-INT-06 | I job cron sono autenticati e vengono realmente eseguiti | P1 | 🔴 Da fare | `vercel.json` (crons), `send-reminders/route.ts`, `cleanup/route.ts` | Vercel Cron chiama in GET con `Authorization: Bearer $CRON_SECRET`; le route esportano solo POST e il middleware le reindirizza al login. `cleanup` non è schedulato. Anche: confronto del segreto a tempo costante; `cleanup` gestisce anche la retention di `ai_usage` (90 gg) e cache (30 gg), oggi mai eseguita. |
+| SR-INT-05 | Degradazione controllata dei servizi esterni (timeout, fallback espliciti) | P2 | 🟡 Parziale | `src/lib/safe-fetch.ts` (timeout 8 s) per meteo e cambi; `src/lib/expenses.ts` | Timeout presenti. Resta: senza tasso, `amount_eur ?? amount` tratta un importo in valuta estera come EUR (`expenses.ts`, `trips.ts`). |
+| SR-INT-06 | I job cron sono autenticati e vengono realmente eseguiti | P1 | ✅ Fatto | `vercel.json` (crons `send-reminders` 08:00 e `cleanup` 03:00 UTC), `src/lib/auth/cron.ts` (`Authorization: Bearer $CRON_SECRET`, `timingSafeEqual`); test `cron.test.ts`, `cleanup/route.test.ts` | T-2.6. Route in `GET`, escluse dal login nel middleware (`CRON_ROUTES`). Da verificare dopo il deploy: esecuzioni giornaliere nei log Vercel e `CRON_SECRET` impostato. |
 | SR-INT-07 | I template email fanno escape dei dati inseriti dall'utente | P2 | ✅ Fatto | `src/lib/email.ts` (tutti i campi passano da `escapeFields`, `src/lib/html.ts`); test `email.test.ts` | T-1.7. |
 
 ## SR-PRIV — Privacy e dati personali
@@ -118,7 +118,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | ✅ Fatto | `boarding-pass/route.ts` (DELETE e sostituzione eliminano il file, path ricontrollato sul prefisso del viaggio); test `route.test.ts` | T-0.9. Path non più prevedibili (`{legId}-{uuid}.{ext}`). Gli orfani pubblici lasciati dalla vecchia DELETE sono rimossi dallo script di migrazione. |
 | SR-PRIV-04 | Cancellazione account self-service completa (DB + storage) | P1 | 🟡 Parziale | `0014_self_delete_account.sql`; `mobile/app/profile/delete-account.tsx` | Rimuove gli avatar ma non i media dei viaggi. |
 | SR-PRIV-05 | Nessun dato personale nei log applicativi | P2 | 🟡 Parziale | `src/app/api/trips/route.ts:28` (`console.log` dei viaggi) | — |
-| SR-PRIV-06 | Gli ZIP Instagram (file, non solo riga DB) sono eliminati dopo 24 h | P2 | 🔴 Da fare | `cleanup/route.ts` cancella solo le righe; cron non schedulato | — |
+| SR-PRIV-06 | Gli ZIP Instagram (file, non solo riga DB) sono eliminati dopo 24 h | P2 | ✅ Fatto | `src/lib/instagram-cleanup.ts` (oggetti > 24 h nel bucket, orfani compresi), `cleanup/route.ts`; test `instagram-cleanup.test.ts` | T-2.6. Cron giornaliero: uno ZIP vive al massimo ~48 h. |
 | SR-PRIV-07 | I post pubblicati non espongono dati privati del viaggio | P1 | ✅ Fatto | `src/app/api/posts/[slug]/route.ts` (colonne esplicite), RLS `trips_select` | — |
 
 ## SR-OPS — Operatività
@@ -138,7 +138,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-WEB-01 | Header di sicurezza: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy | P1 | ✅ Fatto | `next.config.ts`, `vercel.json` | `vercel.json` e `next.config.ts` definiscono `Permissions-Policy` diverse (geolocation). |
 | SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | 🟡 Parziale | `next.config.ts` (CSP con `unsafe-inline` e `unsafe-eval`) | — |
 | SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` | — |
-| SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | 🟡 Parziale | affidata a `SameSite=Lax` | Aggiungere il controllo `Origin`/`Sec-Fetch-Site` nel middleware per i metodi di scrittura. |
+| SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | ✅ Fatto | `middleware.ts` (`Origin` / `Sec-Fetch-Site` sui metodi di scrittura di `/api/*`); test `middleware.test.ts` | T-1.9. Oltre a `SameSite=Lax`. Le route cron sono escluse (server-to-server, segreto proprio). |
 | SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`, `withRoute`; test `errors.test.ts`, `with-route.test.ts` | Le route `/api/ai/*` ora passano da `withRoute`; restano le route `/api/admin/*` senza `withErrorHandler`. |
 | SR-WEB-06 | Rate limiting sulle route pubbliche e su quelle costose (upload, export, AI) | P2 | 🔴 Da fare | `/api/posts/[slug]`, `/api/trips/[id]/media`, `/api/instagram/generate` | — |
 

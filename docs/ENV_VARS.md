@@ -21,7 +21,7 @@
 
 | Variable | Description |
 |----------|-------------|
-| `ADMIN_CLEANUP_SECRET` | Static secret for `/api/admin/cleanup` and `/api/admin/send-reminders` cron endpoints |
+| `CRON_SECRET` | Random string ≥ 32 characters (`openssl rand -base64 32`). Vercel Cron sends it as `Authorization: Bearer …` to `/api/admin/cleanup` and `/api/admin/send-reminders` (GET); the routes compare it in constant time |
 | `RESEND_API_KEY` | Resend API key for email reminders — [resend.com](https://resend.com) → Dashboard → API Keys |
 | `RESEND_FROM_EMAIL` | Sender address, e.g. `motonui <reminders@motonui.app>` |
 

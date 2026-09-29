@@ -6,7 +6,7 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
  * Cron endpoints: called server-to-server without a user session, they check
- * their own secret (T-2.6 moves them to Vercel's CRON_SECRET).
+ * `Authorization: Bearer ${CRON_SECRET}` (src/lib/auth/cron.ts).
  */
 const CRON_ROUTES = new Set(['/api/admin/send-reminders', '/api/admin/cleanup']);
 
