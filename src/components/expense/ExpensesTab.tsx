@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { Expense, ExpenseSummary, SplitResult } from '@/lib/types';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -23,18 +25,21 @@ const CATEGORY_LABELS: Record<string, string> = {
     activity: 'Attività', shopping: 'Shopping', other: 'Altro',
 };
 
+type ExpensesResponse = { expenses: Expense[]; summary: ExpenseSummary; split: SplitResult };
+
 interface ExpensesTabProps { tripId: string; tripStartDate?: string | null; tripEndDate?: string | null }
 
 /**
  * Expenses tab: split list view and summary panel with charts.
  */
 export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: ExpensesTabProps) {
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [summary, setSummary] = useState<ExpenseSummary | null>(null);
-    const [split, setSplit] = useState<SplitResult | null>(null);
+    const { data, isLoading: loading, mutate } = useSWR<ExpensesResponse>(`/api/trips/${tripId}/expenses`, jsonFetcher);
+    const expenses = data?.expenses ?? [];
+    const summary = data?.summary ?? null;
+    const split = data?.split ?? null;
+    const fetchExpenses = () => { void mutate(); };
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-    const [loading, setLoading] = useState(true);
 
     const openAdd = () => { setEditingExpense(null); setDrawerOpen(true); };
     const openEdit = (e: Expense) => { setEditingExpense(e); setDrawerOpen(true); };
@@ -45,19 +50,6 @@ export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: Expe
         fetchExpenses();
     };
 
-    const fetchExpenses = () => {
-        fetch(`/api/trips/${tripId}/expenses`)
-            .then((r) => r.json())
-            .then((data: { expenses: Expense[]; summary: ExpenseSummary; split: SplitResult }) => {
-                setExpenses(data.expenses ?? []);
-                setSummary(data.summary ?? null);
-                setSplit(data.split ?? null);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchExpenses(); }, [tripId]);
 
     const handleExportCSV = () => {
         const header = 'Data,Descrizione,Categoria,Importo,Valuta,EUR,Pagato da,Diviso';
@@ -199,7 +191,28 @@ export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: Expe
                     </div>
 
                     {/* Balance */}
-                    {split && (
+                    {summary.unconverted?.count > 0 && (
+                        // T-3.2: foreign-currency expenses saved without a rate stay out of every total.
+                        <div className="rounded-2xl p-4 bg-amber-50 border border-amber-200" role="status">
+                            <p className="text-amber-800 font-medium text-sm">
+                                {summary.unconverted.count === 1 ? '1 spesa da convertire' : `${summary.unconverted.count} spese da convertire`}
+                            </p>
+                            <p className="text-amber-700 text-xs mt-1">
+                                {Object.entries(summary.unconverted.by_currency).map(([currency, amount]) => `${amount.toLocaleString('it-IT')} ${currency}`).join(' · ')}
+                                {' '}non sono nel totale né nel saldo: il tasso di cambio non era disponibile. Modifica la spesa per riprovare la conversione.
+                            </p>
+                        </div>
+                    )}
+                    {split?.awaiting_partner && (
+                        // T-2.8: with one member there is no balance to show yet.
+                        <div className="rounded-2xl p-4 bg-sand-100 border border-sand-200" role="status">
+                            <p className="text-ink-700 font-medium text-sm">In attesa del partner 🏝️</p>
+                            <p className="text-ink-500 text-xs mt-1">
+                                Il saldo di chi deve cosa a chi apparirà quando il partner accetterà l&apos;invito.
+                            </p>
+                        </div>
+                    )}
+                    {split && !split.awaiting_partner && (
                         <div className={`rounded-2xl p-4 ${split.is_even ? 'bg-sage-50 border border-sage-200' : 'bg-terracotta-50 border border-terracotta-200'}`}>
                             {split.is_even ? (
                                 <p className="text-sage-600 font-medium text-sm">✓ Siete in pari!</p>

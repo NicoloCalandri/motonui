@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plane, Mail, Lock, User, Eye, EyeOff, Loader2, Github, CheckCircle2 } from 'lucide-react';
+import { Plane, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { safeRedirectPath } from '@/lib/redirect';
 //import { getAuthUser } from '@/lib/auth/get-user';
@@ -172,6 +172,16 @@ function LoginForm() {
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Log in'}
                             </button>
                         </form>
+
+                        {/* Google OAuth (ADR-06): the handler was wired but had no button */}
+                        <button
+                            type="button"
+                            onClick={handleGoogle}
+                            disabled={loading}
+                            className="w-48 py-4 mt-4 border border-neutral-200 text-neutral-900 rounded-xl font-bold hover:bg-neutral-50 transition-all"
+                        >
+                            Continua con Google
+                        </button>
 
                         {/* Development Bypass footer */}
                         {isDev && (

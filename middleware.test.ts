@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { NextRequest } from 'next/server';
 
 class MockNextResponse {
     cookies = { set: vi.fn(), delete: vi.fn() };
@@ -47,7 +48,7 @@ function makeRequest(
         method: opts.method ?? 'GET',
         headers: new Headers(opts.headers ?? {}),
         cookies: { get: (name: string) => (opts.cookies?.[name] ? { value: opts.cookies[name] } : undefined) },
-    } as any;
+    } as unknown as NextRequest;
 }
 
 function session(user: { id: string } | null, profile: { role: string; suspended_at: string | null } | null = null) {
@@ -78,7 +79,7 @@ describe('middleware', () => {
         });
 
         const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/dashboard'))) as any;
+        const result = (await middleware(makeRequest('/dashboard'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBe('http://localhost/suspended');
         expect(fetchSpy).not.toHaveBeenCalled();
@@ -92,7 +93,7 @@ describe('middleware', () => {
         });
 
         const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/suspended'))) as any;
+        const result = (await middleware(makeRequest('/suspended'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBeUndefined();
     });
@@ -105,7 +106,7 @@ describe('middleware', () => {
         });
 
         const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/admin/users'))) as any;
+        const result = (await middleware(makeRequest('/admin/users'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBe('http://localhost/dashboard');
     });
@@ -118,7 +119,7 @@ describe('middleware', () => {
         });
 
         const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/admin/users'))) as any;
+        const result = (await middleware(makeRequest('/admin/users'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBeUndefined();
     });
@@ -131,7 +132,7 @@ describe('middleware', () => {
         });
 
         const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/dashboard'))) as any;
+        const result = (await middleware(makeRequest('/dashboard'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBe('http://localhost/auth/login?redirect=%2Fdashboard');
     });
@@ -144,7 +145,7 @@ describe('middleware', () => {
         });
 
         const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/'))) as any;
+        const result = (await middleware(makeRequest('/'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBeUndefined();
     });

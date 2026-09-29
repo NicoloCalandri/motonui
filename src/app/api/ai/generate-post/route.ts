@@ -4,6 +4,9 @@ import { requireTripMember } from '@/lib/authz';
 import { generateTripSummary } from '@/lib/ai/trip-summary';
 import { requireFeatureAccess } from '@/lib/premium/access';
 import { ok, Errors } from '@/lib/errors';
+import { fromCents } from '@/lib/currency';
+import { eurCents } from '@/lib/expenses';
+import { toJson } from '@/lib/json';
 
 const Schema = z.object({
     tripId: z.string().uuid(),
@@ -26,27 +29,26 @@ export const POST = withRoute(
     // Fetch trip context
     const { data: trip } = await supabase
         .from('trips')
-        .select(`*, days(*, legs(*)), expenses(amount_eur, amount, category)`)
+        .select(`*, days(*, legs(*)), expenses(amount_eur, amount, currency)`)
         .eq('id', tripId)
         .single();
 
     if (!trip) throw Errors.notFound('Viaggio');
 
     // Build context for the AI
-    const totalEur = (trip.expenses ?? []).reduce(
-        (sum: number, e: { amount_eur?: number; amount: number }) => sum + (e.amount_eur ?? e.amount), 0
-    );
+    // Same rules as the expense summary: cents, expenses without a rate left out (T-3.2).
+    const totalEur = fromCents((trip.expenses ?? []).reduce((sum, e) => sum + (eurCents(e) ?? 0), 0));
 
     const content = await generateTripSummary(
         {
             title: trip.title,
             destination: trip.destination,
-            startDate: trip.start_date,
-            endDate: trip.end_date,
-            description: trip.description,
-            days: (trip.days ?? []).map((d: { date: string; title?: string; legs?: Array<{ from_name: string; to_name: string; type: string }> }) => ({
+            startDate: trip.start_date ?? undefined,
+            endDate: trip.end_date ?? undefined,
+            description: trip.description ?? undefined,
+            days: (trip.days ?? []).map((d) => ({
                 date: d.date,
-                title: d.title,
+                title: d.title ?? undefined,
                 legs: (d.legs ?? []).map((l) => ({ from: l.from_name, to: l.to_name, type: l.type })),
             })),
             expenses: { total_eur: totalEur, top_categories: [], countries_visited: [] },
@@ -66,7 +68,7 @@ export const POST = withRoute(
                 author_id: user.id,
                 title: postTitle,
                 slug: postSlug,
-                content_json: content,
+                content_json: toJson(content),
                 status: 'draft',
             })
             .select()

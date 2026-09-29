@@ -92,7 +92,6 @@ export default function BoardingPassViewer({ leg, onClose }: BoardingPassViewerP
                     </a>
                 ) : (
                     // Image (photo of a boarding pass)
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={url}
                         alt="Carta d'imbarco"

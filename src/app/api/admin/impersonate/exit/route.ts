@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         const supabase = await createAdminClient();
 
         // Revoke: the middleware refuses tokens whose jti hash is no longer stored.
-        await (supabase.from('impersonation_tokens') as any)
+        await supabase.from('impersonation_tokens')
             .delete()
             .eq('token', await hashJti(jti));
     }

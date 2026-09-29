@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SWRTestProvider } from '@/test/swr';
 import TripPage from './page';
 
 const mockTrip = {
@@ -31,7 +32,7 @@ vi.mock('next/navigation', async (importActual) => {
 
 // Mock dynamic imports (tab components) so they render something quickly
 vi.mock('next/dynamic', () => ({
-    default: (fn: () => Promise<{ default: () => React.ReactElement }>) => {
+    default: () => {
         // Return a no-op placeholder; individual tab content is not under test here
         return () => null;
     },
@@ -40,6 +41,7 @@ vi.mock('next/dynamic', () => ({
 describe('TripPage', () => {
     beforeEach(() => {
         global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
             json: () => Promise.resolve(mockTrip),
         } as unknown as Response);
     });
@@ -47,24 +49,24 @@ describe('TripPage', () => {
     it('shows a loading spinner while fetching data', () => {
         // Don't resolve the fetch immediately
         global.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
-        render(<TripPage />);
+        render(<TripPage />, { wrapper: SWRTestProvider });
         expect(screen.getByText(/Caricamento viaggio/i)).toBeDefined();
     });
 
     it('renders trip title and destination after loading', async () => {
-        render(<TripPage />);
+        render(<TripPage />, { wrapper: SWRTestProvider });
         expect(await screen.findByText('Tour del Giappone')).toBeDefined();
         expect(screen.getByText(/Tokyo, Giappone/i)).toBeDefined();
     });
 
     it('renders members count', async () => {
-        render(<TripPage />);
+        render(<TripPage />, { wrapper: SWRTestProvider });
         await screen.findByText('Tour del Giappone');
         expect(screen.getByText(/2 persone/i)).toBeDefined();
     });
 
     it('renders all 5 tab labels', async () => {
-        render(<TripPage />);
+        render(<TripPage />, { wrapper: SWRTestProvider });
         await screen.findByText('Tour del Giappone');
         expect(screen.getByRole('button', { name: /Panoramica/i })).toBeDefined();
         expect(screen.getByRole('button', { name: /Itinerario/i })).toBeDefined();
@@ -75,7 +77,7 @@ describe('TripPage', () => {
 
     it('switches active tab on click', async () => {
         const user = userEvent.setup();
-        render(<TripPage />);
+        render(<TripPage />, { wrapper: SWRTestProvider });
         await screen.findByText('Tour del Giappone');
 
         const itineraryTab = screen.getByRole('button', { name: /Itinerario/i });
@@ -90,12 +92,12 @@ describe('TripPage', () => {
             json: () => Promise.resolve(null),
         } as unknown as Response);
 
-        render(<TripPage />);
+        render(<TripPage />, { wrapper: SWRTestProvider });
         expect(await screen.findByText(/Viaggio non trovato/i)).toBeDefined();
     });
 
     it('renders "Home" back link pointing to /dashboard', async () => {
-        render(<TripPage />);
+        render(<TripPage />, { wrapper: SWRTestProvider });
         await screen.findByText('Tour del Giappone');
         const homeLink = screen.getByRole('link', { name: /Home/i });
         expect(homeLink.getAttribute('href')).toBe('/dashboard');

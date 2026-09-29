@@ -1,5 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
-import type { TripStats, LegType, Leg } from '@/lib/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { eurCents } from '@/lib/expenses';
+import { fromCents } from '@/lib/currency';
+import type { Expense, TripStats, LegType, Leg } from '@/lib/types';
 
 // =============================================================================
 // HAVERSINE DISTANCE
@@ -40,37 +42,21 @@ export function haversineDistanceKm(
 // TRIP STATS
 // =============================================================================
 
+type TripDates = { start_date: string | null; end_date: string | null; budget_eur: number | string | null };
+type ExpenseAmounts = Pick<Expense, 'amount' | 'amount_eur' | 'currency'>;
+
+/** Last comma-separated part of "City, Country" / "Airport (XXX), Country". */
+function extractCountry(name: string): string | undefined {
+    const parts = name.split(',');
+    return parts[parts.length - 1]?.trim() || undefined;
+}
+
 /**
- * Computes aggregated stats for a trip:
- * - Total days
- * - Total km traveled (Haversine straight-line between legs)
- * - Countries visited (parsed from leg location names, heuristic)
- * - Total spent in EUR
- * - Average spend per day
- * - Transport type breakdown (km per leg type)
- *
- * @param tripId - The trip UUID
+ * Aggregated stats for a trip (pure): days, straight-line km per leg type,
+ * countries (heuristic from location names), EUR spent and per-day average.
+ * Expenses still to convert are left out of the EUR totals (T-3.2).
  */
-export async function getTripStats(tripId: string): Promise<TripStats> {
-    const supabase = await createClient();
-
-    // Fetch trip, legs, and expenses in parallel
-    const [tripResult, legsResult, expensesResult] = await Promise.all([
-        (supabase.from('trips') as any).select('start_date, end_date, budget_eur').eq('id', tripId).single(),
-        (supabase.from('legs') as any).select('*').eq('trip_id', tripId),
-        (supabase.from('expenses') as any)
-            .select('amount_eur, amount')
-            .eq('trip_id', tripId),
-    ]);
-
-    if (tripResult.error) {
-        throw new Error(`[motonui][trips][stats] trip query: ${tripResult.error.message}`);
-    }
-
-    const trip = tripResult.data;
-    const legs = (legsResult.data ?? []) as Leg[];
-
-    // Total days
+export function computeTripStats(trip: TripDates, legs: Leg[], expenses: ExpenseAmounts[]): TripStats {
     let totalDays = 0;
     if (trip.start_date && trip.end_date) {
         const start = new Date(trip.start_date);
@@ -78,57 +64,53 @@ export async function getTripStats(tripId: string): Promise<TripStats> {
         totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     }
 
-    // km per leg type + countries visited
     const transportBreakdown = {} as Record<LegType, number>;
     let totalKm = 0;
-    const countriesSet = new Set<string>();
+    const countries = new Set<string>();
 
     for (const leg of legs) {
-        const hasCoords =
-            leg.from_lat !== null &&
-            leg.from_lng !== null &&
-            leg.to_lat !== null &&
-            leg.to_lng !== null;
-
-        if (hasCoords) {
-            const km = haversineDistanceKm(
-                leg.from_lat!,
-                leg.from_lng!,
-                leg.to_lat!,
-                leg.to_lng!
-            );
-
+        if (leg.from_lat !== null && leg.from_lng !== null && leg.to_lat !== null && leg.to_lng !== null) {
+            const km = haversineDistanceKm(leg.from_lat, leg.from_lng, leg.to_lat, leg.to_lng);
             transportBreakdown[leg.type] = (transportBreakdown[leg.type] ?? 0) + km;
             totalKm += km;
         }
-
-        // Heuristic: extract country from location name
-        // Expects format "City, Country" or "Airport Name (XXX), Country"
-        const extractCountry = (name: string) => {
-            const parts = name.split(',');
-            return parts[parts.length - 1]?.trim();
-        };
-
-        const fromCountry = extractCountry(leg.from_name);
-        const toCountry = extractCountry(leg.to_name);
-        if (fromCountry) countriesSet.add(fromCountry);
-        if (toCountry) countriesSet.add(toCountry);
+        for (const name of [leg.from_name, leg.to_name]) {
+            const country = extractCountry(name);
+            if (country) countries.add(country);
+        }
     }
 
-    // Total spent in EUR
-    const totalSpentEur = (expensesResult.data ?? []).reduce((sum: number, exp: any) => {
-        return sum + (exp.amount_eur ?? exp.amount);
-    }, 0);
-
-    const avgPerDayEur = totalDays > 0 ? totalSpentEur / totalDays : 0;
+    const spentCents = expenses.reduce((sum, expense) => sum + (eurCents(expense) ?? 0), 0);
+    const unconverted = expenses.filter((expense) => eurCents(expense) === null).length;
 
     return {
         total_days: totalDays,
         total_km_traveled: Math.round(totalKm * 10) / 10,
-        countries_visited: Array.from(countriesSet),
-        total_spent_eur: Math.round(totalSpentEur * 100) / 100,
-        avg_per_day_eur: Math.round(avgPerDayEur * 100) / 100,
+        countries_visited: Array.from(countries),
+        total_spent_eur: fromCents(spentCents),
+        avg_per_day_eur: totalDays > 0 ? Math.round(spentCents / totalDays) / 100 : 0,
         transport_breakdown: transportBreakdown,
         budget_eur: trip.budget_eur != null ? Number(trip.budget_eur) : null,
+        unconverted_expenses: unconverted,
     };
+}
+
+/** Loads trip, legs and expenses with the caller's client (RLS applies). */
+export async function getTripStats(tripId: string, deps: { supabase: SupabaseClient }): Promise<TripStats> {
+    const { supabase } = deps;
+    const [tripResult, legsResult, expensesResult] = await Promise.all([
+        supabase.from('trips').select('start_date, end_date, budget_eur').eq('id', tripId).single(),
+        supabase.from('legs').select('*').eq('trip_id', tripId),
+        supabase.from('expenses').select('amount_eur, amount, currency').eq('trip_id', tripId),
+    ]);
+
+    if (tripResult.error || !tripResult.data) {
+        throw new Error(`[motonui][trips][stats] trip query: ${tripResult.error?.message ?? 'not found'}`);
+    }
+
+    return computeTripStats(
+        tripResult.data as TripDates,
+        (legsResult.data ?? []) as Leg[],
+        (expensesResult.data ?? []) as ExpenseAmounts[],
+    );
 }

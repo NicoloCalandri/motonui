@@ -36,7 +36,7 @@ export const POST = withRoute(
 
     // If there is a cost, automatically create an expense
     if (body.cost && body.cost > 0) {
-        const amount_eur = await convertCurrency(body.cost, body.currency, 'EUR');
+        const amount_eur = await convertCurrency(body.cost, body.currency, 'EUR', { supabase });
         
         // Fetch the day to get its date
         const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();

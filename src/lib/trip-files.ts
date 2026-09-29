@@ -12,6 +12,9 @@
 
 export type MediaFolder = 'original' | 'thumbs';
 
+/** Same value as Buckets.tripMedia, importable from client components. */
+export const TRIP_MEDIA_BUCKET = 'trip-media';
+
 const SEGMENT = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 
 export function tripStoragePrefix(tripId: string): string {

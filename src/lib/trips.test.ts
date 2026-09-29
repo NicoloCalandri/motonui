@@ -1,5 +1,73 @@
 import { describe, it, expect } from 'vitest';
-import { haversineDistanceKm } from './trips';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { queryChain } from '@/test/supabase-mock';
+import { computeTripStats, getTripStats, haversineDistanceKm } from './trips';
+import type { Leg } from './types';
+
+function leg(overrides: Partial<Leg>): Leg {
+    return {
+        id: 'l', trip_id: 't', type: 'flight', from_name: 'Roma, Italia', to_name: 'Santiago, Cile',
+        from_lat: 41.9028, from_lng: 12.4964, to_lat: -33.4489, to_lng: -70.6693, ...overrides,
+    } as Leg;
+}
+
+describe('computeTripStats', () => {
+    it('counts days, km per leg type and countries', () => {
+        const stats = computeTripStats(
+            { start_date: '2026-10-01', end_date: '2026-10-10', budget_eur: '3000' },
+            [leg({}), leg({ id: 'l2', type: 'bus', from_name: 'Santiago, Cile', to_name: 'Valparaíso, Cile', from_lat: null })],
+            [],
+        );
+
+        expect(stats.total_days).toBe(10);
+        expect(stats.total_km_traveled).toBeGreaterThan(11000);
+        expect(stats.transport_breakdown).toEqual({ flight: stats.total_km_traveled });
+        expect(stats.countries_visited).toEqual(['Italia', 'Cile']);
+        expect(stats.budget_eur).toBe(3000);
+    });
+
+    it('sums EUR in cents and leaves out expenses still to convert (T-3.2)', () => {
+        const stats = computeTripStats(
+            { start_date: '2026-10-01', end_date: '2026-10-03', budget_eur: null },
+            [],
+            [
+                { amount: 0.1, amount_eur: 0.1, currency: 'EUR' },
+                { amount: 0.2, amount_eur: null, currency: 'EUR' },
+                { amount: 5000, amount_eur: null, currency: 'JPY' },
+                { amount: 100, amount_eur: 92.59, currency: 'USD' },
+            ],
+        );
+
+        expect(stats.total_spent_eur).toBe(92.89);
+        expect(stats.avg_per_day_eur).toBe(30.96);
+        expect(stats.unconverted_expenses).toBe(1);
+        expect(stats.budget_eur).toBeNull();
+    });
+
+    it('has no days nor average without dates', () => {
+        const stats = computeTripStats({ start_date: null, end_date: null, budget_eur: null }, [], [{ amount: 10, amount_eur: 10, currency: 'EUR' }]);
+        expect(stats).toMatchObject({ total_days: 0, avg_per_day_eur: 0, total_spent_eur: 10 });
+    });
+});
+
+describe('getTripStats', () => {
+    it('loads the three tables with the injected client', async () => {
+        const results: Record<string, ReturnType<typeof queryChain>> = {
+            trips: queryChain({ data: { start_date: null, end_date: null, budget_eur: null }, error: null }),
+            legs: queryChain({ data: [], error: null }),
+            expenses: queryChain({ data: [{ amount: 4, amount_eur: 4, currency: 'EUR' }], error: null }),
+        };
+        const supabase = { from: (table: string) => results[table] } as unknown as SupabaseClient;
+
+        expect((await getTripStats('t', { supabase })).total_spent_eur).toBe(4);
+        expect(results.legs.calls).toContainEqual(['eq', ['trip_id', 't']]);
+    });
+
+    it('throws when the trip cannot be read', async () => {
+        const supabase = { from: () => queryChain({ data: null, error: { message: 'denied' } }) } as unknown as SupabaseClient;
+        await expect(getTripStats('t', { supabase })).rejects.toThrow('denied');
+    });
+});
 
 describe('haversineDistanceKm', () => {
     it('should return 0 for identical coordinates', () => {

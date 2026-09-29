@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
+import type { Database } from '@/lib/supabase/database.types';
 import { ok } from '@/lib/errors';
 
 const QuerySchema = z.object({
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
     const supabase = await createAdminClient();
 
     // Build query on the admin_user_view
-    let query = (supabase.from('admin_user_view') as any).select('*', { count: 'exact' });
+    let query = supabase.from('admin_user_view').select('*', { count: 'exact' });
 
     if (search) {
         query = query.or(`email.ilike.%${search}%,display_name.ilike.%${search}%`);
@@ -73,18 +74,20 @@ export async function GET(request: Request) {
     }
 
     // Aggregate trip/expense/post counts per user using separate queries
-    const ids: string[] = (users ?? []).map((u: any) => u.id);
+    // View columns are nullable in the generated types; every row has an id.
+    const rows = (users ?? []).flatMap((u) => (u.id ? [{ ...u, id: u.id }] : []));
+    const ids = rows.map((u) => u.id);
     const [tripsRes, expensesRes, postsRes] = await Promise.all([
-        (supabase.from('trips') as any).select('owner_id').in('owner_id', ids),
-        (supabase.from('expenses') as any).select('paid_by').in('paid_by', ids),
-        (supabase.from('posts') as any).select('author_id').in('author_id', ids),
+        supabase.from('trips').select('owner_id').in('owner_id', ids),
+        supabase.from('expenses').select('paid_by').in('paid_by', ids),
+        supabase.from('posts').select('author_id').in('author_id', ids),
     ]);
 
     const tripsCount = buildCountMap(tripsRes.data ?? [], 'owner_id');
     const expensesCount = buildCountMap(expensesRes.data ?? [], 'paid_by');
     const postsCount = buildCountMap(postsRes.data ?? [], 'author_id');
 
-    const enriched = (users ?? []).map((u: any) => ({
+    const enriched = rows.map((u) => ({
         id: u.id,
         email: u.email,
         displayName: u.display_name ?? u.email?.split('@')[0] ?? '',
@@ -148,7 +151,7 @@ export async function POST(request: Request) {
 
     // Update role and display_name in profiles (since auth triggers might have inserted it)
     if (data.user) {
-        const updates: any = { role: parsed.data.role, plan: parsed.data.plan };
+        const updates: Database['public']['Tables']['profiles']['Update'] = { role: parsed.data.role, plan: parsed.data.plan };
         if (parsed.data.displayName) updates.display_name = parsed.data.displayName;
         if (parsed.data.plan === 'premium') {
             updates.premium_enabled_at = new Date().toISOString();
