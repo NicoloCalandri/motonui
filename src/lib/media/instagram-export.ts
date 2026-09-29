@@ -1,156 +1,121 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { InstagramExportOptions, InstagramType, Media } from '@/lib/types';
-import { cropToAspect, applyFilter, overlayText } from '@/lib/media/process';
+import type { ImageFilter, TextOverlayOptions } from '@/lib/types';
+import { applyFilter, cropToAspect, overlayText } from '@/lib/media/process';
+import { buildSlides, INSTAGRAM_FORMATS, type InstagramFormat, type SlideSource } from '@/lib/media/instagram-slides';
 import { AppError } from '@/lib/errors';
-import { downloadFile, uploadFile, Buckets } from '@/lib/storage';
+import { Buckets } from '@/lib/storage';
 import { isTripFilePath } from '@/lib/trip-files';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+/**
+ * Instagram export job (T-2.7): runs after the API has answered 202, with the
+ * service-role client, for an export row the route already authorized.
+ * 1. load the selected media of the trip, in the user's order (buildSlides)
+ * 2. read each photo from the private bucket (path re-checked, no URL fetch)
+ * 3. crop to the format, filter, optional text overlay
+ * 4. ZIP into the private instagram-exports bucket: {trip_id}/{export_id}.zip
+ * 5. optionally write an AI caption
+ */
 
-interface GenerateExportInput {
+export interface GenerateExportInput {
+    admin: SupabaseClient;
     exportId: string;
     tripId: string;
     mediaIds: string[];
-    type: InstagramType;
-    options: Record<string, unknown>;
+    format: InstagramFormat;
+    filter: ImageFilter;
+    textOverlay?: TextOverlayOptions;
     generateCaption: boolean;
     language: 'it' | 'en';
-    supabase: SupabaseClient;
 }
 
-interface CaptionResult {
+export interface CaptionResult {
     caption: string;
     hashtags: string[];
 }
 
-interface GenerateExportOutput {
-    downloadUrl: string;
+export interface GenerateExportOutput {
+    zipPath: string;
+    slideCount: number;
     captionResult?: CaptionResult;
 }
 
-// ─── Dimension Config per Instagram type ─────────────────────────────────────
+export function exportZipPath(tripId: string, exportId: string): string {
+    return `${tripId}/${exportId}.zip`;
+}
 
-const TYPE_CONFIG = {
-    carousel: { ratio: '4:5' as const, maxSlides: 10 },
-    story: { ratio: '9:16' as const, maxSlides: 1 },
-    reel: { ratio: '9:16' as const, maxSlides: 1 },
-};
-
-// ─── Main Export Function ─────────────────────────────────────────────────────
-
-/**
- * Orchestrates the full Instagram export pipeline:
- * 1. Fetch media records from DB
- * 2. Download source images
- * 3. Apply crop + filter + optional text overlay
- * 4. Bundle as ZIP and upload to instagram-exports bucket
- * 5. Optionally generate AI caption
- */
 export async function generateExport(input: GenerateExportInput): Promise<GenerateExportOutput> {
-    const {
-        exportId, tripId, mediaIds, type, options, generateCaption, language, supabase,
-    } = input;
+    const { admin, exportId, tripId, mediaIds, format, filter, textOverlay, generateCaption, language } = input;
 
-    const config = TYPE_CONFIG[type];
-    const exportOptions = options as Partial<InstagramExportOptions>;
-
-    // 1. Fetch media records of this trip only
-    const { data: mediaRows, error } = await supabase
+    const { data: rows, error } = await admin
         .from('media')
-        .select('id, trip_id, storage_path, caption')
+        .select('id, trip_id, mime_type, storage_path, caption')
         .eq('trip_id', tripId)
-        .in('id', mediaIds.slice(0, config.maxSlides));
+        .in('id', mediaIds);
+    if (error) throw new Error(`[motonui][instagram-export] media: ${error.message}`);
 
-    if (error || !mediaRows?.length) {
-        throw new Error(`[motonui][instagram-export] No media found: ${error?.message ?? 'empty'}`);
+    const byId = new Map((rows ?? []).map((row) => [row.id as string, row]));
+    const ordered = mediaIds.flatMap((id) => (byId.has(id) ? [byId.get(id) as SlideSource & { caption: string | null }] : []));
+    const plan = buildSlides(ordered, format);
+
+    if (plan.slides.length === 0) {
+        throw new AppError(
+            'Nessuna foto esportabile: scegli foto caricate su motonui (i video non sono supportati) 🏝️',
+            'MEDIA_NOT_EXPORTABLE',
+            400,
+        );
     }
 
-    // 2. Process each image
-    const processedBuffers: Buffer[] = [];
-
-    for (const media of mediaRows as Pick<Media, 'id' | 'trip_id' | 'storage_path' | 'caption'>[]) {
-        // Read from the private bucket by a path re-checked against the trip
-        // (T-2.4): no server fetch towards a URL stored in the DB.
-        if (!isTripFilePath(media.storage_path, tripId)) {
-            throw new AppError(
-                'Alcune foto selezionate non sono state caricate su motonui e non si possono esportare.',
-                'MEDIA_NOT_EXPORTABLE',
-                400,
-            );
+    const bucket = admin.storage.from(Buckets.tripMedia);
+    const files: Array<{ name: string; data: Buffer }> = [];
+    for (const slide of plan.slides) {
+        // The path comes from the DB: re-check it belongs to this trip (T-2.4).
+        if (!isTripFilePath(slide.storagePath, tripId)) {
+            throw new AppError('Alcune foto selezionate non si possono esportare.', 'MEDIA_NOT_EXPORTABLE', 400);
         }
-        const blob = await downloadFile(Buckets.tripMedia, media.storage_path);
-        if (!blob) {
-            throw new Error(`[motonui][instagram-export] Cannot download media ${media.id}`);
-        }
-        let buffer = Buffer.from(await blob.arrayBuffer());
+        const { data: blob, error: downloadError } = await bucket.download(slide.storagePath);
+        if (downloadError || !blob) throw new Error(`[motonui][instagram-export] download ${slide.mediaId}`);
 
-        // Crop to correct aspect ratio
-        buffer = await cropToAspect(buffer, config.ratio) as any;
-
-        // Apply filter
-        const filter = exportOptions.filter ?? 'none';
-
-        // applyFilter returns a Buffer but needs to accept our filter type
-        const { applyFilter: filterFn } = await import('@/lib/media/process');
-        buffer = await filterFn(buffer, filter) as any;
-
-        // Optional text overlay
-        if (exportOptions.textOverlay) {
-            buffer = await overlayText(buffer, exportOptions.textOverlay) as any;
-        }
-
-        processedBuffers.push(buffer);
+        let image = await cropToAspect(Buffer.from(await blob.arrayBuffer()), INSTAGRAM_FORMATS[format].ratio);
+        if (filter !== 'none') image = await applyFilter(image, filter);
+        if (textOverlay?.text) image = await overlayText(image, textOverlay);
+        files.push({ name: slide.fileName, data: image });
     }
 
-    // 3. Bundle into ZIP using fflate (browser+node compatible)
-    const zipBuffer = await bundleAsZip(processedBuffers, type);
+    const zipPath = exportZipPath(tripId, exportId);
+    const { error: uploadError } = await admin.storage
+        .from(Buckets.instagramExports)
+        .upload(zipPath, await bundleAsZip(files, format), { contentType: 'application/zip', upsert: true });
+    if (uploadError) throw new Error(`[motonui][instagram-export] upload: ${uploadError.message}`);
 
-    // 4. Upload ZIP
-    const zipPath = `${tripId}/${exportId}.zip`;
-    const downloadUrl = await uploadFile(
-        Buckets.instagramExports,
-        zipPath,
-        zipBuffer,
-        'application/zip'
-    );
-
-    // 5. Optionally generate caption
     let captionResult: CaptionResult | undefined;
     if (generateCaption) {
         try {
             const { generateCaption: genCap } = await import('@/lib/media/captions');
-            const captions = mediaRows.map((m) => (m as Media).caption ?? '').filter(Boolean);
-            captionResult = await genCap({ captions, type, language });
+            const captions = plan.slides
+                .map((slide) => byId.get(slide.mediaId)?.caption as string | null | undefined)
+                .filter((caption): caption is string => Boolean(caption));
+            captionResult = await genCap({ captions, type: format, language });
         } catch (err) {
             console.warn('[motonui][instagram-export] Caption generation failed:', err);
         }
     }
 
-    return { downloadUrl, captionResult };
+    return { zipPath, slideCount: plan.slides.length, captionResult };
 }
 
-// ─── ZIP bundler ──────────────────────────────────────────────────────────────
-
-async function bundleAsZip(buffers: Buffer[], type: InstagramType): Promise<Buffer> {
+async function bundleAsZip(files: Array<{ name: string; data: Buffer }>, format: InstagramFormat): Promise<Buffer> {
     const { strToU8, zipSync } = await import('fflate');
 
-    const files: Record<string, Uint8Array> = Object.fromEntries(
-        buffers.map((buf, i) => [
-            `${type}_${String(i + 1).padStart(2, '0')}.jpg`,
-            new Uint8Array(buf),
-        ])
-    );
-
-    // Add README
-    files['README.txt'] = strToU8(
+    const entries: Record<string, Uint8Array> = Object.fromEntries(files.map((file) => [file.name, new Uint8Array(file.data)]));
+    entries['README.txt'] = strToU8(
         `motonui Instagram Export
-Type: ${type}
-Files: ${buffers.length}
-Generated: ${new Date().toISOString()}
+Formato: ${INSTAGRAM_FORMATS[format].label}
+File: ${files.length}
+Creato: ${new Date().toISOString()}
 
-Import these files directly into the Instagram app.
-`
+Importa i file nell'app Instagram nell'ordine dei nomi.
+`,
     );
 
-    return Buffer.from(zipSync(files));
+    return Buffer.from(zipSync(entries));
 }

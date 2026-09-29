@@ -76,8 +76,8 @@ Legenda: ✅ presente e funzionante · 🟡 presente con lacune · 🔴 assente 
 | FR-31 | Thumbnail 400×400 WebP generata all'upload | 🔴 | |
 | FR-32 | Rimozione EXIF/GPS prima della conservazione | 🔴 | |
 | FR-33 | Griglia media per giorno | 🟡 | Carica gli originali, niente thumbnail |
-| FR-34 | Generare carousel/story/reel come ZIP con caption opzionale | 🟡 | API presente, **nessuna UI** |
-| FR-35 | ZIP disponibile 24 h tramite link firmato, poi eliminato | 🔴 | |
+| FR-34 | Generare carousel/story/reel come ZIP con caption opzionale | ✅ | Carosello 4:5 (fino a 10 foto) e storia 9:16: `InstagramGenerator` nella tab Foto, job asincrono (T-2.7). Reel non supportato (servirebbe un video) |
+| FR-35 | ZIP disponibile 24 h tramite link firmato, poi eliminato | ✅ | Bucket privato (migration `0023`), URL firmato fino alla scadenza, rimozione dal cron `cleanup` (T-2.6/T-2.7) |
 
 ### 4.5 Blog e AI
 | ID | Requisito | Stato | Note |

@@ -152,7 +152,7 @@ import type { Trip } from '@/lib/types'
 - Le cancellazioni fatte in SQL (account, viaggi) mettono i file in `storage_deletion_queue`; il server li rimuove con la Storage API (`drainStorageDeletionQueue`). Non cancellare mai da `storage.objects` in SQL: resta il file
 - Upload di foto e video: `…/media/uploads` (URL di upload firmato verso `incoming/`) → upload diretto allo storage (`uploadTripMedia` in `src/lib/media/upload-client.ts`) → `…/media/confirm`, che passa da `src/lib/media/pipeline.ts`. Nessun file attraversa il corpo di una route (limite ~4,5 MB su Vercel)
 - Thumbnail sempre generati al momento dell'upload (400×400, WebP); le foto salvate non hanno metadati EXIF
-- ZIP degli export Instagram eliminati automaticamente dopo 24h
+- Export Instagram: job asincrono (`POST …/instagram/exports` risponde 202, il lavoro gira in `after()`, il client fa polling con SWR); lo ZIP sta nel bucket privato `instagram-exports`, si scarica con URL firmato ≤ 24 h e il cron lo elimina dopo 24 h. Le opzioni che finiscono in un SVG (testo, colori) si validano con Zod e `safeHexColor`
 
 ---
 
