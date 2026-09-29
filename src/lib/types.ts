@@ -129,7 +129,8 @@ export interface Leg {
   carrier: string | null;             // airline / rail operator / ferry company
   booking_ref: string | null;         // booking confirmation code
   pnr: string | null;                 // Passenger Name Record (flights)
-  boarding_pass_url: string | null;   // uploaded boarding pass image URL
+  boarding_pass_url: string | null;   // deprecated: legacy public URL, cleared by the T-0.9 migration script
+  boarding_pass_path: string | null;  // path in the private trip-documents bucket
   checkin_opens_at: string | null;    // when online check-in opens (ISO timestamp)
   notes: string | null;
   sort_order: number;

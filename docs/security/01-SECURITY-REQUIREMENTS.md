@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 26 | 15 | 25 |
+| **66** | 25 | 18 | 23 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -24,17 +24,17 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 2 | 2 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 2 | 1 | 2 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 1 | 2 | 4 | 0 |
-| SR-PRIV · Privacy e dati personali | 7 | 1 | 2 | 4 | 1 |
+| SR-PRIV · Privacy e dati personali | 7 | 2 | 3 | 2 | 1 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
 | SR-WEB · Sicurezza web | 6 | 2 | 3 | 1 | 0 |
-| SR-SDLC · Ciclo di sviluppo | 7 | 2 | 1 | 4 | 0 |
+| SR-SDLC · Ciclo di sviluppo | 7 | 3 | 1 | 3 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
 
 ### Requisiti P0 aperti
 
 - **SR-DEV-01** — Nessun segreto nel repository, né nella storia git. Presenti chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`, email admin e una stringa commentata che sembra una password. File `.env` rimossi dal tracking e `.env.example` con placeholder; resta da ruotare i segreti, già pubblici nella storia git (T-0.1).
-- **SR-PRIV-02** — Foto, carte d'imbarco e documenti stanno in bucket privati. `docs/archive/SECURITY.md` lo riconosce: bucket pubblico (T-0.9, T-2.1).
+- **SR-PRIV-02** — Foto, carte d'imbarco e documenti stanno in bucket privati. Mitigato per le carte d'imbarco (T-0.9, bucket privato `trip-documents`); le foto restano pubbliche fino a T-2.1.
 
 Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy): SR-AUTHZ-04, SR-AUTHZ-05, SR-AUTHZ-06.
 
@@ -54,7 +54,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-AUTHZ-01 | RLS abilitata su tutte le tabelle dello schema `public` | P1 | ✅ Fatto | `supabase/migrations/*` (25/25 tabelle con `enable row level security`) | Manca un test automatico che lo garantisca per le tabelle future (SR-SDLC-04). |
+| SR-AUTHZ-01 | RLS abilitata su tutte le tabelle dello schema `public` | P1 | ✅ Fatto | `supabase/migrations/*`; meta-controllo in `supabase/tests/rls_matrix.test.sql` (job `rls-tests`) | Il test fallisce se una tabella di `public` non ha RLS o una policy UPDATE non ha `WITH CHECK`. |
 | SR-AUTHZ-02 | I dati di viaggio sono visibili e modificabili solo dai membri del viaggio | P1 | ✅ Fatto | `0001_initial.sql` (`is_trip_member`), `0015_packing.sql` | — |
 | SR-AUTHZ-03 | Ogni route `/api/trips/[id]/**` verifica l'appartenenza (`requireTripMember`) oltre alla RLS | P2 | ✅ Fatto | `src/lib/api/with-route.ts` (`tripMember: true`, `dayInTrip: true`); test statico `src/app/api/trips/route-authz.test.ts` su ogni handler; `with-route.test.ts` | T-1.3. Migrate le 9 route senza controllo, `DELETE /api/trips/[id]`, `/api/expenses/[id]` (membership del viaggio della spesa) e `ai/generate-post` (viaggio nel body). Una nuova route senza controllo fa fallire il test. |
 | SR-AUTHZ-04 | Un utente non può modificare `role`, `plan`, `premium_until`, `suspended_at` del proprio profilo | P0 | ✅ Fatto | `0016_harden_rls_structural_columns.sql`; test `supabase/tests/0016_phase0_rls.test.sql` | T-0.4. Unica policy UPDATE con `WITH CHECK`; UPDATE concesso solo su `display_name`, `avatar_url`, `updated_at`. Da verificare sul cloud dopo il deploy (checklist B8). |
@@ -114,8 +114,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
 | SR-PRIV-01 | EXIF (in particolare GPS) rimossi dalle foto prima di qualunque esposizione | P1 | 🔴 Da fare | `src/app/api/trips/[id]/media/route.ts` (upload originale senza processing) | — |
-| SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | 🔴 Da fare | `src/lib/storage.ts` (`getPublicUrl`), bucket `trip-media` non definito in migration | `docs/SECURITY.md` lo riconosce: bucket pubblico. |
-| SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | 🔴 Da fare | `boarding-pass/route.ts:56` (commento: non cancella dallo storage) | Path prevedibile `trips/{tripId}/boarding-passes/{legId}.ext`. |
+| SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | 🟡 Parziale | `0017_trip_documents_bucket.sql` (bucket `trip-documents` privato, nessuna policy client); route `…/legs/[legId]/boarding-pass` (GET proxy autenticato); test `route.test.ts`, `supabase/tests/0017_trip_documents.test.sql` | T-0.9: carte d'imbarco private, servite solo dopo il controllo di membership, file esistenti spostati da `scripts/migrate-boarding-passes.ts` (da eseguire in produzione). `documents.file_url` contiene solo link inseriti dall'utente, nessun file in storage. Le foto restano nel bucket pubblico `trip-media` fino a T-2.1. |
+| SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | ✅ Fatto | `boarding-pass/route.ts` (DELETE e sostituzione eliminano il file, path ricontrollato sul prefisso del viaggio); test `route.test.ts` | T-0.9. Path non più prevedibili (`{legId}-{uuid}.{ext}`). Gli orfani pubblici lasciati dalla vecchia DELETE sono rimossi dallo script di migrazione. |
 | SR-PRIV-04 | Cancellazione account self-service completa (DB + storage) | P1 | 🟡 Parziale | `0014_self_delete_account.sql`; `mobile/app/profile/delete-account.tsx` | Rimuove gli avatar ma non i media dei viaggi. |
 | SR-PRIV-05 | Nessun dato personale nei log applicativi | P2 | 🟡 Parziale | `src/app/api/trips/route.ts:28` (`console.log` dei viaggi) | — |
 | SR-PRIV-06 | Gli ZIP Instagram (file, non solo riga DB) sono eliminati dopo 24 h | P2 | 🔴 Da fare | `cleanup/route.ts` cancella solo le righe; cron non schedulato | — |
@@ -149,7 +149,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-SDLC-01 | CI su ogni PR: type-check, lint, test, build | P1 | ✅ Fatto | `.github/workflows/ci.yml` | Il job `unit-tests` non genera coverage ma la carica su Codecov. |
 | SR-SDLC-02 | Lint con zero warning, come richiesto da CLAUDE.md | P3 | 🔴 Da fare | `npx eslint .` → 0 errori, 306 warning | — |
 | SR-SDLC-03 | Coverage ≥ 70% su `src/lib/`, imposta in CI | P2 | 🔴 Da fare | `vitest --coverage` → 29,6% righe su `src/lib` | Nessuna soglia in `vitest.config.ts`. |
-| SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | 🔴 Da fare | assenti | Avrebbero intercettato SR-AUTHZ-04/05/06. |
+| SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | ✅ Fatto | `supabase/tests/rls_matrix.test.sql` (matrice SELECT/INSERT/UPDATE/DELETE × anonimo/estraneo/partner/owner su ogni tabella con `trip_id`), `supabase/tests/0016_phase0_rls.test.sql` (regressioni S-02/S-03/S-04); job CI `rls-tests` (Postgres 15 + `supabase/tests/support/supabase-stub.sql`) | T-1.1, T-1.2. Una nuova tabella di viaggio senza fixture fa fallire il test. |
 | SR-SDLC-05 | Secret scanning in CI e pre-commit | P1 | ✅ Fatto | job `secrets-scan` in `.github/workflows/ci.yml` (bloccante), `.gitleaks.toml`, `.pre-commit-config.yaml` | T-0.3. Scansiona l'albero, non la storia (già esposta: vedi SR-DEV-01). |
 | SR-SDLC-06 | Aggiornamenti e audit delle dipendenze | P2 | 🟡 Parziale | Dependabot attivo (PR #19–#48), commit c8d939c `npm audit fix` | Manca `npm audit` bloccante in CI e `dependabot.yml` versionato. |
 | SR-SDLC-07 | GitHub Actions con permessi minimi e azioni fissate per SHA | P2 | 🔴 Da fare | `.github/workflows/*.yml` | `amondnet/vercel-action@v25` riceve il token Vercel. |
