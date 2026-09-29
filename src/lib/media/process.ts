@@ -78,7 +78,12 @@ export async function overlayText(buffer: Buffer, options: TextOverlayOptions): 
     const img = sharp(buffer).rotate();
     const { width = 1080, height = 1080 } = await img.metadata();
 
-    const { text, position, fontSize = 36, color = '#FFFFFF', backgroundColor } = options;
+    // Everything below lands in an SVG rendered by librsvg: only hex colors and
+    // a bounded integer size, whatever the caller validated (T-2.7).
+    const { text, position } = options;
+    const fontSize = Math.min(120, Math.max(12, Math.round(Number(options.fontSize) || 36)));
+    const color = safeHexColor(options.color) ?? '#FFFFFF';
+    const backgroundColor = safeHexColor(options.backgroundColor);
     const padding = 24;
 
     const bgRect = backgroundColor
@@ -95,7 +100,7 @@ export async function overlayText(buffer: Buffer, options: TextOverlayOptions): 
         x="${position.includes('right') ? width - padding : padding}"
         y="${position.includes('top') ? fontSize + padding : height - padding}"
         text-anchor="${position.includes('right') ? 'end' : 'start'}"
-      >${escapeXml(text)}</text>
+      >${escapeXml(String(text).slice(0, 120))}</text>
     </svg>`;
 
     return img
@@ -134,5 +139,13 @@ function escapeXml(str: string) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/** The color if it is a #RRGGBB hex value, otherwise undefined. */
+export function safeHexColor(value: unknown): string | undefined {
+    return typeof value === 'string' && HEX_COLOR.test(value) ? value : undefined;
 }

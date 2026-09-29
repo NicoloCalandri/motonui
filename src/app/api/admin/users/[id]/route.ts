@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
 
 const DeleteSchema = z.object({
     confirmEmail: z.string().email(),
@@ -236,14 +237,22 @@ export async function DELETE(request: Request, { params }: Params) {
     // Write audit log before deletion (target_id preserved for history)
     await writeAuditLog(supabase, adminId, 'delete', id, { email: userRow.email });
 
-    // Delete from auth.users — cascade deletes profile and all related data
-    const { error } = await supabase.auth.admin.deleteUser(id);
+    // Same purge as self-service deletion (migration 0022, T-2.9): shared
+    // trips pass to the partner instead of cascading away, files are queued.
+    const { error: purgeError } = await supabase.rpc('purge_user_data', { p_user: id });
+    const { error } = purgeError ? { error: purgeError } : await supabase.auth.admin.deleteUser(id);
     if (error) {
         console.error('[admin/users DELETE]', error.message);
         return NextResponse.json(
             { error: 'Impossibile eliminare l\'utente.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
         );
+    }
+
+    try {
+        await drainStorageDeletionQueue(supabase);
+    } catch (err) {
+        console.error('[admin/users DELETE] storage cleanup deferred', err);
     }
 
     return ok({ deleted: true });

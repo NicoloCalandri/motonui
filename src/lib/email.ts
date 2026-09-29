@@ -85,6 +85,34 @@ export function flightCheckinEmail(opts: {
     </div>`;
 }
 
+export function tripInviteEmail(opts: {
+    inviterName: string;
+    tripTitle: string;
+    destination: string;
+    inviteUrl: string;
+}): string {
+    // Trip fields are user input; the URL is built by the server but escaped too.
+    const safe = escapeFields(opts);
+
+    return `
+    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px 16px;color:#1a1a1a">
+      <div style="background:#C4622D;border-radius:16px;padding:24px;color:white;text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;margin-bottom:8px">🏝️</div>
+        <h1 style="margin:0;font-size:22px">Un viaggio ti aspetta</h1>
+        <p style="margin:8px 0 0;opacity:0.85">${safe.tripTitle} · ${safe.destination}</p>
+      </div>
+
+      <p style="font-size:16px">${safe.inviterName} ti ha invitato a pianificare insieme il viaggio <strong>${safe.tripTitle}</strong> su motonui.</p>
+
+      <p style="text-align:center;margin:32px 0">
+        <a href="${safe.inviteUrl}" style="background:#1a1a1a;color:white;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700">Accetta l'invito</a>
+      </p>
+
+      <p style="color:#666;font-size:13px">Il link vale 7 giorni e funziona solo con l'account registrato con questo indirizzo email. Se non conosci chi ti ha invitato, ignora questa email.</p>
+      <p style="color:#aaa;font-size:12px;margin-top:32px">Inviato da motonui · il tuo diario di viaggio</p>
+    </div>`;
+}
+
 export function paymentDeadlineEmail(opts: {
     userName: string;
     hotelName: string;

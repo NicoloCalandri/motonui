@@ -50,7 +50,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
 
     // Auto-create expense if cost provided
     if (data.cost && data.cost > 0) {
-        const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+        const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
         await supabase.from('expenses').insert({
             trip_id: id,
             description: `Alloggio: ${data.name}`,

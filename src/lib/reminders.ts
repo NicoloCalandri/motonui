@@ -18,6 +18,8 @@ export async function upsertReminder(
     supabase: SupabaseClient,
     opts: {
         userId: string;
+        /** Injected clock for tests (T-3.4); defaults to the current time. */
+        now?: Date;
         tripId: string;
         entityType: 'leg' | 'accommodation' | 'restaurant' | 'activity';
         entityId: string;
@@ -28,15 +30,15 @@ export async function upsertReminder(
     }
 ): Promise<void> {
     // Always delete the old reminder first so we don't accumulate stale rows
-    await (supabase as any)
+    await supabase
         .from('reminders')
         .delete()
         .eq('entity_id', opts.entityId)
         .eq('type', opts.type);
 
-    if (!opts.remindAt || opts.remindAt < new Date()) return;
+    if (!opts.remindAt || opts.remindAt < (opts.now ?? new Date())) return;
 
-    await (supabase as any).from('reminders').insert({
+    await supabase.from('reminders').insert({
         trip_id: opts.tripId,
         user_id: opts.userId,
         entity_type: opts.entityType,
@@ -56,6 +58,8 @@ export async function upsertFlightCheckinReminder(
     supabase: SupabaseClient,
     opts: {
         userId: string;
+        /** Injected clock for tests (T-3.4); defaults to the current time. */
+        now?: Date;
         tripId: string;
         legId: string;
         checkinOpensAt: string | null | undefined;
@@ -71,6 +75,7 @@ export async function upsertFlightCheckinReminder(
 
     await upsertReminder(supabase, {
         userId: opts.userId,
+        now: opts.now,
         tripId: opts.tripId,
         entityType: 'leg',
         entityId: opts.legId,
@@ -89,6 +94,8 @@ export async function upsertAccommodationReminders(
     supabase: SupabaseClient,
     opts: {
         userId: string;
+        /** Injected clock for tests (T-3.4); defaults to the current time. */
+        now?: Date;
         tripId: string;
         accId: string;
         name: string;
@@ -102,6 +109,7 @@ export async function upsertAccommodationReminders(
         : null;
     await upsertReminder(supabase, {
         userId: opts.userId,
+        now: opts.now,
         tripId: opts.tripId,
         entityType: 'accommodation',
         entityId: opts.accId,
@@ -116,6 +124,7 @@ export async function upsertAccommodationReminders(
         : null;
     await upsertReminder(supabase, {
         userId: opts.userId,
+        now: opts.now,
         tripId: opts.tripId,
         entityType: 'accommodation',
         entityId: opts.accId,
@@ -133,6 +142,8 @@ export async function upsertRestaurantReminder(
     supabase: SupabaseClient,
     opts: {
         userId: string;
+        /** Injected clock for tests (T-3.4); defaults to the current time. */
+        now?: Date;
         tripId: string;
         restaurantId: string;
         name: string;
@@ -145,6 +156,7 @@ export async function upsertRestaurantReminder(
 
     await upsertReminder(supabase, {
         userId: opts.userId,
+        now: opts.now,
         tripId: opts.tripId,
         entityType: 'restaurant',
         entityId: opts.restaurantId,
@@ -163,6 +175,8 @@ export async function upsertActivityReminder(
     supabase: SupabaseClient,
     opts: {
         userId: string;
+        /** Injected clock for tests (T-3.4); defaults to the current time. */
+        now?: Date;
         tripId: string;
         activityId: string;
         name: string;
@@ -175,6 +189,7 @@ export async function upsertActivityReminder(
 
     await upsertReminder(supabase, {
         userId: opts.userId,
+        now: opts.now,
         tripId: opts.tripId,
         entityType: 'activity',
         entityId: opts.activityId,
