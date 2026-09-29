@@ -8,7 +8,7 @@ import { Clock, MapPin } from 'lucide-react';
 
 export const metadata: Metadata = {
     title: 'Blog di viaggio — motonui',
-    description: 'Storie di viaggio di Nicolò e Sara. Destinazioni, consigli e avventure di coppia.',
+    description: 'Storie di viaggio di Nicolò e Giorgia. Destinazioni, consigli e avventure di coppia.',
 };
 
 // Revalidate every hour for public caching

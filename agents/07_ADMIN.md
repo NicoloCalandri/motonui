@@ -6,7 +6,7 @@ Questo agente va eseguito **dopo** `06_DEVOPS`. Richiede che l'intera pipeline p
 
 Prima di iniziare:
 1. Leggi `CLAUDE.md` integralmente
-2. Leggi `docs/ARCHITECTURE.md`
+2. Leggi `docs/architecture.md`
 3. Leggi `src/lib/types.ts` — tutti i tipi nuovi si aggiungono qui
 4. Leggi le migration esistenti in `supabase/migrations/` per capire lo schema attuale
 

@@ -67,7 +67,7 @@ Layout: split view — expense list on left, summary panel on right.
 - Total trip spend (in EUR base)
 - Donut chart by category (recharts)
 - Bar chart spend per day (recharts)
-- Balance calculator: "Nicolò owes Sara €47.50" or "You're even ✓"
+- Balance calculator: "Nicolò owes Giorgia €47.50" or "You're even ✓"
 - Export button: downloads CSV with all expenses
 
 **Add Expense drawer** (slides up from bottom on mobile):

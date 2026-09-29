@@ -109,10 +109,10 @@ describe('DashboardPage', () => {
     });
 
     it('uses email prefix as name when email is different', async () => {
-        mockUserEmail = 'sara@example.com';
+        mockUserEmail = 'giorgia@example.com';
         const Result = await DashboardPage();
         render(Result);
-        expect(screen.getByText(/Ciao sara/i)).toBeDefined();
+        expect(screen.getByText(/Ciao giorgia/i)).toBeDefined();
     });
 
     it('renders the "Vedi tutti i viaggi" link', async () => {
