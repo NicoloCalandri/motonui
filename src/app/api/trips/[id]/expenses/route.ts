@@ -73,7 +73,7 @@ export const GET = withErrorHandler(async (request, { params }) => {
         .eq('trip_id', id);
 
     const memberIds = (members ?? []).map((m) => m.user_id);
-    const summary = await getTripExpenseSummary(id);
+    const summary = await getTripExpenseSummary(id, { supabase });
     const split = splitExpenses(expenses as Expense[], memberIds);
 
     return ok({ expenses, summary, split });
@@ -97,7 +97,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
     await requireTripPayer(supabase, id, payerId);
 
     // Convert to EUR for unified reporting
-    const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR');
+    const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR', { supabase });
 
     const { data: expense, error } = await supabase
         .from('expenses')
