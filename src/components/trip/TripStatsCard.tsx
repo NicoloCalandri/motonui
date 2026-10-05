@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import useSWR from 'swr';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { TripStats } from '@/lib/types';
 import { Globe, Navigation, TrendingUp, Clock } from 'lucide-react';
 
@@ -8,16 +9,7 @@ import { Globe, Navigation, TrendingUp, Clock } from 'lucide-react';
  * Fetches and displays aggregated trip stats.
  */
 export default function TripStatsCard({ tripId }: { tripId: string }) {
-    const [stats, setStats] = useState<TripStats | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!tripId) return;
-        fetch(`/api/trips/${tripId}/stats`)
-            .then((r) => r.json())
-            .then((data: TripStats) => { setStats(data); setLoading(false); })
-            .catch(() => setLoading(false));
-    }, [tripId]);
+    const { data: stats, isLoading: loading } = useSWR<TripStats>(tripId ? `/api/trips/${tripId}/stats` : null, jsonFetcher);
 
     if (loading) {
         return (

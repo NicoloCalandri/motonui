@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Map, PlusCircle, BookOpen, LayoutDashboard, User, LogOut } from 'lucide-react';
 import ImpersonationBanner from '@/components/admin/impersonation-banner';
+import { useProfile } from '@/lib/hooks/use-profile';
 
 interface AppLayoutProps {
     children: React.ReactNode;
@@ -25,9 +26,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const router = useRouter();
     const pathname = usePathname();
     const supabase = createClient();
-    const [userEmail, setUserEmail] = useState<string | null>(null);
-    const [userName, setUserName] = useState<string | null>(null);
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const { data: profile, error: profileError } = useProfile();
+    const userEmail = profile?.email ?? null;
+    const userName = profile ? profile.fullName || profile.email?.split('@')[0] || 'Viaggiatore' : null;
+    const avatarUrl = profile?.avatarUrl ?? null;
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -41,23 +43,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // No profile means no session: back to login (the public blog excepted).
     useEffect(() => {
-        const checkUser = async () => {
-            const res = await fetch('/api/profile');
-            if (!res.ok) {
-                if (!pathname?.startsWith('/blog')) {
-                    router.push('/auth/login');
-                }
-                return;
-            }
-            const data = await res.json();
-            setUserEmail(data.email ?? null);
-            setUserName(data.fullName || data.email?.split('@')[0] || 'Viaggiatore');
-            setAvatarUrl(data.avatarUrl ?? null);
-        };
-
-        checkUser();
-    }, [router]);
+        if (profileError && !pathname?.startsWith('/blog')) router.push('/auth/login');
+    }, [profileError, pathname, router]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();

@@ -1,5 +1,10 @@
 import type { Config } from 'tailwindcss';
 
+/**
+ * The only Tailwind config (T-3.6). Until now tailwind.config.js shadowed this
+ * file, so the sand/sage/ink palettes, animations and card shadows used by the
+ * components produced no CSS.
+ */
 const config: Config = {
     content: [
         './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -24,14 +29,16 @@ const config: Config = {
                     300: '#9E908A',
                     400: '#6B5E56',
                     500: '#3D322D',
-                    900: '#1C1917',
+                    // Active values of the former tailwind.config.js (it took precedence over this file)
+                    900: 'var(--color-ink)',
+                    muted: 'var(--color-ink-muted)',
                 },
                 terracotta: {
                     50: '#FBF0EB',
                     100: '#F5D8CC',
                     200: '#EBAB91',
                     300: '#DC7A50',
-                    400: '#C4622D',
+                    400: '#E2725B',
                     500: '#A34F23',
                     600: '#7C3A18',
                 },
@@ -45,8 +52,9 @@ const config: Config = {
                 },
             },
             fontFamily: {
-                display: ['Playfair Display', 'Georgia', 'serif'],
-                sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                // next/font variables set in the root layout
+                sans: ['var(--font-figtree)'],
+                display: ['var(--font-playfair)'],
             },
             backgroundImage: {
                 'paper-texture':

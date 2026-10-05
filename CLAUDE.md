@@ -20,7 +20,7 @@ Il nome viene da *Motu Nui*, l'isolotto più vicino al Point Nemo — il posto p
 2. Leggi il file agente rilevante in `agents/` per la fase su cui stai lavorando
 3. Leggi `docs/architecture.md` (architettura attuale, obiettivo e ADR) e `docs/tasks.md` (piano a fasi)
 4. Se il task tocca sicurezza, DB, storage, API o CI, leggi `docs/security/` — in particolare `04-SECURITY-CHECKLIST.md`
-5. Controlla `src/lib/types.ts` prima di creare nuovi tipi — potrebbe già esistere quello che cerchi
+5. Controlla `src/lib/types/` (importato come `@/lib/types`) prima di creare nuovi tipi — potrebbe già esistere quello che cerchi
 
 Documenti di riferimento:
 
@@ -57,7 +57,7 @@ Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** segue
 | Database | Supabase (Postgres + RLS) |
 | Auth | Supabase Auth (email + password + Google OAuth; niente magic link, vedi ADR-06) |
 | Storage | Supabase Storage |
-| Styling | Tailwind CSS + shadcn/ui |
+| Styling | Tailwind CSS + shadcn/ui (config unica: `tailwind.config.ts`) |
 | Mappe | Mapbox GL |
 | Blog editor | Tiptap |
 | Grafici | Recharts |
@@ -72,7 +72,7 @@ Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** segue
 
 ### TypeScript
 - Strict mode attivo — zero `any`, zero `// @ts-ignore`
-- Tutti i tipi di dominio vivono in `src/lib/types.ts`
+- Tutti i tipi di dominio vivono in `src/lib/types/`, un file per dominio (`rows.ts`, `api.ts`, `planning.ts`…) riesportato da `index.ts`: si importano sempre da `@/lib/types`
 - Usa i tipi generati da Supabase (`src/lib/supabase/database.types.ts`) come base, wrappali in tipi di dominio più leggibili. I client (`createClient`, `createAdminClient`, middleware) sono tipizzati `<Database>`: niente cast `as any` su `from()`/`rpc()`. Dopo ogni migration rigenera i tipi (`npm run db:types`)
 - Le colonne `jsonb` si scrivono con `toJson()` e si leggono con `fromJson<T>()` (`src/lib/json.ts`)
 - Una colonna polimorfica senza FK (es. `reminders.entity_id`) non si può embeddare in PostgREST: carica le entità con una query per tipo (`src/lib/reminder-emails.ts`)
@@ -137,7 +137,7 @@ import type { Trip } from '@/lib/types'
 
 ## Regole per i componenti React
 
-- **Mai** `useEffect` per fetching dati — usa Server Components o SWR/React Query
+- **Mai** `useEffect` per fetching dati — usa Server Components o SWR con `jsonFetcher` (`src/lib/fetcher.ts`, lancia `FetchError` con il messaggio dell'API). Dopo una scrittura si chiama `mutate()`; la stessa chiave in più componenti condivide la cache (es. `useProfile()` in `src/lib/hooks/use-profile.ts` per shell e pagina profilo). Nei form precompilati niente revalidate on focus (sovrascriverebbe le modifiche). Nei test si renderizza con `SWRTestProvider` (`src/test/swr.tsx`)
 - Form sempre con `react-hook-form` + resolver Zod — niente `useState` per i form
 - Componenti server per default, `'use client'` solo quando necessario (eventi, hooks, browser API)
 - Drawer invece di Dialog su mobile (breakpoint `md`)
@@ -185,7 +185,7 @@ Prima di ogni PR:
 
 ```bash
 npm run type-check   # zero errori TypeScript
-npm run lint         # zero warning ESLint
+npm run lint         # zero warning ESLint (--max-warnings=0: un warning fa fallire la CI)
 npm run test         # tutti i test passano
 npm run build        # build di produzione completa
 npm run test:rls     # test RLS su Supabase locale (npm run db:start prima); in CI il job rls-tests li esegue su Postgres + stub
@@ -268,7 +268,7 @@ src/
 │   ├── supabase/        # Client setup (client, server, middleware)
 │   ├── ai/              # Integrazioni Claude API
 │   ├── media/           # Image processing pipeline
-│   ├── types.ts         # TUTTI i tipi di dominio — fonte della verità
+│   ├── types/           # TUTTI i tipi di dominio, per dominio — fonte della verità
 │   ├── expenses.ts      # Business logic spese
 │   └── trips.ts         # Statistiche viaggio
 supabase/

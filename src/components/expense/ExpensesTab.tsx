@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { Expense, ExpenseSummary, SplitResult } from '@/lib/types';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -23,18 +25,21 @@ const CATEGORY_LABELS: Record<string, string> = {
     activity: 'Attività', shopping: 'Shopping', other: 'Altro',
 };
 
+type ExpensesResponse = { expenses: Expense[]; summary: ExpenseSummary; split: SplitResult };
+
 interface ExpensesTabProps { tripId: string; tripStartDate?: string | null; tripEndDate?: string | null }
 
 /**
  * Expenses tab: split list view and summary panel with charts.
  */
 export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: ExpensesTabProps) {
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [summary, setSummary] = useState<ExpenseSummary | null>(null);
-    const [split, setSplit] = useState<SplitResult | null>(null);
+    const { data, isLoading: loading, mutate } = useSWR<ExpensesResponse>(`/api/trips/${tripId}/expenses`, jsonFetcher);
+    const expenses = data?.expenses ?? [];
+    const summary = data?.summary ?? null;
+    const split = data?.split ?? null;
+    const fetchExpenses = () => { void mutate(); };
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-    const [loading, setLoading] = useState(true);
 
     const openAdd = () => { setEditingExpense(null); setDrawerOpen(true); };
     const openEdit = (e: Expense) => { setEditingExpense(e); setDrawerOpen(true); };
@@ -45,19 +50,6 @@ export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: Expe
         fetchExpenses();
     };
 
-    const fetchExpenses = () => {
-        fetch(`/api/trips/${tripId}/expenses`)
-            .then((r) => r.json())
-            .then((data: { expenses: Expense[]; summary: ExpenseSummary; split: SplitResult }) => {
-                setExpenses(data.expenses ?? []);
-                setSummary(data.summary ?? null);
-                setSplit(data.split ?? null);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchExpenses(); }, [tripId]);
 
     const handleExportCSV = () => {
         const header = 'Data,Descrizione,Categoria,Importo,Valuta,EUR,Pagato da,Diviso';

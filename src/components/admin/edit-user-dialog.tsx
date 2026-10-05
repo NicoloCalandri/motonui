@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import useSWR from 'swr';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { AdminUserSummary } from '@/lib/types';
 
 type EntitlementPayload = {
@@ -8,6 +10,11 @@ type EntitlementPayload = {
     enabled: boolean;
     dailyLimit: number | null;
     monthlyLimit: number | null;
+};
+
+type UserDetailsPayload = {
+    user?: { plan?: 'free' | 'premium'; premiumUntil?: string | null };
+    entitlements?: EntitlementPayload[];
 };
 
 interface Props {
@@ -43,39 +50,32 @@ export default function EditUserDialog({ user, onClose, onSuccess }: Props) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Shared key with the detail drawer; no focus revalidation while the admin edits.
+    const { data: details } = useSWR<UserDetailsPayload>(`/api/admin/users/${user.id}`, jsonFetcher, {
+        revalidateOnFocus: false,
+        revalidateOnReconnect: false,
+    });
+
+    // Copy the loaded plan and entitlements into the form (sync only).
     useEffect(() => {
-        let mounted = true;
-        const loadDetails = async () => {
-            try {
-                const res = await fetch(`/api/admin/users/${user.id}`);
-                if (!res.ok) return;
-                const payload = await res.json();
-                if (!mounted) return;
-                const detailUser = payload.user;
-                if (detailUser?.plan) setPlan(detailUser.plan);
-                if (detailUser?.premiumUntil) {
-                    setPremiumUntil(new Date(detailUser.premiumUntil).toISOString().slice(0, 10));
-                }
-                if (Array.isArray(payload.entitlements)) {
-                    setEntitlements(PREMIUM_FEATURES.map((feature) => {
-                        const existing = (payload.entitlements as EntitlementPayload[]).find((e) => e.featureKey === feature.key);
-                        return {
-                            featureKey: feature.key,
-                            enabled: existing ? Boolean(existing.enabled) : (detailUser?.plan === 'premium'),
-                            dailyLimit: existing?.dailyLimit?.toString?.() ?? '',
-                            monthlyLimit: existing?.monthlyLimit?.toString?.() ?? '',
-                        };
-                    }));
-                }
-            } catch {
-                // keep defaults
-            }
-        };
-        loadDetails();
-        return () => {
-            mounted = false;
-        };
-    }, [user.id]);
+        if (!details) return;
+        const detailUser = details.user;
+        if (detailUser?.plan) setPlan(detailUser.plan);
+        if (detailUser?.premiumUntil) {
+            setPremiumUntil(new Date(detailUser.premiumUntil).toISOString().slice(0, 10));
+        }
+        if (Array.isArray(details.entitlements)) {
+            setEntitlements(PREMIUM_FEATURES.map((feature) => {
+                const existing = details.entitlements?.find((e) => e.featureKey === feature.key);
+                return {
+                    featureKey: feature.key,
+                    enabled: existing ? Boolean(existing.enabled) : (detailUser?.plan === 'premium'),
+                    dailyLimit: existing?.dailyLimit?.toString() ?? '',
+                    monthlyLimit: existing?.monthlyLimit?.toString() ?? '',
+                };
+            }));
+        }
+    }, [details]);
 
     const handleSubmit = async () => {
         setLoading(true);
