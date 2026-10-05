@@ -17,7 +17,6 @@ export default function SlidePreview({ plan }: SlidePreviewProps) {
                     <li key={slide.mediaId} className={`relative flex-shrink-0 w-24 ${aspect} rounded-xl overflow-hidden bg-sand-200`}>
                         {slide.previewUrl && (
                             // Signed thumbnail of a private photo: next/image cannot optimize it.
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={slide.previewUrl} alt={`Slide ${slide.index}`} className="w-full h-full object-cover" />
                         )}
                         <span className="absolute top-1 left-1 px-1.5 rounded bg-ink-900/70 text-white text-[10px] font-bold">

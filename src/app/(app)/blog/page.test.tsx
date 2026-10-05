@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import BlogIndexPage from './page';
 
 // Mutable so individual tests can control post data
-let mockPosts: any[] = [];
+let mockPosts: Record<string, unknown>[] = [];
 
 vi.mock('@/lib/supabase/server', () => ({
     createClient: () =>

@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '@/lib/errors';
 import { queryChain, type QueryResult } from '@/test/supabase-mock';
-import { requireDayInTrip, requireLegInTrip, requireTripMember, requireTripPayer } from './authz';
+import { requireDayInTrip, requireLegInTrip, requireTripMember, requireTripPayer, type SupabaseLike } from './authz';
 
 /** Client whose tables answer in order: e.g. { trip_members: [{ data: null }], trips: [...] }. */
 function client(results: Record<string, QueryResult[]>) {
     const from = vi.fn((table: string) => queryChain(results[table]?.shift() ?? { data: null, error: null }));
-    return { from };
+    // Structural stand-in: only the chain methods authz uses are implemented.
+    return { from } as unknown as SupabaseLike & { from: typeof from };
 }
 
 const ok = (data: unknown): QueryResult => ({ data, error: null });

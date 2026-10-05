@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 
 // ─── Static airport dataset (major world airports) ────────────────────────────
 // Format: [IATA, City, AirportName, CountryCode]

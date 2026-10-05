@@ -127,7 +127,7 @@ describe('partner invites (T-2.5)', () => {
 
         expect(res.status).toBe(201);
         expect(mocks.rpc).toHaveBeenCalledWith('create_trip', expect.objectContaining({
-            p_title: 'Rapa Nui', p_destination: 'Isola di Pasqua', p_start_date: '2026-10-01', p_end_date: null,
+            p_title: 'Rapa Nui', p_destination: 'Isola di Pasqua', p_start_date: '2026-10-01', p_end_date: undefined,
         }));
     });
 });

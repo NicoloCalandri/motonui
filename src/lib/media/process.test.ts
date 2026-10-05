@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { applyFilter, cropToAspect, overlayText, safeHexColor } from './process';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 // We test with a small synthetic 1×1 white PNG embedded as base64
 const TINY_PNG_B64 =

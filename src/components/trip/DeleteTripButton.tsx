@@ -24,7 +24,7 @@ export default function DeleteTripButton({ tripId, tripTitle }: { tripId: string
                 } else {
                     alert("Errore durante l'eliminazione del viaggio.");
                 }
-            } catch (error) {
+            } catch {
                 alert("Si è verificato un errore.");
             } finally {
                 setIsLoading(false);

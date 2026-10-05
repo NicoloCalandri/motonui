@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import {
     Plane, Hotel, Utensils, Ticket, FileText, Shield, CreditCard,
-    Download, X, QrCode, Eye, PlusCircle, ChevronRight,
+    Download, X, QrCode, Trash2, PlusCircle, ChevronRight,
 } from 'lucide-react';
 import { documentHref } from '@/lib/trip-files';
 import type { TripWithDetails, Document as TravelDocument, DocumentType } from '@/lib/types';
@@ -32,7 +32,6 @@ interface TravelWalletProps {
 export default function TravelWallet({ trip }: TravelWalletProps) {
     const [documents, setDocuments] = useState<TravelDocument[]>(trip.documents ?? []);
     const [viewingDoc, setViewingDoc] = useState<TravelDocument | null>(null);
-    const [uploading, setUploading] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
 
     const fetchDocuments = () => {
@@ -195,6 +194,14 @@ function WalletCard({ document: doc, onView, onDelete }: {
                 {doc.barcode_data && (
                     <QrCode className={`w-5 h-5 ${config.textColor} opacity-40 flex-shrink-0`} />
                 )}
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    aria-label={`Elimina ${doc.title}`}
+                    className="p-1.5 rounded-lg text-ink-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
                 <ChevronRight className="w-4 h-4 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
             </div>
         </div>
@@ -274,7 +281,6 @@ function DocumentViewer({ document: doc, onClose }: { document: TravelDocument; 
                         title={doc.title}
                     />
                 ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={href}
                         alt={doc.title}

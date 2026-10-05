@@ -1,5 +1,4 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { TiptapDoc } from '@/lib/types';
 import { AI_MODELS } from '@/lib/ai/models';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });

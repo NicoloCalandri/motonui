@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
     format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
-    isSameDay, isSameMonth, addMonths, subMonths, isToday,
+    isSameDay, addMonths, subMonths, isToday,
 } from 'date-fns';
 import { it } from 'date-fns/locale';
 import {
     Plane, Hotel, Utensils, Ticket, AlertTriangle, CreditCard,
     ChevronLeft, ChevronRight, Bell, Clock,
 } from 'lucide-react';
-import type { TripWithDetails, Leg, Accommodation, Restaurant, Activity, Reminder } from '@/lib/types';
+import type { TripWithDetails, Restaurant, Activity } from '@/lib/types';
 
 interface CalendarEvent {
     id: string;
@@ -34,7 +34,6 @@ interface TripCalendarProps {
 export default function TripCalendar({ trip }: TripCalendarProps) {
     const [restaurants, setRestaurants] = useState<Restaurant[]>(trip.restaurants ?? []);
     const [activities, setActivities] = useState<Activity[]>(trip.activities ?? []);
-    const [reminders, setReminders] = useState<Reminder[]>([]);
 
     // Start at trip start date, or current month
     const initialDate = trip.start_date ? new Date(trip.start_date) : new Date();
