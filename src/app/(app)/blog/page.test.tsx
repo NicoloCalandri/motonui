@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import BlogIndexPage from './page';
+import { seriousA11yViolations } from '@/test/axe';
 
 // Mutable so individual tests can control post data
 let mockPosts: Record<string, unknown>[] = [];
@@ -98,5 +99,10 @@ describe('BlogIndexPage', () => {
         render(Result);
         expect(screen.getByText('Post Uno')).toBeDefined();
         expect(screen.getByText('Post Due')).toBeDefined();
+    });
+
+    it('has no serious axe violations (T-3.9)', async () => {
+        const { container } = render(await BlogIndexPage());
+        expect(await seriousA11yViolations(container)).toEqual([]);
     });
 });

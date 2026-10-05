@@ -88,6 +88,7 @@ export function LegBookingFields({ register, type }: LegBookingFieldsProps) {
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Numero prenotazione</label>
                 <input
                     {...register('booking_ref')}
+                    aria-label="Numero prenotazione"
                     placeholder="es. ABC123456"
                     className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                 />
@@ -99,6 +100,7 @@ export function LegBookingFields({ register, type }: LegBookingFieldsProps) {
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">PNR (codice volo)</label>
                 <input
                     {...register('pnr')}
+                            aria-label="PNR (codice volo)"
                     placeholder="es. XKQM5A"
                     className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-mono font-bold tracking-widest uppercase"
                 />
@@ -107,6 +109,7 @@ export function LegBookingFields({ register, type }: LegBookingFieldsProps) {
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Apertura check-in online</label>
                 <input
                     {...register('checkin_opens_at')}
+                            aria-label="Apertura check-in online"
                     type="datetime-local"
                     className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                 />

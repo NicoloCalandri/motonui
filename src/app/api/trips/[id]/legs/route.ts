@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok } from '@/lib/errors';
 import { convertCurrency } from '@/lib/expenses';
 
 const CreateLegSchema = z.object({
@@ -34,20 +32,11 @@ const CreateLegSchema = z.object({
     })).optional(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
-    const body = await request.json();
-    const parsed = CreateLegSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
-    const data = parsed.data;
+export const POST = withRoute(
+    { name: 'trips/[id]/legs POST', params: tripParams(), body: CreateLegSchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id } = params;
+    const data = body;
 
     // Support multi-segment flights
     if (data.type === 'flight' && data.segments && data.segments.length > 0) {
@@ -133,15 +122,12 @@ export const POST = withErrorHandler(async (request, { params }) => {
     }
 
     return ok({ success: true });
-}, 'trips/[id]/legs POST') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id]/legs GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
     const { data: legs, error } = await supabase
         .from('legs')
         .select('*')
@@ -151,4 +137,4 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (error) throw new Error(`[motonui][legs][GET] ${error.message}`);
 
     return ok(legs || []);
-}, 'trips/[id]/legs GET') as (req: Request, ctx: Params) => Promise<Response>;
+});

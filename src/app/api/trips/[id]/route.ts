@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { Errors, ok } from '@/lib/errors';
 
 const UpdateTripSchema = z.object({
     title: z.string().min(1).max(200).optional(),
@@ -16,17 +14,11 @@ const UpdateTripSchema = z.object({
     budget_eur: z.number().nonnegative().nullable().optional(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
 /** GET /api/trips/[id] — full trip with days, legs, accommodations */
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id] GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
     const { data: trip, error } = await supabase.from('trips')
         .select(`
       *,
@@ -56,22 +48,15 @@ export const GET = withErrorHandler(async (_req, { params }) => {
 
 
     return ok(trip);
-}, 'trips/[id] GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** PUT /api/trips/[id] — update trip metadata */
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-    const body: unknown = await request.json();
-    const parsed = UpdateTripSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
+export const PUT = withRoute(
+    { name: 'trips/[id] PUT', params: tripParams(), body: UpdateTripSchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+    const { id } = params;
     const { data: trip, error } = await supabase.from('trips')
-        .update(parsed.data)
+        .update(body)
         .eq('id', id)
         .select()
         .single();
@@ -79,17 +64,13 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     if (error) throw Errors.notFound('Viaggio');
 
     return ok(trip);
-}, 'trips/[id] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** DELETE /api/trips/[id] — soft delete (status = 'archived') */
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const DELETE = withRoute(
+    { name: 'trips/[id] DELETE', params: tripParams(), tripMember: true },
+    async ({ supabase, user, params }) => {
+    const { id } = params;
     const { error } = await supabase.from('trips')
         .update({ status: 'archived' })
         .eq('id', id)
@@ -98,4 +79,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (error) throw Errors.forbidden();
 
     return ok({ success: true });
-}, 'trips/[id] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

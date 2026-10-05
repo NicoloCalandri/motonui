@@ -99,6 +99,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                                 accept="image/jpeg,image/png,image/webp,image/heic"
                                 className="hidden"
                                 title="Carica foto profilo"
+                                aria-label="Carica foto profilo"
                                 onChange={handleAvatarChange}
                             />
                             <button

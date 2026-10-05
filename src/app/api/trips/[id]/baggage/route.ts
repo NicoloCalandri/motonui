@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember, requireLegInTrip } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { ok } from '@/lib/errors';
+import { requireLegInTrip } from '@/lib/authz';
 
 const CreateBaggageItemSchema = z.object({
     leg_id: z.string().uuid().nullable().optional(),
@@ -16,15 +15,10 @@ const CreateBaggageItemSchema = z.object({
     notes: z.string().nullable().optional(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id]/baggage GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
     const { data, error } = await supabase
         .from('baggage_items')
         .select('*')
@@ -34,20 +28,13 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (error) throw new Error(`[motonui][baggage][GET] ${error.message}`);
 
     return ok(data || []);
-}, 'trips/[id]/baggage GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
-    const body = await request.json();
-    const parsed = CreateBaggageItemSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
-    const data = parsed.data;
+export const POST = withRoute(
+    { name: 'trips/[id]/baggage POST', params: tripParams(), body: CreateBaggageItemSchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+    const { id } = params;
+    const data = body;
     await requireLegInTrip(supabase, id, data.leg_id);
 
     const { data: inserted, error } = await supabase
@@ -69,4 +56,4 @@ export const POST = withErrorHandler(async (request, { params }) => {
     if (error) throw new Error(`[motonui][baggage][POST] ${error.message}`);
 
     return ok(inserted, 201);
-}, 'trips/[id]/baggage POST') as (req: Request, ctx: Params) => Promise<Response>;
+});

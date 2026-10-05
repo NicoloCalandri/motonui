@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SWRTestProvider } from '@/test/swr';
 import TripPage from './page';
+import { seriousA11yViolations } from '@/test/axe';
 
 const mockTrip = {
     id: 'trip-1',
@@ -101,5 +102,11 @@ describe('TripPage', () => {
         await screen.findByText('Tour del Giappone');
         const homeLink = screen.getByRole('link', { name: /Home/i });
         expect(homeLink.getAttribute('href')).toBe('/dashboard');
+    });
+
+    it('has no serious axe violations (T-3.9)', async () => {
+        const { container } = render(<TripPage />, { wrapper: SWRTestProvider });
+        await screen.findByText('Tour del Giappone');
+        expect(await seriousA11yViolations(container)).toEqual([]);
     });
 });

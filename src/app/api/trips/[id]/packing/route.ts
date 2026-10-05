@@ -1,16 +1,13 @@
 import { z } from 'zod';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
 import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { Errors, ok } from '@/lib/errors';
 import { requireFeatureAccess } from '@/lib/premium/access';
 import { geocodeDestination, getTripWeather } from '@/lib/weather';
 import { generatePackingChecklist, computePackingInputHash } from '@/lib/ai/packing';
 import type { BaggageItem, PackingCategoryGroup } from '@/lib/types';
 import { fromJson, toJson } from '@/lib/json';
-
-type Params = { params: Promise<{ id: string }> };
 
 interface TripForPacking {
     destination: string;
@@ -39,13 +36,10 @@ async function loadTripContext(supabase: Awaited<ReturnType<typeof createClient>
 }
 
 /** GET /api/trips/[id]/packing — current checklist + staleness flag */
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id]/packing GET', params: tripParams(), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id } = params;
     const { data: checklist, error } = await supabase.from('packing_checklists')
         .select('*')
         .eq('trip_id', id)
@@ -78,15 +72,13 @@ export const GET = withErrorHandler(async (_req, { params }) => {
         },
         stale: checklist.input_hash !== currentHash,
     });
-}, 'trips/[id]/packing GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** POST /api/trips/[id]/packing — generate/regenerate the AI checklist */
-export const POST = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
+export const POST = withRoute(
+    { name: 'trips/[id]/packing POST', params: tripParams(), tripMember: true },
+    async ({ supabase, user, params }) => {
+    const { id } = params;
     await requireFeatureAccess({ userId: user.id, feature: 'packing_checklist' });
 
     const { trip, baggage } = await loadTripContext(supabase, id);
@@ -155,7 +147,7 @@ export const POST = withErrorHandler(async (_req, { params }) => {
         generated_at: new Date().toISOString(),
         checked_item_ids: [],
     });
-}, 'trips/[id]/packing POST') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 const ToggleSchema = z.object({
     itemId: z.string().min(1),
@@ -163,17 +155,10 @@ const ToggleSchema = z.object({
 });
 
 /** PATCH /api/trips/[id]/packing — toggle a checklist item's checked state */
-export const PATCH = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id } = await params;
-
-    await requireTripMember(supabase, id, user.id);
-
-    const body = await request.json();
-    const parsed = ToggleSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
+export const PATCH = withRoute(
+    { name: 'trips/[id]/packing PATCH', params: tripParams(), body: ToggleSchema, tripMember: true },
+    async ({ supabase, params, body }) => {
+    const { id } = params;
     const { data: current, error: fetchError } = await supabase.from('packing_checklists')
         .select('checked_item_ids')
         .eq('trip_id', id)
@@ -182,9 +167,9 @@ export const PATCH = withErrorHandler(async (request, { params }) => {
     if (fetchError || !current) throw Errors.notFound('Checklist');
 
     const existing: string[] = current.checked_item_ids ?? [];
-    const next = parsed.data.checked
-        ? Array.from(new Set([...existing, parsed.data.itemId]))
-        : existing.filter((itemId) => itemId !== parsed.data.itemId);
+    const next = body.checked
+        ? Array.from(new Set([...existing, body.itemId]))
+        : existing.filter((itemId) => itemId !== body.itemId);
 
     const { error: updateError } = await supabase.from('packing_checklists')
         .update({ checked_item_ids: next, updated_at: new Date().toISOString() })
@@ -193,4 +178,4 @@ export const PATCH = withErrorHandler(async (request, { params }) => {
     if (updateError) throw new Error(`[motonui][packing][PATCH] ${updateError.message}`);
 
     return ok({ checked_item_ids: next });
-}, 'trips/[id]/packing PATCH') as (req: Request, ctx: Params) => Promise<Response>;
+});

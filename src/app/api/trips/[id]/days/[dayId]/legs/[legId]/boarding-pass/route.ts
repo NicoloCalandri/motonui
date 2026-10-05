@@ -1,17 +1,9 @@
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
 import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { Errors, ok } from '@/lib/errors';
 import { Buckets, deleteFile, downloadFile, uploadPrivateFile, validateFile } from '@/lib/storage';
-import { requireTripMember } from '@/lib/authz';
-import {
-    boardingPassExtension,
-    boardingPassMimeType,
-    buildBoardingPassPath,
-    isBoardingPassPathForTrip,
-    legacyBoardingPassPath,
-} from '@/lib/boarding-pass';
-
-type Params = { params: Promise<{ id: string; dayId: string; legId: string }> };
+import { boardingPassExtension, boardingPassMimeType, buildBoardingPassPath, isBoardingPassPathForTrip, legacyBoardingPassPath } from '@/lib/boarding-pass';
 
 /** Matches file_size_limit of the trip-documents bucket (migration 0017). */
 const MAX_BOARDING_PASS_BYTES = 20 * 1024 * 1024;
@@ -57,13 +49,10 @@ async function removeStoredFiles(tripId: string, leg: LegFiles): Promise<void> {
  * Streams the boarding pass from the private bucket after an auth and
  * membership check. No storage URL ever reaches the browser.
  */
-export const GET = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId, legId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const GET = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass GET', params: tripParams('dayId', 'legId'), tripMember: true },
+    async ({ request, supabase, params }) => {
+    const { id, dayId, legId } = params;
     const leg = await getLeg(supabase, id, dayId, legId);
     if (!isBoardingPassPathForTrip(leg.boarding_pass_path, id)) {
         throw Errors.notFound("Carta d'imbarco");
@@ -85,20 +74,17 @@ export const GET = withErrorHandler(async (request, { params }) => {
             'X-Content-Type-Options': 'nosniff',
         },
     });
-}, 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /**
  * POST /api/trips/[id]/days/[dayId]/legs/[legId]/boarding-pass
  * Uploads a boarding pass image or PDF to the private bucket and replaces any
  * previous file.
  */
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId, legId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const POST = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass POST', params: tripParams('dayId', 'legId'), tripMember: true },
+    async ({ request, supabase, params }) => {
+    const { id, dayId, legId } = params;
     const previous = await getLeg(supabase, id, dayId, legId);
 
     const formData = await request.formData();
@@ -132,19 +118,16 @@ export const POST = withErrorHandler(async (request, { params }) => {
     await removeStoredFiles(id, previous);
 
     return ok(updated);
-}, 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass POST') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /**
  * DELETE /api/trips/[id]/days/[dayId]/legs/[legId]/boarding-pass
  * Removes the boarding pass from the leg and deletes the file from storage.
  */
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId, legId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const DELETE = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass DELETE', params: tripParams('dayId', 'legId'), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id, dayId, legId } = params;
     const leg = await getLeg(supabase, id, dayId, legId);
 
     const { error } = await supabase
@@ -159,4 +142,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     await removeStoredFiles(id, leg);
 
     return ok({ success: true });
-}, 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

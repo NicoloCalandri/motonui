@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Loader2 } from 'lucide-react';
+import { useDialogA11y } from '@/components/ui/use-dialog-a11y';
 
 const Schema = z.object({
     date: z.string().min(1, 'Inserisci una data valida').regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato YYYY-MM-DD'),
@@ -26,6 +27,7 @@ interface DayDrawerProps {
 export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDate, tripEndDate, initialData }: DayDrawerProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
         resolver: zodResolver(Schema),
@@ -87,18 +89,25 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
                 <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
                     
                     {/* Panel */}
-                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative">
-                        
+                    <div
+                        ref={panelRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="day-drawer-title"
+                        tabIndex={-1}
+                        className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative"
+                    >
+
                         <div className="p-6 sm:p-10">
                             {/* Handle (mobile only) */}
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
 
                             {/* Header */}
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">
+                                <h2 id="day-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">
                                     {initialData?.id ? 'Modifica giorno' : 'Nuovo giorno'}
                                 </h2>
-                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -112,10 +121,11 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 {/* Date */}
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="day-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Data *
                                     </label>
                                     <input
+                                        id="day-date"
                                         {...register('date')}
                                         type="date"
                                         min={tripStartDate || undefined}
@@ -127,10 +137,11 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
 
                                 {/* Title */}
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="day-title" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Titolo o Tema (Opzionale)
                                     </label>
                                     <input
+                                        id="day-title"
                                         {...register('title')}
                                         placeholder="es. Arrivo a destinazione, Tour in barca..."
                                         className="w-full px-6 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"

@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
-import { formatZodError } from '@/lib/validation';
-import { requireTripMember } from '@/lib/authz';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { Errors, ok } from '@/lib/errors';
 import { upsertActivityReminder } from '@/lib/reminders';
 
 const UpdateActivitySchema = z.object({
@@ -21,22 +19,14 @@ const UpdateActivitySchema = z.object({
     day_id: z.string().uuid().optional().nullable(),
 });
 
-type Params = { params: Promise<{ id: string; activityId: string }> };
-
 /** PUT /api/trips/[id]/activities/[activityId] */
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, activityId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
-    const body: unknown = await request.json();
-    const parsed = UpdateActivitySchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(formatZodError(parsed.error));
-
+export const PUT = withRoute(
+    { name: 'trips/[id]/activities/[activityId] PUT', params: tripParams('activityId'), body: UpdateActivitySchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id, activityId } = params;
     const { data: activity, error } = await supabase
         .from('activities')
-        .update(parsed.data)
+        .update(body)
         .eq('id', activityId)
         .eq('trip_id', id)
         .select()
@@ -45,8 +35,8 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     if (error) throw Errors.notFound('Attività');
 
     // Update reminder
-    const date = parsed.data.date ?? activity.date;
-    const time = parsed.data.time ?? activity.time;
+    const date = body.date ?? activity.date;
+    const time = body.time ?? activity.time;
     if (date && time) {
         await upsertActivityReminder(supabase, {
             userId: user.id,
@@ -59,15 +49,13 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     }
 
     return ok(activity);
-}, 'trips/[id]/activities/[activityId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** DELETE /api/trips/[id]/activities/[activityId] */
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, activityId } = await params;
-    await requireTripMember(supabase, id, user.id);
-
+export const DELETE = withRoute(
+    { name: 'trips/[id]/activities/[activityId] DELETE', params: tripParams('activityId'), tripMember: true },
+    async ({ supabase, params }) => {
+    const { id, activityId } = params;
     const { error } = await supabase
         .from('activities')
         .delete()
@@ -84,4 +72,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
         .eq('entity_type', 'activity');
 
     return ok({ success: true });
-}, 'trips/[id]/activities/[activityId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

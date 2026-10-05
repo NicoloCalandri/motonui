@@ -153,10 +153,11 @@ export default function NewTripPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Partenza</label>
+                  <label htmlFor="start_date" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Partenza</label>
                   <div className="relative group">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-300 group-focus-within:text-neutral-900 transition-colors" />
                     <input
+                      id="start_date"
                       {...form1.register('start_date')}
                       type="date"
                       className="w-full pl-12 pr-4 py-4 bg-neutral-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-neutral-200 transition-all cursor-pointer"
@@ -164,10 +165,11 @@ export default function NewTripPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Ritorno</label>
+                  <label htmlFor="end_date" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Ritorno</label>
                   <div className="relative group">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-300 group-focus-within:text-neutral-900 transition-colors" />
                     <input
+                      id="end_date"
                       {...form1.register('end_date')}
                       type="date"
                       min={startDate || undefined}
@@ -178,8 +180,9 @@ export default function NewTripPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Descrizione</label>
+                <label htmlFor="description" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Descrizione</label>
                 <textarea
+                  id="description"
                   {...form1.register('description')}
                   rows={3}
                   placeholder="Appunti rapidi sul viaggio..."
@@ -212,12 +215,13 @@ export default function NewTripPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
+                <label htmlFor="partner_email" className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
                   Email del partner
                 </label>
                 <div className="relative group">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-300 group-focus-within:text-neutral-900 transition-colors" />
                   <input
+                    id="partner_email"
                     {...form2.register('partner_email')}
                     type="email"
                     placeholder="partner@example.com"
