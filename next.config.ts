@@ -14,6 +14,9 @@ const connectSrc = [
     'https://events.mapbox.com',
     'https://*.mapbox.com',
     'https://api.anthropic.com',
+    // Sentry browser events (T-4.2); EU and US ingest hosts.
+    'https://*.ingest.sentry.io',
+    'https://*.ingest.de.sentry.io',
     ...(isDev ? ['http://127.0.0.1:54321', 'ws://127.0.0.1:54321'] : []),
 ].join(' ');
 

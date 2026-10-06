@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { AI_MODELS } from '@/lib/ai/models';
+import { log } from '@/lib/log';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -83,7 +84,7 @@ export function streamBlogAssistant(input: AssistBlogInput): ReadableStream {
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                 controller.close();
             } catch (err) {
-                console.error('[motonui][blog-assistant] Stream error:', err);
+                log.error('[motonui][blog-assistant] Stream error:', err);
                 controller.error(err);
             }
         },

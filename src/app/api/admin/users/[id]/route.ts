@@ -6,6 +6,7 @@ import { ok } from '@/lib/errors';
 import type { Database } from '@/lib/supabase/database.types';
 import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
 import { toJson } from '@/lib/json';
+import { log } from '@/lib/log';
 
 const DeleteSchema = z.object({
     confirmEmail: z.string().email(),
@@ -152,7 +153,7 @@ export async function PUT(request: Request, { params }: Params) {
     if (Object.keys(updates).length > 0) {
         const { error } = await supabase.from('profiles').update(updates).eq('id', id);
         if (error) {
-            console.error('[admin/users PUT]', error.message);
+            log.error('[admin/users PUT]', error.message);
             return NextResponse.json(
                 { error: 'Errore durante l\'aggiornamento.', code: 'INTERNAL_ERROR', status: 500 },
                 { status: 500 }
@@ -244,7 +245,7 @@ export async function DELETE(request: Request, { params }: Params) {
     const { error: purgeError } = await supabase.rpc('purge_user_data', { p_user: id });
     const { error } = purgeError ? { error: purgeError } : await supabase.auth.admin.deleteUser(id);
     if (error) {
-        console.error('[admin/users DELETE]', error.message);
+        log.error('[admin/users DELETE]', error.message);
         return NextResponse.json(
             { error: 'Impossibile eliminare l\'utente.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
@@ -254,7 +255,7 @@ export async function DELETE(request: Request, { params }: Params) {
     try {
         await drainStorageDeletionQueue(supabase);
     } catch (err) {
-        console.error('[admin/users DELETE] storage cleanup deferred', err);
+        log.error('[admin/users DELETE] storage cleanup deferred', err);
     }
 
     return ok({ deleted: true });

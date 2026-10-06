@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { createImpersonationToken, IMPERSONATION_DURATION_SECONDS } from '@/lib/admin/impersonation-token';
+import { log } from '@/lib/log';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,7 +15,7 @@ export async function POST(_req: Request, { params }: Params) {
 
     const secret = process.env.ADMIN_IMPERSONATION_SECRET;
     if (!secret || secret.length < 32) {
-        console.error('[admin/impersonate] ADMIN_IMPERSONATION_SECRET is missing or too short');
+        log.error('[admin/impersonate] ADMIN_IMPERSONATION_SECRET is missing or too short');
         return NextResponse.json(
             { error: 'Configurazione server non corretta.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }

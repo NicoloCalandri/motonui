@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { Errors, ok } from '@/lib/errors';
+import { log } from '@/lib/log';
 
 const UpdateTripSchema = z.object({
     title: z.string().min(1).max(200).optional(),
@@ -39,12 +40,11 @@ export const GET = withRoute(
         .eq('id', id)
         .single();
 
-  
-  if (error) {
-    console.error('Supabase GET trip error:', error);
-    // If supabase returns a 0 (no rows) treat as not found
-    throw Errors.notFound('Viaggio');
-  }
+    if (error) {
+        // No row (PGRST116) or RLS: both answer 404; only the code is logged.
+        log.warn('[motonui][trips/[id] GET] trip lookup failed', { code: error.code });
+        throw Errors.notFound('Viaggio');
+    }
 
 
     return ok(trip);

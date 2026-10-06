@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from './database.types';
+import { log } from '@/lib/log';
 
 export interface MiddlewareProfile {
     role: string;
@@ -47,7 +48,7 @@ export async function updateSession(request: NextRequest) {
             .eq('id', user.id)
             .single();
         if (error) {
-            console.error('[motonui][middleware] profile lookup failed:', error.message);
+            log.error('[motonui][middleware] profile lookup failed:', error.message);
         }
         profile = data ?? null;
     }

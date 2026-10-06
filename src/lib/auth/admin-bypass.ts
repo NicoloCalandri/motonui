@@ -26,6 +26,7 @@ export function assertNoAdminBypassInProduction(env: Env = process.env): void {
 export function isAdminAuthBypassEnabled(env: Env = process.env): boolean {
     if (env.ADMIN_AUTH_BYPASS !== 'true') return false;
     if (isProductionEnvironment(env)) {
+        // console, not log: this module is also loaded by next.config.ts, outside the app bundle.
         console.error('[motonui][auth] ADMIN_AUTH_BYPASS ignored in production');
         return false;
     }

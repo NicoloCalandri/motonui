@@ -4,6 +4,7 @@ import { Buckets } from '@/lib/storage';
 import { isBoardingPassPathForTrip, legacyBoardingPassPath } from '@/lib/boarding-pass';
 import { isTripFilePath, tripStoragePrefix } from '@/lib/trip-files';
 import type { Media, MediaWithUrls } from '@/lib/types';
+import { log } from './log';
 
 /** Signed media URLs last one hour (T-2.1). */
 export const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -35,7 +36,7 @@ export async function withSignedUrls(
             .from(Buckets.tripMedia)
             .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
         if (error) {
-            console.error('[motonui][storage][sign] media', error.message);
+            log.error('[motonui][storage][sign] media', error.message);
         }
         for (const entry of data ?? []) {
             if (entry.path && entry.signedUrl && !entry.error) signed.set(entry.path, entry.signedUrl);
@@ -59,7 +60,7 @@ export async function removeMediaFiles(
 
     const admin = await createAdminClient();
     const { error } = await admin.storage.from(Buckets.tripMedia).remove(paths);
-    if (error) console.error('[motonui][storage][delete] media', error.message);
+    if (error) log.error('[motonui][storage][delete] media', error.message);
 }
 
 /** Removes a document's uploaded file, if any. */
@@ -67,7 +68,7 @@ export async function removeDocumentFile(tripId: string, filePath: string | null
     if (!isTripFilePath(filePath, tripId, 'documents')) return;
     const admin = await createAdminClient();
     const { error } = await admin.storage.from(Buckets.tripDocuments).remove([filePath]);
-    if (error) console.error('[motonui][storage][delete] document', error.message);
+    if (error) log.error('[motonui][storage][delete] document', error.message);
 }
 
 /** Removes a leg's boarding pass, private or legacy public copy (T-2.3). */
@@ -79,13 +80,13 @@ export async function removeLegFiles(
 
     if (isBoardingPassPathForTrip(leg.boarding_pass_path, tripId)) {
         const { error } = await admin.storage.from(Buckets.tripDocuments).remove([leg.boarding_pass_path]);
-        if (error) console.error('[motonui][storage][delete] boarding pass', error.message);
+        if (error) log.error('[motonui][storage][delete] boarding pass', error.message);
     }
 
     const legacyPath = legacyBoardingPassPath(leg.boarding_pass_url, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '');
     if (isBoardingPassPathForTrip(legacyPath, tripId)) {
         const { error } = await admin.storage.from(Buckets.tripMedia).remove([legacyPath]);
-        if (error) console.error('[motonui][storage][delete] legacy boarding pass', error.message);
+        if (error) log.error('[motonui][storage][delete] legacy boarding pass', error.message);
     }
 }
 

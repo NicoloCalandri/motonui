@@ -5,6 +5,7 @@ import { buildSlides, INSTAGRAM_FORMATS, type InstagramFormat, type SlideSource 
 import { AppError } from '@/lib/errors';
 import { Buckets } from '@/lib/storage';
 import { isTripFilePath } from '@/lib/trip-files';
+import { log } from '@/lib/log';
 
 /**
  * Instagram export job (T-2.7): runs after the API has answered 202, with the
@@ -96,7 +97,7 @@ export async function generateExport(input: GenerateExportInput): Promise<Genera
                 .filter((caption): caption is string => Boolean(caption));
             captionResult = await genCap({ captions, type: format, language });
         } catch (err) {
-            console.warn('[motonui][instagram-export] Caption generation failed:', err);
+            log.warn('[motonui][instagram-export] Caption generation failed:', err);
         }
     }
 

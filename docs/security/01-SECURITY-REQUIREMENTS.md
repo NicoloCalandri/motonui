@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 49 | 8 | 9 |
+| **66** | 51 | 7 | 8 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -24,8 +24,8 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 5 | 0 | 0 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 6 | 0 | 1 | 0 |
-| SR-PRIV · Privacy e dati personali | 7 | 6 | 1 | 0 | 0 |
-| SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
+| SR-PRIV · Privacy e dati personali | 7 | 7 | 0 | 0 | 0 |
+| SR-OPS · Operatività | 5 | 2 | 0 | 3 | 0 |
 | SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 5 | 1 | 1 | 0 |
 
@@ -116,7 +116,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-PRIV-02 | Foto, carte d'imbarco e documenti stanno in bucket privati | P0 | ✅ Fatto | `0017_trip_documents_bucket.sql`, `0020_private_trip_media.sql`, `0023_instagram_exports_private.sql` (ZIP Instagram privati, scaricati solo con URL firmato ≤ 24 h) (`trip-media` privato, sola policy `SELECT` per i membri su `trips/{trip_id}/`, path vincolati al viaggio e immutabili); proxy `…/boarding-pass` e `…/documents/[documentId]/file`; test `supabase/tests/0017_trip_documents.test.sql`, `0020_private_media.test.sql`, `documents/route.test.ts` | T-0.9 e T-2.1/T-2.3. I vecchi URL pubblici `/object/public/trip-media/…` smettono di funzionare con la migration; le righe esistenti sono convertite in `storage_path`. Da verificare sul cloud dopo `supabase db push`: bucket privato e nessuna policy residua creata dalla dashboard. Le copertine dei post (`post-covers`) restano pubbliche per scelta (blog pubblico). |
 | SR-PRIV-03 | Rimuovere una carta d'imbarco elimina anche il file | P2 | ✅ Fatto | `boarding-pass/route.ts` (DELETE e sostituzione), `legs/[legId]` DELETE, `documents/[documentId]` DELETE, `src/lib/trip-storage.ts` (path ricontrollati sul prefisso del viaggio); test `route.test.ts`, `trip-storage.test.ts`, `documents/route.test.ts` | T-0.9 e T-2.3. Path non prevedibili (`{legId}-{uuid}.{ext}`, `documents/{uuid}.{ext}`). Anche eliminare lo spostamento o il documento rimuove il file. |
 | SR-PRIV-04 | Cancellazione account self-service completa (DB + storage) | P1 | ✅ Fatto | `0022_account_deletion.sql` (`purge_user_data`: viaggi condivisi trasferiti al partner, viaggi in solitaria eliminati, file in `storage_deletion_queue`), `src/lib/storage-deletion.ts` (svuotata con la Storage API da `POST /api/account/delete`, dalla DELETE admin e dal cron `cleanup`); test `supabase/tests/0022_account_deletion.test.sql`, `storage-deletion.test.ts`, `account/delete/route.test.ts`, `delete.test.ts` | T-2.9. Dal mobile (`delete_my_account` diretta) i file sono rimossi entro 24 h dal cron. Nei viaggi condivisi si eliminano foto, documenti e spese pagate dall'utente. Lo storico dell'audit admin sull'utente resta (`target_id` a null). |
-| SR-PRIV-05 | Nessun dato personale nei log applicativi | P2 | 🟡 Parziale | `src/app/api/trips/route.ts:28` (`console.log` dei viaggi) | — |
+| SR-PRIV-05 | Nessun dato personale nei log applicativi | P2 | ✅ Fatto | `src/lib/log.ts` (righe JSON con `request_id`, dettagli ridotti a primitivi), `src/lib/redact.ts`; i `console.*` lato server sono passati a `log.*`; test `log.test.ts`, `redact.test.ts` | T-4.3. Rimossi l'oggetto delle email dal log e l'oggetto errore completo in `trips/[id]`. Restano `console` solo nei componenti client e in `admin-bypass.ts` (messaggio senza dati). |
 | SR-PRIV-06 | Gli ZIP Instagram (file, non solo riga DB) sono eliminati dopo 24 h | P2 | ✅ Fatto | `src/lib/instagram-cleanup.ts` (oggetti > 24 h nel bucket, orfani compresi), `cleanup/route.ts`; test `instagram-cleanup.test.ts` | T-2.6. Cron giornaliero: uno ZIP vive al massimo ~48 h. |
 | SR-PRIV-07 | I post pubblicati non espongono dati privati del viaggio | P1 | ✅ Fatto | `src/app/api/posts/[slug]/route.ts` (colonne esplicite), RLS `trips_select` | — |
 
@@ -124,7 +124,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-OPS-01 | Error tracking attivo in produzione | P2 | 🔴 Da fare | `src/lib/monitoring.ts` | `initSentry()` non è mai chiamato e legge `SENTRY_DSN` mentre `.env.example` definisce `NEXT_PUBLIC_SENTRY_DSN`. Mancano `instrumentation.ts` e `sentry.*.config`. |
+| SR-OPS-01 | Error tracking attivo in produzione | P2 | ✅ Fatto | `src/instrumentation.ts` (Node/Edge, `onRequestError`), `src/instrumentation-client.ts`, `src/lib/sentry.ts` (opzioni e scrubbing), `withErrorHandler` → `captureError`; test `sentry.test.ts` | T-4.2. Una sola variabile, `NEXT_PUBLIC_SENTRY_DSN`; senza DSN Sentry resta spento. Da verificare dopo il deploy: `GET /api/admin/sentry-test` crea in Sentry un evento con `[email]` e `api_key=[redacted]` al posto dei valori. |
 | SR-OPS-02 | Audit log delle azioni amministrative sensibili | P1 | ✅ Fatto | `admin_audit_log`; route `admin/users/[id]/*` | — |
 | SR-OPS-03 | Il deploy di produzione parte solo dopo CI verde e applica le migration prima del codice | P1 | 🔴 Da fare | `.github/workflows/deploy-production.yml` | Nessun `needs` verso la CI, codice deployato prima delle migration, Supabase CLI `latest`. |
 | SR-OPS-04 | Backup/PITR del database attivi e restore provato | P2 | 🔴 Da fare | configurazione esterna (Supabase) | — |

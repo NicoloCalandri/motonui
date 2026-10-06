@@ -4,6 +4,7 @@ import { Errors, ok, withErrorHandler } from '@/lib/errors';
 import { removeExpiredExportObjects } from '@/lib/instagram-cleanup';
 import { removeStaleIncomingUploads } from '@/lib/media/pipeline';
 import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
+import { log } from '@/lib/log';
 
 /**
  * GET /api/admin/cleanup — daily cleanup, called by Vercel Cron (vercel.json)
@@ -55,6 +56,6 @@ export const GET = withErrorHandler(async (request) => {
 
     results.prunedDestinationCache = destCacheCount ?? 0;
 
-    console.info('[motonui][admin][cleanup]', results);
+    log.info('[motonui][admin][cleanup]', results);
     return ok({ success: true, results });
 }, 'admin/cleanup GET');

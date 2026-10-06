@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { log } from './log';
+import { captureError } from './monitoring';
+import { requestIdFrom, runWithRequestId } from './request-context';
 
 /**
  * Standard API error structure returned to clients.
@@ -54,29 +57,35 @@ type RouteHandler = (
  */
 export function withErrorHandler(handler: RouteHandler, routeInfo: string): RouteHandler {
     return async (request, context) => {
-        try {
-            return await handler(request, context);
-        } catch (error) {
-            if (error instanceof AppError) {
-                console.error(`[motonui][${routeInfo}] AppError:`, {
-                    code: error.code,
-                    status: error.status,
-                    message: error.message,
-                });
+        // T-4.3: every log line below carries the id echoed in `x-request-id`.
+        const requestId = requestIdFrom(request);
+        const response = await runWithRequestId(requestId, async () => {
+            try {
+                return await handler(request, context);
+            } catch (error) {
+                if (error instanceof AppError) {
+                    log.warn(`[motonui][${routeInfo}] ${error.code}`, { status: error.status, message: error.message });
+                    return NextResponse.json(
+                        { error: error.message, code: error.code, status: error.status } satisfies ApiErrorResponse,
+                        { status: error.status }
+                    );
+                }
+
+                // Unexpected errors: structured log + Sentry (T-4.2), generic message to the client.
+                captureError(error, { route: routeInfo, requestId });
+                const internal = Errors.internal();
                 return NextResponse.json(
-                    { error: error.message, code: error.code, status: error.status } satisfies ApiErrorResponse,
-                    { status: error.status }
+                    { error: internal.message, code: internal.code, status: internal.status } satisfies ApiErrorResponse,
+                    { status: 500 }
                 );
             }
-
-            // Unexpected errors
-            console.error(`[motonui][${routeInfo}] Unexpected error:`, error);
-            const internal = Errors.internal();
-            return NextResponse.json(
-                { error: internal.message, code: internal.code, status: internal.status } satisfies ApiErrorResponse,
-                { status: 500 }
-            );
+        });
+        try {
+            response.headers.set('x-request-id', requestId);
+        } catch {
+            // Immutable headers (e.g. Response.redirect): leave as is.
         }
+        return response;
     };
 }
 

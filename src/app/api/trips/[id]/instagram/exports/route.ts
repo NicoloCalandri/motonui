@@ -8,6 +8,7 @@ import { requireFeatureAccess } from '@/lib/premium/access';
 import { generateExport } from '@/lib/media/instagram-export';
 import { INSTAGRAM_FORMATS } from '@/lib/media/instagram-slides';
 import { HEX_COLOR } from '@/lib/media/process';
+import { log } from '@/lib/log';
 
 /** Photo processing runs after the 202 response, within this budget. */
 export const maxDuration = 60;
@@ -110,7 +111,7 @@ export const POST = withRoute(
                     })
                     .eq('id', job.id);
             } catch (err) {
-                console.error('[motonui][instagram][export] failed', job.id, err);
+                log.error('[motonui][instagram][export] failed', job.id, err);
                 await admin
                     .from('instagram_exports')
                     .update({

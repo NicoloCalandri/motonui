@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/server';
 import { AppError } from '@/lib/errors';
+import { log } from './log';
 
 const FILE_SIGNATURES: Record<string, Array<readonly number[]>> = {
     'image/jpeg': [[0xff, 0xd8, 0xff]],
@@ -142,7 +143,7 @@ export async function downloadFile(bucket: BucketName, path: string, client?: Su
     const { data, error } = await supabase.storage.from(bucket).download(path);
 
     if (error || !data) {
-        console.error(`[motonui][storage][download] ${error?.message ?? 'Empty response'}`);
+        log.error(`[motonui][storage][download] ${error?.message ?? 'Empty response'}`);
         return null;
     }
 
@@ -194,7 +195,7 @@ export async function deleteFile(bucket: BucketName, path: string, client?: Supa
     const { error } = await supabase.storage.from(bucket).remove([path]);
 
     if (error) {
-        console.error(`[motonui][storage][delete] ${error.message}`);
+        log.error(`[motonui][storage][delete] ${error.message}`);
     }
 }
 
