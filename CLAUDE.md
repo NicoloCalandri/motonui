@@ -34,6 +34,7 @@ Documenti di riferimento:
 | `docs/security/02-THREAT-MODEL.md` | Threat model STRIDE |
 | `docs/security/03-SECURITY-ARCHITECTURE.md` | Confini di fiducia, token, livelli di autorizzazione, header, log |
 | `docs/security/04-SECURITY-CHECKLIST.md` | Checklist per PR e rilasci, registro verifiche |
+| `docs/security/05-OPS-RUNBOOK.md` | Parità Auth locale/cloud, backup e restore, rotazione dei segreti |
 
 `docs/archive/` contiene documenti superati (vecchio `ARCHITECTURE.md` e `SECURITY.md`): non usarli come fonte.
 
@@ -114,6 +115,7 @@ import type { Trip } from '@/lib/types'
 - Le colonne sensibili di `profiles` (`role`, `plan`, `premium_*`, `suspended_*`) si scrivono solo con il service role
 - Funzioni `SECURITY DEFINER` sempre con `set search_path = public, pg_temp`; nessuna vista su `auth.users` leggibile da `anon`/`authenticated`
 - Service role solo alle condizioni di `docs/security/03-SECURITY-ARCHITECTURE.md` §3.3
+- Ogni modifica a `[auth]` in `supabase/config.toml` si replica sul progetto cloud (tabella di parità in `docs/security/05-OPS-RUNBOOK.md` §1); la policy password dell'app (`src/lib/auth/password.ts`) resta allineata a `minimum_password_length`/`password_requirements`
 
 ---
 

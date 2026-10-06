@@ -14,18 +14,18 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 49 | 8 | 9 |
+| **66** | 50 | 10 | 6 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
-| SR-AUTH · Autenticazione | 7 | 5 | 1 | 1 | 0 |
+| SR-AUTH · Autenticazione | 7 | 5 | 2 | 0 | 0 |
 | SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 10 | 0 | 0 | 0 |
 | SR-INPUT · Validazione dell'input | 7 | 5 | 2 | 0 | 0 |
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 5 | 0 | 0 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 6 | 0 | 1 | 0 |
 | SR-PRIV · Privacy e dati personali | 7 | 6 | 1 | 0 | 0 |
-| SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
+| SR-OPS · Operatività | 5 | 2 | 1 | 2 | 0 |
 | SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 5 | 1 | 1 | 0 |
 
@@ -46,8 +46,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-AUTH-03 | Dopo login/OAuth si reindirizza solo verso path interni relativi (nessun open redirect) | P1 | ✅ Fatto | `src/lib/redirect.ts` (`safeRedirectPath`) usato in `src/app/auth/callback/route.ts` e `src/app/auth/login/page.tsx`; test `src/lib/redirect.test.ts` | T-0.7. Parametro OAuth con `encodeURIComponent`. |
 | SR-AUTH-04 | Un utente sospeso non può usare l'app né le API, su nessun canale | P1 | 🟡 Parziale | `middleware.ts:71-82`; test `middleware.test.ts` | Il middleware blocca il web, ma l'utente può azzerare `suspended_at` da solo via REST (vedi SR-AUTHZ-04) e l'app mobile parla direttamente con Supabase. |
 | SR-AUTH-05 | Le API non autenticate rispondono 401 JSON, non con redirect HTML | P2 | ✅ Fatto | `middleware.ts`; test `middleware.test.ts` | T-1.9. Anche un utente sospeso riceve 403 JSON sulle API invece del redirect. |
-| SR-AUTH-06 | Conferma email obbligatoria e JWT di breve durata | P2 | ✅ Fatto | `supabase/config.toml` (`enable_confirmations = true`, `jwt_expiry = 3600`) | Verificare che il progetto cloud abbia le stesse impostazioni (config esterna). |
-| SR-AUTH-07 | Password policy minima e protezione da password compromesse attive | P2 | 🔴 Da fare | `supabase/config.toml` (assente `minimum_password_length`/`password_requirements`) | Configurare anche su Supabase cloud (Auth → Policies). |
+| SR-AUTH-06 | Conferma email obbligatoria e JWT di breve durata | P2 | ✅ Fatto | `supabase/config.toml` (`enable_confirmations = true`, `jwt_expiry = 3600`, rotazione dei refresh token) | T-4.8: tabella di parità locale/cloud in `05-OPS-RUNBOOK.md` §1; la verifica sul cloud si registra con B10. |
+| SR-AUTH-07 | Password policy minima e protezione da password compromesse attive | P2 | 🟡 Parziale | `supabase/config.toml` (`minimum_password_length = 10`, `password_requirements = "letters_digits"`, `secure_password_change`), `src/lib/auth/password.ts` (reset password, creazione utente admin) | T-4.8. Resta l'impostazione sul cloud (leaked password protection solo lì, piano Pro) secondo `05-OPS-RUNBOOK.md` §1, verificata con B10. |
 
 ## SR-AUTHZ — Autorizzazione e isolamento dei dati
 
@@ -127,8 +127,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-OPS-01 | Error tracking attivo in produzione | P2 | 🔴 Da fare | `src/lib/monitoring.ts` | `initSentry()` non è mai chiamato e legge `SENTRY_DSN` mentre `.env.example` definisce `NEXT_PUBLIC_SENTRY_DSN`. Mancano `instrumentation.ts` e `sentry.*.config`. |
 | SR-OPS-02 | Audit log delle azioni amministrative sensibili | P1 | ✅ Fatto | `admin_audit_log`; route `admin/users/[id]/*` | — |
 | SR-OPS-03 | Il deploy di produzione parte solo dopo CI verde e applica le migration prima del codice | P1 | 🔴 Da fare | `.github/workflows/deploy-production.yml` | Nessun `needs` verso la CI, codice deployato prima delle migration, Supabase CLI `latest`. |
-| SR-OPS-04 | Backup/PITR del database attivi e restore provato | P2 | 🔴 Da fare | configurazione esterna (Supabase) | — |
-| SR-OPS-05 | Procedura documentata di rotazione e revoca dei segreti | P2 | 🔴 Da fare | assente in `docs/` | — |
+| SR-OPS-04 | Backup/PITR del database attivi e restore provato | P2 | 🟡 Parziale | `05-OPS-RUNBOOK.md` §2 (backup, dump cifrato, prova di restore trimestrale, incidente) | T-4.6. Procedura scritta; restano l'attivazione di backup/PITR sul cloud e la prima prova di restore da annotare nel registro (B15). |
+| SR-OPS-05 | Procedura documentata di rotazione e revoca dei segreti | P2 | ✅ Fatto | `05-OPS-RUNBOOK.md` §3 | T-4.6. La rotazione dei segreti già esposti (T-0.1, SR-DEV-01) è un'esecuzione di questa procedura e resta aperta. |
 
 ## SR-WEB — Sicurezza web
 

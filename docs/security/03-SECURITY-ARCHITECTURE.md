@@ -80,7 +80,7 @@ flowchart TB
 | Token di invito (futuro) | 32 byte casuali, base64url | 7 giorni, monouso | Link email; nel DB solo SHA-256 | RPC `accept_trip_invite` | Scadenza / cancellazione | Da progettare (T-2.5) |
 | URL firmati Storage (futuro) | URL con token Supabase | 1 h (UI), 24 h (ZIP) | Solo risposta API | Browser | Scadenza | Da introdurre (T-2.1) |
 
-**Regole generali:** nessun segreto con prefisso `NEXT_PUBLIC_`/`EXPO_PUBLIC_`; nessun segreto nei log; ogni segreto ha un proprietario e una procedura di rotazione (SR-OPS-05); valori diversi per Development, Preview e Production.
+**Regole generali:** nessun segreto con prefisso `NEXT_PUBLIC_`/`EXPO_PUBLIC_`; nessun segreto nei log; ogni segreto ha un proprietario e una procedura di rotazione (SR-OPS-05, `05-OPS-RUNBOOK.md` §3); valori diversi per Development, Preview e Production.
 
 ---
 
