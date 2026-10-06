@@ -15,7 +15,7 @@ flowchart TB
     end
 
     subgraph V["Vercel — Server Bridge (semi-fidato: esegue codice nostro con segreti)"]
-        MW["middleware.ts"]
+        MW["src/middleware.ts"]
         RH["Route handler /api/**"]
         SC["Server Components"]
         CR["Cron"]
@@ -91,7 +91,7 @@ flowchart TB
 | Livello | Dove | Cosa decide | Oggi |
 |---|---|---|---|
 | L0 — Edge/Header | `next.config.ts` | Politiche del browser (CSP, frame, HSTS) | ✅ con CSP da stringere |
-| L1 — Middleware | `middleware.ts` | Autenticato? Sospeso? Admin per `/admin`? Impersonazione in sola lettura? | 🟡 Reindirizza anche le API; niente controllo `Origin` |
+| L1 — Middleware | `src/middleware.ts` | Autenticato? Sospeso? Admin per `/admin`? Impersonazione in sola lettura? | 🟡 Reindirizza anche le API; niente controllo `Origin` |
 | L2 — Wrapper route | `withErrorHandler` → futuro `withRoute` | Utente, validazione di params/query/body, formato errori | 🟡 Applicato a mano, non ovunque |
 | L3 — Autorizzazione applicativa | `src/lib/authz.ts`, `requireAdmin`, `requireFeatureAccess` | Membro del viaggio? Giorno/tratta/pagatore del viaggio giusto? Admin? Premium e quota? | 🟡 19 route su 30 per la membership |
 | L4 — RLS | policy Postgres | Riga visibile/modificabile dall'utente del JWT | 🟡 Presente ovunque, ma senza `WITH CHECK` e con i buchi su `profiles` e viste |
@@ -165,19 +165,21 @@ Non si introduce crittografia applicativa a livello di campo: per documenti e ca
 
 ## 6. Header HTTP
 
-Configurati in un solo posto (`next.config.ts`); `vercel.json` non deve duplicarli (oggi `Permissions-Policy` è diversa nei due file).
+Due posti, ciascuno con un compito (T-4.4): gli header statici in `next.config.ts` (`headers()`), la CSP nel middleware (`src/middleware.ts` + `src/lib/csp.ts`) perché ha un nonce nuovo a ogni richiesta. `vercel.json` non ne definisce più.
 
-| Header | Valore obiettivo | Stato |
+| Header | Valore | Stato |
 |---|---|---|
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'nonce-{n}' 'strict-dynamic' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://api.mapbox.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mapbox.com https://events.mapbox.com; worker-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'` | 🟡 Oggi `unsafe-inline` + `unsafe-eval` negli script, `img-src https:` aperto, `api.anthropic.com` in `connect-src` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'nonce-{n}' 'strict-dynamic'; style-src 'self' 'unsafe-inline' fonts.googleapis.com api.mapbox.com; img-src 'self' data: blob: https:; font-src 'self' data: fonts.gstatic.com; connect-src 'self' *.supabase.co wss://*.supabase.co *.mapbox.com *.ingest(.de).sentry.io; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests` | ✅ Niente `unsafe-eval` né `unsafe-inline` negli script (solo in dev `unsafe-eval` per React refresh); niente `api.anthropic.com`. `img-src https:` resta aperto: le copertine dei viaggi sono URL scelti dall'utente (e Unsplash di default). `style-src 'unsafe-inline'` serve agli attributi `style` di React, Mapbox e Tiptap |
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | ✅ |
 | `X-Content-Type-Options` | `nosniff` | ✅ |
 | `X-Frame-Options` | `DENY` (ridondante con `frame-ancestors`, utile per browser vecchi) | ✅ |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | ✅ |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(self), payment=()` | 🟡 Due valori diversi |
-| `Cross-Origin-Opener-Policy` | `same-origin` | 🔴 Da aggiungere |
-| `X-XSS-Protection` | rimuovere (deprecato) | 🟡 Presente in `vercel.json` |
-| `Cache-Control` sulle API private | `private, no-store` | 🔴 Da aggiungere in `withRoute` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(self), payment=()` | ✅ Un solo valore |
+| `Cross-Origin-Opener-Policy` | `same-origin` | ✅ |
+| `X-XSS-Protection` | rimosso (deprecato) | ✅ |
+| `Cache-Control` sulle API private | `private, no-store` | ✅ `withRoute` (T-1.3) |
+
+Il nonce rende dinamiche tutte le pagine (il layout radice legge gli header): una pagina prerenderizzata non avrebbe il nonce e i suoi script verrebbero bloccati. I post pubblici del blog perdono quindi l'ISR (`revalidate`).
 
 ---
 

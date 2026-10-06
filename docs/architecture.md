@@ -16,7 +16,7 @@ flowchart LR
     end
 
     subgraph Vercel["Vercel · fra1"]
-        MW["middleware.ts<br/>sessione · sospensione · admin · impersonazione"]
+        MW["src/middleware.ts<br/>sessione · sospensione · admin · impersonazione"]
         RSC["Server Components<br/>(app)/(admin)/(public)"]
         API["Route handler /api/**<br/>50 route"]
         CRON["Vercel Cron<br/>send-reminders 08:00"]
@@ -63,7 +63,7 @@ Punti chiave che la mappa rende visibili:
 
 | Livello | Dove | Stato |
 |---|---|---|
-| Routing e protezione | `middleware.ts`, `src/lib/supabase/middleware.ts` | Refresh sessione, redirect login, blocco sospesi, gate `/admin`, sola lettura in impersonazione. Reindirizza anche le API (vedi SR-AUTH-05). |
+| Routing e protezione | `src/middleware.ts`, `src/lib/supabase/middleware.ts` | Refresh sessione, redirect login, blocco sospesi, gate `/admin`, sola lettura in impersonazione. Reindirizza anche le API (vedi SR-AUTH-05). |
 | Pagine | `src/app/(app)`, `(admin)`, `(public)`, `auth/` | 16 pagine. Il blog pubblico sta in `(app)/blog` ed è reso pubblico da un'eccezione nel middleware. |
 | API | `src/app/api/**` | 50 route: `trips/**` (30), `admin/**` (12), `ai/*` (3), `profile/*` (3), `posts/[slug]`, `expenses/[id]`, `instagram/generate`. |
 | Dominio | `src/lib/*.ts` | `expenses.ts` (conversione e split), `trips.ts` (statistiche), `authz.ts`, `sanitize.ts`, `storage.ts`, `errors.ts`, `premium/access.ts`, `reminders.ts`, `weather.ts`, `email.ts`. |
