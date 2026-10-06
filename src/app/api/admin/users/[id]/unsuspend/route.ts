@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import { log } from '@/lib/log';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -19,7 +20,7 @@ export async function POST(_req: Request, { params }: Params) {
         .eq('id', id);
 
     if (updateError) {
-        console.error('[admin/users/unsuspend]', updateError.message);
+        log.error('[admin/users/unsuspend]', updateError.message);
         return NextResponse.json(
             { error: 'Impossibile riattivare l\'utente.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }

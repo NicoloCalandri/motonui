@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import { log } from '@/lib/log';
 
 const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
 
     const { data, error, count } = await query;
     if (error) {
-        console.error('[admin/audit-log GET]', error.message);
+        log.error('[admin/audit-log GET]', error.message);
         return NextResponse.json(
             { error: 'Errore nel recupero audit log.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }

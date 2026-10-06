@@ -3,6 +3,7 @@ import { AppError } from '@/lib/errors';
 import { Buckets, validateFile } from '@/lib/storage';
 import { buildMediaPath, isTripFilePath } from '@/lib/trip-files';
 import type { ImageMetadata } from '@/lib/types';
+import { log } from '@/lib/log';
 
 /**
  * Photo/video upload pipeline (T-2.2, SR-PRIV-01, FR-30–33).
@@ -159,7 +160,7 @@ export async function processImage(input: Buffer): Promise<ProcessedImage> {
 
         return { original, thumbnail, width: info.width, height: info.height, metadata };
     } catch (err) {
-        console.warn('[motonui][media][process] sharp failed:', err);
+        log.warn('[motonui][media][process] sharp failed:', err);
         throw invalid('Non riusciamo a leggere questa immagine. Le foto HEIC vanno esportate in JPEG 🏝️');
     }
 }

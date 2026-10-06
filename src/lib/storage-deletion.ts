@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { log } from './log';
 
 /**
  * Drains public.storage_deletion_queue (migration 0022, T-2.9, SR-PRIV-04).
@@ -37,7 +38,7 @@ export async function drainStorageDeletionQueue(admin: SupabaseClient, limit: nu
             const { error: removeError } = await admin.storage.from(bucket).remove(chunk.map((row) => row.name));
             if (removeError) {
                 // Left in the queue: the next run retries.
-                console.error('[motonui][storage-deletion] remove', bucket, removeError.message);
+                log.error('[motonui][storage-deletion] remove', bucket, removeError.message);
                 continue;
             }
             const { error: dequeueError } = await admin

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { EXTERNAL_HOSTS, safeFetch } from '@/lib/safe-fetch';
+import { log } from './log';
 
 /**
  * Currency conversion (T-3.2, SR-INT-05, FR-21).
@@ -68,7 +69,7 @@ export async function fetchRates(deps: CurrencyDeps): Promise<Rates> {
 
     const apiKey = deps.apiKey ?? process.env.EXCHANGE_RATE_API_KEY;
     if (!apiKey) {
-        console.warn('[motonui][currency] EXCHANGE_RATE_API_KEY not set — rates unavailable');
+        log.warn('[motonui][currency] EXCHANGE_RATE_API_KEY not set — rates unavailable');
         return {};
     }
 
@@ -105,12 +106,12 @@ export async function convertCurrency(
     try {
         const rate = computeRate(await fetchRates(deps), from, to);
         if (rate === null) {
-            console.warn(`[motonui][currency] Missing rate for ${from} → ${to}`);
+            log.warn(`[motonui][currency] Missing rate for ${from} → ${to}`);
             return null;
         }
         return fromCents(convertCents(toCents(amount), rate));
     } catch (error) {
-        console.error('[motonui][currency] Conversion failed:', error);
+        log.error('[motonui][currency] Conversion failed:', error);
         return null;
     }
 }

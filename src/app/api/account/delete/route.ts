@@ -3,6 +3,7 @@ import { AppError, ok } from '@/lib/errors';
 import { withRoute } from '@/lib/api/with-route';
 import { createAdminClient } from '@/lib/supabase/server';
 import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
+import { log } from '@/lib/log';
 
 const DeleteAccountSchema = z.object({
     confirm: z.literal('ELIMINA', { errorMap: () => ({ message: 'scrivi ELIMINA per confermare' }) }),
@@ -19,7 +20,7 @@ export const POST = withRoute(
     async ({ supabase }) => {
         const { data, error } = await supabase.rpc('delete_my_account', { confirm_text: 'DELETE' });
         if (error) {
-            console.error('[motonui][account][delete]', error.message);
+            log.error('[motonui][account][delete]', error.message);
             throw new AppError('Non riusciamo a eliminare l’account. Riprova tra poco 🏝️', 'ACCOUNT_DELETE_FAILED', 500);
         }
 
@@ -27,7 +28,7 @@ export const POST = withRoute(
             await drainStorageDeletionQueue(await createAdminClient());
         } catch (err) {
             // The account is gone; leftover files stay queued for the cron.
-            console.error('[motonui][account][delete] storage cleanup deferred', err);
+            log.error('[motonui][account][delete] storage cleanup deferred', err);
         }
 
         await supabase.auth.signOut();

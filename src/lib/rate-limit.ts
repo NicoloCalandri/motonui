@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { AppError } from './errors';
+import { log } from './log';
 import { createAdminClient } from './supabase/server';
 import type { Database } from './supabase/database.types';
 
@@ -75,7 +76,7 @@ export async function enforceRateLimit(
 
     const result = Array.isArray(data) ? data[0] : undefined;
     if (error || !result) {
-        console.error('[motonui][rate-limit] check failed, request allowed', { bucket, error: error?.message ?? 'no result' });
+        log.error('[motonui][rate-limit] check failed, request allowed', { bucket, error: error?.message ?? 'no result' });
         return;
     }
     if (!result.allowed) {

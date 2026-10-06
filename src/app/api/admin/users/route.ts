@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/database.types';
 import { ok } from '@/lib/errors';
+import { log } from '@/lib/log';
 
 const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
 
     const { data: users, error, count } = await query;
     if (error) {
-        console.error('[admin/users GET]', error.message);
+        log.error('[admin/users GET]', error.message);
         return NextResponse.json(
             { error: 'Errore nel recupero utenti.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
@@ -143,7 +144,7 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-        console.error('[admin/users POST]', error.message);
+        log.error('[admin/users POST]', error.message);
         return NextResponse.json(
             { error: 'Errore nella creazione utente: ' + error.message, code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }

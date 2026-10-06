@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { log } from '@/lib/log';
 
 /** Vercel requires at least 16 characters; we ask for 32 like the other secrets. */
 const MIN_SECRET_LENGTH = 32;
@@ -16,7 +17,7 @@ function digest(value: string): Buffer {
 export function isAuthorizedCronRequest(request: Request): boolean {
     const secret = process.env.CRON_SECRET;
     if (!secret || secret.length < MIN_SECRET_LENGTH) {
-        console.error('[motonui][cron] CRON_SECRET is missing or shorter than 32 characters');
+        log.error('[motonui][cron] CRON_SECRET is missing or shorter than 32 characters');
         return false;
     }
 

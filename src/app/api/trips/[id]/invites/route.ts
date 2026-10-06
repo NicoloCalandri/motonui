@@ -4,6 +4,7 @@ import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { sendEmail, tripInviteEmail } from '@/lib/email';
 import { generateInviteToken, hashInviteToken, inviteErrorToAppError, inviteUrl } from '@/lib/invites';
+import { log } from '@/lib/log';
 
 const CreateInviteSchema = z.object({
     email: z.string().trim().toLowerCase().email('indirizzo email non valido').max(320),
@@ -64,7 +65,7 @@ export const POST = withRoute(
             });
         } catch (err) {
             // The invite exists anyway: the owner can share the link by hand.
-            console.error('[motonui][invites][POST] email failed', err);
+            log.error('[motonui][invites][POST] email failed', err);
             emailSent = false;
         }
 

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import { log } from '@/lib/log';
 
 const SuspendSchema = z.object({
     reason: z.string().min(1).max(500),
@@ -43,7 +44,7 @@ export async function POST(request: Request, { params }: Params) {
         .eq('id', id);
 
     if (updateError) {
-        console.error('[admin/users/suspend]', updateError.message);
+        log.error('[admin/users/suspend]', updateError.message);
         return NextResponse.json(
             { error: 'Impossibile sospendere l\'utente.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }

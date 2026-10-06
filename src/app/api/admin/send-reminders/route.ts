@@ -3,6 +3,7 @@ import { isAuthorizedCronRequest } from '@/lib/auth/cron';
 import { Errors, ok, withErrorHandler } from '@/lib/errors';
 import { sendEmail } from '@/lib/email';
 import { buildReminderEmail, loadReminderEntities } from '@/lib/reminder-emails';
+import { log } from '@/lib/log';
 
 /**
  * GET /api/admin/send-reminders — sends due travel reminders via email.
@@ -54,11 +55,11 @@ export const GET = withErrorHandler(async (request) => {
 
             sent++;
         } catch (err) {
-            console.error('[motonui][send-reminders] failed for reminder', reminder.id, err);
+            log.error('[motonui][send-reminders] failed for reminder', reminder.id, err);
             failed++;
         }
     }
 
-    console.info('[motonui][send-reminders]', { sent, failed, total: reminders?.length ?? 0 });
+    log.info('[motonui][send-reminders]', { sent, failed, total: reminders?.length ?? 0 });
     return ok({ success: true, sent, failed });
 }, 'admin/send-reminders GET');

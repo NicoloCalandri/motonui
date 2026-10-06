@@ -1,6 +1,7 @@
 import { AppError } from '@/lib/errors';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/server';
+import { log } from '@/lib/log';
 
 export const FEATURE_KEYS = [
     'ai_blog',
@@ -181,7 +182,7 @@ async function recordCostAlerts(
     const newlyCrossed = computeCrossedThresholds(dailyUsage, Number(controlRow.hard_daily_cap ?? 0), alertThresholds, alreadyAlerted);
     if (newlyCrossed.length === 0) return;
 
-    console.warn('[motonui][premium][cost-alert]', {
+    log.warn('[motonui][premium][cost-alert]', {
         feature,
         hardDailyCap: controlRow.hard_daily_cap,
         dailyUsage,

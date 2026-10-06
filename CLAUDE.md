@@ -127,7 +127,8 @@ import type { Trip } from '@/lib/types'
   ```json
   { "error": "Messaggio leggibile", "code": "TRIP_NOT_FOUND", "status": 404 }
   ```
-- Log strutturato: `[motonui][/api/trips][GET] errore descrittivo`
+- Log strutturato con `log.info|warn|error` (`src/lib/log.ts`), mai `console.*` lato server: `log.error('[motonui][trips][GET] errore descrittivo', error)` scrive una riga JSON con `request_id` e dettagli redatti. Si loggano id, conteggi, codici e messaggi di errore; mai contenuti di viaggio (titoli, luoghi, note, oggetti delle email) né email
+- Gli errori inattesi passano da `withErrorHandler`/`withRoute` → `captureError` (`src/lib/monitoring.ts`): log + Sentry con tag `route` e `request_id`. La risposta porta l'header `x-request-id`
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
 - Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `src/middleware.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`). Il middleware sta in `src/middleware.ts`: con `src/app` Next.js ignora un `middleware.ts` in radice (lo controlla `src/middleware-location.test.ts`)
 - Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`

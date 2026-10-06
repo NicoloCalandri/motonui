@@ -185,7 +185,9 @@ Il nonce rende dinamiche tutte le pagine (il layout radice legge gli header): un
 
 ## 7. Log
 
-**Formato:** `[motonui][<area>][<route> <METODO>] messaggio` con oggetto strutturato `{ requestId, userId?, code, status, durationMs }`. Il `requestId` arriva dal middleware (header `x-request-id`) e finisce anche in Sentry.
+**Formato (T-4.3):** una riga JSON per evento da `log.info|warn|error` (`src/lib/log.ts`): `{ level, msg: "[motonui][<area>] …", request_id, details }`. `details` è ridotto a primitivi (oggetti a un solo livello, array e oggetti annidati come segnaposto) e passa da `redactText` (`src/lib/redact.ts`: email, JWT, `Bearer`, parametri `token|code|key…`, stringhe opache ≥ 32 caratteri). Il `request_id` (da `x-request-id`/`x-vercel-id` se ben formato, altrimenti UUID) lo imposta `withErrorHandler` con `AsyncLocalStorage` (`src/lib/request-context.ts`), torna nell'header `x-request-id` della risposta e come tag `request_id` in Sentry.
+
+**Sentry (T-4.2):** `src/instrumentation.ts` (Node/Edge, `onRequestError`) e `src/instrumentation-client.ts`, opzioni comuni in `src/lib/sentry.ts`; attivo solo con `NEXT_PUBLIC_SENTRY_DSN`. Niente session replay, `sendDefaultPii: false`; `beforeSend` tiene di `user` solo l'id, di `request` solo metodo, URL senza query e gli header `user-agent`/`x-request-id`, e redige messaggi, eccezioni ed `extra`; `beforeBreadcrumb` toglie corpi e query string. Verifica: `GET /api/admin/sentry-test` (solo admin).
 
 | Si registra | Non si registra mai |
 |---|---|
@@ -195,7 +197,7 @@ Il nonce rende dinamiche tutte le pagine (il layout radice legge gli header): un
 | Eventi admin (anche in `admin_audit_log`) | Corpi delle richieste |
 | Esecuzioni cron con conteggi | Stack trace verso il client |
 
-**Violazioni attuali:** `api/trips/route.ts:28` stampa i viaggi dell'utente; i messaggi di errore Supabase inoltrati in `throw new Error(...)` possono contenere valori delle righe.
+**Violazioni residue:** nessuna nota. Il `console.log` dei viaggi in `api/trips/route.ts` è stato rimosso (T-2.5), l'oggetto delle email (nomi di hotel, tratte) non viene più loggato, e i messaggi di errore Supabase rilanciati come `Error` passano da `redactText` prima di log e Sentry. `admin-bypass.ts` usa ancora `console.error` perché lo carica anche `next.config.ts`.
 **Conservazione:** log Vercel secondo il piano; Sentry 30 giorni; `admin_audit_log` illimitato (dati minimi).
 
 ---
