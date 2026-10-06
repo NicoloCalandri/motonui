@@ -17,7 +17,7 @@ const UploadRequestSchema = z.object({
  * Service role: members have no INSERT policy on the private bucket.
  */
 export const POST = withRoute(
-    { name: 'trips/[id]/media/uploads POST', params: tripParams(), body: UploadRequestSchema, tripMember: true },
+    { name: 'trips/[id]/media/uploads POST', params: tripParams(), body: UploadRequestSchema, tripMember: true, rateLimit: 'mediaUpload' },
     async ({ params, body }) => {
         const admin = await createAdminClient();
         const target = await createUploadTarget(admin, params.id, { mimeType: body.mime_type, size: body.size });
