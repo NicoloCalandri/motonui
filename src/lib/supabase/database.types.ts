@@ -1073,6 +1073,24 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          hits?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          hits?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       reminders: {
         Row: {
           created_at: string
@@ -1439,6 +1457,18 @@ export type Database = {
         }
         Returns: string
       }
+      check_rate_limit: {
+        Args: {
+          p_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          hits: number
+          reset_at: string
+        }[]
+      }
       consume_feature_quota: {
         Args: {
           p_user_id: string
@@ -1491,6 +1521,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      prune_rate_limits: {
+        Args: never
+        Returns: number
       }
       purge_user_data: {
         Args: {

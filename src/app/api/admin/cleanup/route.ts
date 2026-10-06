@@ -13,6 +13,7 @@ import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
  * - Delete Instagram ZIP objects older than 24 h, then the expired rows
  * - Prune ai_usage records older than 90 days
  * - Prune destination cache older than 30 days
+ * - Prune rate limit windows older than a day
  */
 export const GET = withErrorHandler(async (request) => {
     if (!isAuthorizedCronRequest(request)) throw Errors.unauthorized();
@@ -36,6 +37,10 @@ export const GET = withErrorHandler(async (request) => {
     // 3. Files of deleted accounts (T-2.9): queued by purge_user_data(), e.g.
     //    after a deletion from the mobile app, which has no server step
     results.deletedAccountFiles = await drainStorageDeletionQueue(supabase);
+
+    // 4. Rate limit windows older than a day (T-4.5)
+    const { data: prunedRateLimits } = await supabase.rpc('prune_rate_limits');
+    results.prunedRateLimits = prunedRateLimits ?? 0;
 
     // 2. Prune AI usage older than 90 days
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

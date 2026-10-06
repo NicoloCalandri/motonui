@@ -76,7 +76,7 @@ export const GET = withRoute(
 
 /** POST /api/trips/[id]/packing — generate/regenerate the AI checklist */
 export const POST = withRoute(
-    { name: 'trips/[id]/packing POST', params: tripParams(), tripMember: true },
+    { name: 'trips/[id]/packing POST', params: tripParams(), tripMember: true, rateLimit: 'ai' },
     async ({ supabase, user, params }) => {
     const { id } = params;
     await requireFeatureAccess({ userId: user.id, feature: 'packing_checklist' });

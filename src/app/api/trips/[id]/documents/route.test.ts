@@ -16,6 +16,11 @@ const mocks = vi.hoisted(() => ({
     removeDocumentFile: vi.fn(),
 }));
 
+// Rate limiting has its own tests (src/lib/rate-limit.test.ts).
+vi.mock('@/lib/rate-limit', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
+    enforceRateLimit: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/supabase/server', () => ({
     createClient: vi.fn(async () => ({
         auth: { getUser: mocks.getUser },

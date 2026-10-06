@@ -15,7 +15,7 @@ const Schema = z.object({
  * Returns Server-Sent Events (text/event-stream).
  */
 export const POST = withRoute(
-    { name: 'ai/blog POST', body: Schema },
+    { name: 'ai/blog POST', body: Schema, rateLimit: 'ai' },
     async ({ user, body }) => {
     await requireFeatureAccess({ userId: user.id, feature: 'ai_blog', allowAdminBypass: true });
 
