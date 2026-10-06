@@ -4,6 +4,7 @@ import { getAuthUser, type AuthUser } from '@/lib/auth/get-user';
 import { AppError, Errors, withErrorHandler } from '@/lib/errors';
 import { requireDayInTrip, requireTripMember } from '@/lib/authz';
 import { formatZodError } from '@/lib/validation';
+import { enforceRateLimit, userSubject, type RateLimitBucket } from '@/lib/rate-limit';
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -22,6 +23,8 @@ export interface RouteConfig<P, Q, B> {
     tripMember?: boolean;
     /** Requires `params.dayId`, when present, to belong to the trip in `params.id`. */
     dayInTrip?: boolean;
+    /** Per-user rate limit bucket (T-4.5): 429 with Retry-After over the limit. */
+    rateLimit?: RateLimitBucket;
 }
 
 /** A route handler built by withRoute, carrying its config. */
@@ -70,6 +73,9 @@ export function withRoute<
     const wrapped = withErrorHandler(async (request, context) => {
         const supabase = await createClient();
         const user = await getAuthUser(supabase);
+        if (config.rateLimit) {
+            await enforceRateLimit(config.rateLimit, userSubject(user.id));
+        }
 
         const rawParams = await context.params;
         const params = (config.params ? parseOrThrow(config.params, rawParams) : undefined) as Parsed<P>;

@@ -18,6 +18,11 @@ const mocks = vi.hoisted(() => ({
     afterCallbacks: [] as Array<() => Promise<void>>,
 }));
 
+// Rate limiting has its own tests (src/lib/rate-limit.test.ts).
+vi.mock('@/lib/rate-limit', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
+    enforceRateLimit: vi.fn(async () => undefined),
+}));
 vi.mock('next/server', async (importOriginal) => ({
     ...(await importOriginal<typeof import('next/server')>()),
     after: (callback: () => Promise<void>) => { mocks.afterCallbacks.push(callback); },
