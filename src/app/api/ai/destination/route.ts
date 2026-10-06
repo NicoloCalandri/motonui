@@ -11,7 +11,7 @@ const Schema = z.object({
 
 /** POST /api/ai/destination — returns a cached destination briefing */
 export const POST = withRoute(
-    { name: 'ai/destination POST', body: Schema },
+    { name: 'ai/destination POST', body: Schema, rateLimit: 'ai' },
     async ({ supabase, user, body }) => {
     await requireFeatureAccess({ userId: user.id, feature: 'ai_destination', allowAdminBypass: true });
 

@@ -18,6 +18,8 @@ export interface ApiErrorResponse {
 export class AppError extends Error {
     public readonly code: string;
     public readonly status: number;
+    /** Extra response headers, e.g. Retry-After on a 429. */
+    public headers?: Record<string, string>;
 
     constructor(message: string, code: string, status: number = 500) {
         super(message);
@@ -67,7 +69,7 @@ export function withErrorHandler(handler: RouteHandler, routeInfo: string): Rout
                     log.warn(`[motonui][${routeInfo}] ${error.code}`, { status: error.status, message: error.message });
                     return NextResponse.json(
                         { error: error.message, code: error.code, status: error.status } satisfies ApiErrorResponse,
-                        { status: error.status }
+                        { status: error.status, headers: error.headers }
                     );
                 }
 

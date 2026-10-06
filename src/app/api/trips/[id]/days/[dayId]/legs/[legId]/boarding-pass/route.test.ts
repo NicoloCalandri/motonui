@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Rate limiting has its own tests (src/lib/rate-limit.test.ts).
+vi.mock('@/lib/rate-limit', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
+    enforceRateLimit: vi.fn(async () => undefined),
+}));
 vi.mock('next/server', () => ({
     NextResponse: {
         json: (body: unknown, init?: { status?: number }) =>
