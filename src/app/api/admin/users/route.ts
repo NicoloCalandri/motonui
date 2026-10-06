@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { passwordSchema } from '@/lib/auth/password';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/database.types';
@@ -18,7 +19,7 @@ const QuerySchema = z.object({
 
 const CreateUserSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: passwordSchema,
     displayName: z.string().min(1).optional(),
     role: z.enum(['user', 'admin']).default('user'),
     plan: z.enum(['free', 'premium']).default('free'),

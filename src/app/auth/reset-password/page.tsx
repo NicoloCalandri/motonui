@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { passwordProblem } from '@/lib/auth/password';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Plane, Lock, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
@@ -31,6 +32,11 @@ export default function ResetPasswordPage() {
         
         if (password !== confirmPassword) {
             setError('Le password non coincidono');
+            return;
+        }
+        const problem = passwordProblem(password);
+        if (problem) {
+            setError(problem);
             return;
         }
 

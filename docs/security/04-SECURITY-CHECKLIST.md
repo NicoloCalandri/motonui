@@ -99,18 +99,18 @@ Tutti i punti sono ⛔ **bloccanti** salvo indicazione. Chi rilascia registra l'
 | B1 | Tutti i controlli A.1 verdi sul commit da rilasciare | 🤖 ⛔ | Stato della CI su `main` | SDLC-01 |
 | B2 | Nessun requisito P0 aperto; P1 aperti solo con eccezione firmata nel registro | 👤 ⛔ | `01-SECURITY-REQUIREMENTS.md` | — |
 | B3 | Nessun file `.env` con valori nel repo | 🤖⏳ ⛔ | `git ls-files | grep -E '(^|/)\.env'` → solo `.env.example` | DEV-01 |
-| B4 | Segreti ruotati se esposti dopo l'ultimo rilascio | 👤 ⛔ | Runbook di rotazione | OPS-05 |
+| B4 | Segreti ruotati se esposti dopo l'ultimo rilascio | 👤 ⛔ | Runbook di rotazione (`05-OPS-RUNBOOK.md` §3) | OPS-05 |
 | B5 | Variabili Vercel separate per Production e Preview; `ADMIN_AUTH_BYPASS` assente | 👤 ⛔ | Dashboard Vercel | DEV-03 |
 | B6 | Migration applicate su staging e test RLS verdi contro lo stesso schema | 🤖⏳ ⛔ | Job di staging | SDLC-04 |
 | B7 | Supabase Security Advisor senza errori | 👤 ⛔ | Dashboard Supabase → Advisors | AUTHZ-05, AUTHZ-07 |
 | B8 | Prova REST manuale con account di test: non si può cambiare `role`/`plan`/`suspended_at`; `admin_user_view` non leggibile con anon key | 👤 ⛔ | `curl` con anon key e JWT di test, esito nel registro | AUTHZ-04, AUTHZ-05 |
 | B9 | Bucket: solo `avatars` (ed eventuali copertine pubbliche) pubblici; un vecchio URL `/storage/v1/object/public/trip-media/…` risponde 400 | 👤 ⛔ | Dashboard Storage, `curl` | PRIV-02 |
-| B10 | Auth: conferma email, password minima 10, leaked password protection | 👤 ⛔ | Dashboard Supabase → Auth | AUTH-06, AUTH-07 |
+| B10 | Auth: conferma email, password minima 10, leaked password protection | 👤 ⛔ | Dashboard Supabase → Auth, tabella di parità in `05-OPS-RUNBOOK.md` §1 | AUTH-06, AUTH-07 |
 | B11 | Cron eseguiti con successo nelle ultime 24 h su Preview o Production | 👤 ⛔ | Log Vercel | INT-06 |
 | B12 | Sentry riceve un errore di prova senza dati personali | 👤 ⛔ | Evento di prova | OPS-01 |
 | B13 | Header di sicurezza corretti in produzione | 👤 | securityheaders.com o `curl -I` | WEB-01, WEB-02 |
 | B14 | Token Mapbox ristretto al dominio di produzione | 👤 | Dashboard Mapbox | INT-04 |
-| B15 | Backup/PITR attivo; ultimo restore di prova < 90 giorni | 👤 | Dashboard Supabase | OPS-04 |
+| B15 | Backup/PITR attivo; ultimo restore di prova < 90 giorni | 👤 | Dashboard Supabase, prova come in `05-OPS-RUNBOOK.md` §2.3 | OPS-04 |
 | B16 | Branch protection su `main` con check obbligatori | 👤 ⛔ | Impostazioni GitHub | SDLC-07 |
 | B17 | Smoke test post-deploy: login, creazione viaggio, invito, upload foto, pubblicazione post, blog anonimo | 👤 ⛔ | Account di test | — |
 
@@ -144,6 +144,9 @@ Una riga per ogni verifica: revisione di PR significative, rilascio, verifica pe
 | 2026-09-29 | branch `claude/t-0.9-private-documents` | T-0.9: verifica locale | Claude (su richiesta di Nicolò) | Bucket privato `trip-documents`, route boarding pass, script di migrazione | 🟡 Migration 0001–0017 applicate su Postgres 16 con stub di Supabase (anche riapplicando 0017): `0016_phase0_rls.test.sql` e `0017_trip_documents.test.sql` verdi. 232/232 test Vitest; il test della route fallisce se si rimuove il controllo sul prefisso del path. Script di migrazione non eseguito: nessun accesso allo storage cloud. | T-0.9 |
 | | | Esecuzione `npm run storage:migrate-boarding-passes -- --apply` in produzione, poi verifica che nessun `trips/*/boarding-passes/*` risponda su `/object/public/trip-media/` | | | | T-0.9 |
 | | | Rotazione segreti esposti | | | | T-0.1 |
+| 2026-10-06 | branch `claude/phase4-ops-auth` | T-4.6, T-4.8: configurazione e procedure | Claude (su richiesta di Nicolò) | `supabase/config.toml` `[auth]`, `src/lib/auth/password.ts`, `05-OPS-RUNBOOK.md` | 🟡 Config locale allineata alla policy (password ≥ 10 con lettere e numeri, rotazione refresh token, riautenticazione per il cambio password); test di `password.ts` verdi. **Cloud non verificato:** il progetto Supabase `motonui` risulta in pausa (INACTIVE) e Security Advisor non è interrogabile. Nessun backup/PITR né restore provato. | T-4.6, T-4.8 |
+| | | Parità Auth sul cloud (B10) e Security Advisor senza `auth_leaked_password_protection` | | | | T-4.8 |
+| | | Attivazione backup/PITR e prima prova di restore (B15) | | | | T-4.6 |
 | | | Verifica REST su cloud (B8) | | | | T-0.4, T-0.5 |
 
 ### Eccezioni accettate
