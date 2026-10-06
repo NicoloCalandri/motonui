@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 50 | 7 | 9 |
+| **66** | 51 | 7 | 8 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -26,7 +26,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-INT · Integrazioni esterne | 7 | 6 | 0 | 1 | 0 |
 | SR-PRIV · Privacy e dati personali | 7 | 6 | 1 | 0 | 0 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
-| SR-WEB · Sicurezza web | 6 | 4 | 1 | 1 | 0 |
+| SR-WEB · Sicurezza web | 6 | 5 | 1 | 0 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 5 | 1 | 1 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
@@ -139,7 +139,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` | — |
 | SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | ✅ Fatto | `src/middleware.ts` (`Origin` / `Sec-Fetch-Site` sui metodi di scrittura di `/api/*`); test `src/middleware.test.ts` | T-1.9. Oltre a `SameSite=Lax`. Le route cron sono escluse (server-to-server, segreto proprio). **Attivo in produzione solo da quando il middleware sta in `src/`:** in radice Next.js lo ignorava (con `src/app` carica solo `src/middleware.ts`), quindi questo controllo, il 401 JSON, il blocco dei sospesi e la sola lettura dell'impersonazione non giravano. Guardia: `src/middleware-location.test.ts`. |
 | SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`, `withRoute`; test `errors.test.ts`, `with-route.test.ts` | Le route `/api/ai/*` ora passano da `withRoute`; restano le route `/api/admin/*` senza `withErrorHandler`. |
-| SR-WEB-06 | Rate limiting sulle route pubbliche e su quelle costose (upload, export, AI) | P2 | 🔴 Da fare | `/api/posts/[slug]`, `/api/trips/[id]/media`, `/api/instagram/generate` | — |
+| SR-WEB-06 | Rate limiting sulle route pubbliche e su quelle costose (upload, export, AI) | P2 | ✅ Fatto | Migration `0024_rate_limits.sql` (`check_rate_limit` atomica a finestra fissa, solo service role; `prune_rate_limits` nel cron di cleanup), `src/lib/rate-limit.ts`, opzione `rateLimit` di `withRoute`; test `rate-limit.test.ts`, `rate-limit.route.test.ts`, `0024_rate_limits.test.sql` | T-4.5. Per IP (hash SHA-256, mai in chiaro) su `/api/posts/[slug]` 60/min; per utente: upload foto 300/h, documenti/carte d'imbarco/avatar 60/h, export Instagram 10/h, AI 10/min oltre alla quota giornaliera. Oltre soglia 429 con `Retry-After`. Fail open se il contatore non risponde (errore loggato). |
 
 ## SR-SDLC — Ciclo di sviluppo
 

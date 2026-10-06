@@ -55,7 +55,8 @@ describe('cron routes', () => {
 
     it('cleanup deletes the ZIP objects and then the expired rows', async () => {
         const chain = deleteChain(3);
-        createAdminClientMock.mockResolvedValue({ from: vi.fn(() => chain) });
+        const rpc = vi.fn(async () => ({ data: 7, error: null }));
+        createAdminClientMock.mockResolvedValue({ from: vi.fn(() => chain), rpc });
         removeExpiredMock.mockResolvedValue(4);
 
         const res = await GET(cronRequest('/api/admin/cleanup', `Bearer ${SECRET}`), context);
@@ -63,7 +64,10 @@ describe('cron routes', () => {
         expect(res.status).toBe(200);
         expect(removeExpiredMock).toHaveBeenCalledTimes(1);
         const body = await res.json();
-        expect(body.results).toMatchObject({ removedExportObjects: 4, expiredExports: 3, staleIncomingUploads: 2, deletedAccountFiles: 5 });
+        expect(body.results).toMatchObject({
+            removedExportObjects: 4, expiredExports: 3, staleIncomingUploads: 2, deletedAccountFiles: 5, prunedRateLimits: 7,
+        });
+        expect(rpc).toHaveBeenCalledWith('prune_rate_limits');
     });
 
     it('cleanup reports a failure without leaking storage details', async () => {
