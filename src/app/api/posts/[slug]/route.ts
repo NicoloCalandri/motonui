@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
+import { enforceRateLimit, ipSubject } from '@/lib/rate-limit';
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 
 type Params = { params: Promise<{ slug: string }> };
 
 /** GET /api/posts/[slug] — PUBLIC route, no auth required */
-export const GET = withErrorHandler(async (_req, { params }) => {
+export const GET = withErrorHandler(async (request, { params }) => {
+    // Public route: limited per IP (hashed), T-4.5.
+    await enforceRateLimit('publicPost', ipSubject(request));
     const supabase = await createClient();
     const { slug } = await params;
 

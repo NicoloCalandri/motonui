@@ -18,7 +18,7 @@ const Schema = z.object({
 
 /** POST /api/ai/generate-post — generates a full blog post from trip data */
 export const POST = withRoute(
-    { name: 'ai/generate-post POST', body: Schema },
+    { name: 'ai/generate-post POST', body: Schema, rateLimit: 'ai' },
     async ({ supabase, user, body }) => {
     const { tripId, language, save, title, slug } = body;
     // The trip comes from the body, so membership is checked here rather than by withRoute.

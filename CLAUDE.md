@@ -132,6 +132,7 @@ import type { Trip } from '@/lib/types'
 - Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `middleware.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`)
 - Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`
 - Le route sotto `/api/trips/**` usano tutte `withRoute` e quelle sotto `/api/trips/[id]/**` dichiarano `tripMember: true`: lo verifica `src/app/api/trips/route-authz.test.ts`. `route-contract.test.ts` genera dagli schemi (`handler.route`) tre richieste per handler: valida, non valida (400), non membro (403). Se un input valido non si ricava dallo schema (`refine`, path costruiti dal server) aggiungi un esempio in `VALID_BODIES`
+- Le route costose (upload, export, AI) dichiarano `rateLimit: '<bucket>'` in `withRoute`; le route pubbliche chiamano `enforceRateLimit(bucket, ipSubject(request))`. Bucket e soglie in `RATE_LIMITS` (`src/lib/rate-limit.ts`); oltre soglia 429 con `Retry-After`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
 - Ogni `fetch` lato server verso un servizio esterno passa da `safeFetch()` (`src/lib/safe-fetch.ts`) con un'allowlist di host in `EXTERNAL_HOSTS`
 
