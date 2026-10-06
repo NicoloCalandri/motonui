@@ -82,7 +82,7 @@ export const GET = withRoute(
  * previous file.
  */
 export const POST = withRoute(
-    { name: 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass POST', params: tripParams('dayId', 'legId'), tripMember: true },
+    { name: 'trips/[id]/days/[dayId]/legs/[legId]/boarding-pass POST', params: tripParams('dayId', 'legId'), tripMember: true, rateLimit: 'fileUpload' },
     async ({ request, supabase, params }) => {
     const { id, dayId, legId } = params;
     const previous = await getLeg(supabase, id, dayId, legId);

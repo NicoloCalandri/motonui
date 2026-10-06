@@ -33,7 +33,7 @@ export const GET = withRoute(
  *   trip-documents bucket under a server-built, non-guessable path (T-2.3)
  */
 export const POST = withRoute(
-    { name: 'trips/[id]/documents POST', params: tripParams(), tripMember: true },
+    { name: 'trips/[id]/documents POST', params: tripParams(), tripMember: true, rateLimit: 'fileUpload' },
     async ({ request, supabase, user, params }) => {
         const isUpload = (request.headers.get('content-type') ?? '').startsWith('multipart/form-data');
 

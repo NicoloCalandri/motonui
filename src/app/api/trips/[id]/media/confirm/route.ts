@@ -21,7 +21,7 @@ const ConfirmSchema = z.object({
  * original and the 400×400 WebP thumbnail, then creates the media row.
  */
 export const POST = withRoute(
-    { name: 'trips/[id]/media/confirm POST', params: tripParams(), body: ConfirmSchema, tripMember: true },
+    { name: 'trips/[id]/media/confirm POST', params: tripParams(), body: ConfirmSchema, tripMember: true, rateLimit: 'mediaUpload' },
     async ({ supabase, user, params, body }) => {
         await requireDayInTrip(supabase, params.id, body.day_id);
 

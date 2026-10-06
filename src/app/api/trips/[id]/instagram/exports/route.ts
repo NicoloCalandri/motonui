@@ -53,7 +53,7 @@ export const GET = withRoute(
  * response and the client polls `…/exports/[exportId]` for the ZIP.
  */
 export const POST = withRoute(
-    { name: 'trips/[id]/instagram/exports POST', params: tripParams(), body: CreateExportSchema, tripMember: true },
+    { name: 'trips/[id]/instagram/exports POST', params: tripParams(), body: CreateExportSchema, tripMember: true, rateLimit: 'instagramExport' },
     async ({ supabase, user, params, body }) => {
         if (body.generateCaption) {
             await requireFeatureAccess({ userId: user.id, feature: 'instagram_caption', allowAdminBypass: true });
