@@ -18,11 +18,21 @@ site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000/**"]
 jwt_expiry = 3600
 enable_signup = true
+# Refresh tokens are single use; a reused one revokes the session (SR-AUTH-06).
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Password policy (SR-AUTH-07, T-4.8). Keep in sync with the cloud project:
+# Authentication → Policies / Providers → Email (see docs/security/05-OPS-RUNBOOK.md §1).
+# Leaked password protection (HaveIBeenPwned) exists only on the cloud project.
+minimum_password_length = 10
+password_requirements = "letters_digits"
 
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
+# Changing the password requires a recent login (reauthentication).
+secure_password_change = true
 
 [auth.rate_limit]
 email_sent = 1000
