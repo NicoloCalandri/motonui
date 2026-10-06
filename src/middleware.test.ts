@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 class MockNextResponse {
     cookies = { set: vi.fn(), delete: vi.fn() };
+    headers = new Headers();
     status: number;
     body: unknown;
     redirectUrl?: string;
@@ -252,5 +253,31 @@ describe('middleware', () => {
 
         expect(mockIsTokenActive).not.toHaveBeenCalled();
         expect(next.cookies.delete).toHaveBeenCalledWith('impersonation_token');
+    });
+});
+
+describe('middleware CSP (T-4.4)', () => {
+    it('sends a nonce-based CSP on the response and the nonce on the request', async () => {
+        mockUpdateSession.mockResolvedValue({ supabaseResponse: MockNextResponse.next(), user: null, profile: null });
+        const { middleware } = await import('./middleware');
+        const request = makeRequest('/');
+        const result = (await middleware(request)) as unknown as MockNextResponse;
+
+        const nonce = request.headers.get('x-nonce');
+        expect(nonce).toBeTruthy();
+        const csp = result.headers.get('content-security-policy') ?? '';
+        expect(csp).toContain(`'nonce-${nonce}'`);
+        expect(csp).not.toContain('unsafe-eval');
+        expect(request.headers.get('content-security-policy')).toBe(csp);
+    });
+
+    it('uses a different nonce for every request', async () => {
+        mockUpdateSession.mockResolvedValue({ supabaseResponse: MockNextResponse.next(), user: null, profile: null });
+        const { middleware } = await import('./middleware');
+        const a = makeRequest('/');
+        const b = makeRequest('/');
+        await middleware(a);
+        await middleware(b);
+        expect(a.headers.get('x-nonce')).not.toBe(b.headers.get('x-nonce'));
     });
 });

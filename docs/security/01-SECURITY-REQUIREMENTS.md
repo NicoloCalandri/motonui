@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 55 | 6 | 5 |
+| **66** | 56 | 5 | 5 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -26,7 +26,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-INT · Integrazioni esterne | 7 | 6 | 0 | 1 | 0 |
 | SR-PRIV · Privacy e dati personali | 7 | 7 | 0 | 0 | 0 |
 | SR-OPS · Operatività | 5 | 3 | 0 | 2 | 0 |
-| SR-WEB · Sicurezza web | 6 | 4 | 2 | 0 | 0 |
+| SR-WEB · Sicurezza web | 6 | 5 | 1 | 0 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 7 | 0 | 0 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
@@ -42,10 +42,10 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
 | SR-AUTH-01 | Autenticazione tramite Supabase Auth (email+password e Google OAuth), sessione in cookie SSR | P1 | ✅ Fatto | `src/lib/supabase/server.ts`, `src/app/auth/login/page.tsx`; test `src/app/auth/login/page.test.tsx` | Il magic link previsto da CLAUDE.md non è implementato: si usa la password (commit e25ed09). |
-| SR-AUTH-02 | La sessione è rinnovata nel middleware con `getUser()` (validazione lato Auth server, non `getSession()`) | P1 | ✅ Fatto | `src/lib/supabase/middleware.ts`; test `middleware.test.ts` | — |
+| SR-AUTH-02 | La sessione è rinnovata nel middleware con `getUser()` (validazione lato Auth server, non `getSession()`) | P1 | ✅ Fatto | `src/lib/supabase/middleware.ts`; test `src/middleware.test.ts` | — |
 | SR-AUTH-03 | Dopo login/OAuth si reindirizza solo verso path interni relativi (nessun open redirect) | P1 | ✅ Fatto | `src/lib/redirect.ts` (`safeRedirectPath`) usato in `src/app/auth/callback/route.ts` e `src/app/auth/login/page.tsx`; test `src/lib/redirect.test.ts` | T-0.7. Parametro OAuth con `encodeURIComponent`. |
-| SR-AUTH-04 | Un utente sospeso non può usare l'app né le API, su nessun canale | P1 | 🟡 Parziale | `middleware.ts:71-82`; test `middleware.test.ts` | Il middleware blocca il web, ma l'utente può azzerare `suspended_at` da solo via REST (vedi SR-AUTHZ-04) e l'app mobile parla direttamente con Supabase. |
-| SR-AUTH-05 | Le API non autenticate rispondono 401 JSON, non con redirect HTML | P2 | ✅ Fatto | `middleware.ts`; test `middleware.test.ts` | T-1.9. Anche un utente sospeso riceve 403 JSON sulle API invece del redirect. |
+| SR-AUTH-04 | Un utente sospeso non può usare l'app né le API, su nessun canale | P1 | 🟡 Parziale | `src/middleware.ts`; test `src/middleware.test.ts` | Il middleware blocca il web, ma l'utente può azzerare `suspended_at` da solo via REST (vedi SR-AUTHZ-04) e l'app mobile parla direttamente con Supabase. |
+| SR-AUTH-05 | Le API non autenticate rispondono 401 JSON, non con redirect HTML | P2 | ✅ Fatto | `src/middleware.ts`; test `src/middleware.test.ts` | T-1.9. Anche un utente sospeso riceve 403 JSON sulle API invece del redirect. |
 | SR-AUTH-06 | Conferma email obbligatoria e JWT di breve durata | P2 | ✅ Fatto | `supabase/config.toml` (`enable_confirmations = true`, `jwt_expiry = 3600`) | Verificare che il progetto cloud abbia le stesse impostazioni (config esterna). |
 | SR-AUTH-07 | Password policy minima e protezione da password compromesse attive | P2 | 🔴 Da fare | `supabase/config.toml` (assente `minimum_password_length`/`password_requirements`) | Configurare anche su Supabase cloud (Auth → Policies). |
 
@@ -62,7 +62,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-AUTHZ-07 | Tutte le funzioni `SECURITY DEFINER` hanno `search_path` fissato | P2 | ✅ Fatto | `0016_harden_rls_structural_columns.sql`; meta-controllo su `pg_proc` in `supabase/tests/0016_phase0_rls.test.sql` | T-0.6. |
 | SR-AUTHZ-08 | Le route admin verificano il ruolo lato server; il bypass di sviluppo è opt-in esplicito | P1 | ✅ Fatto | `src/lib/auth/require-admin.ts`, `src/app/(admin)/admin/layout.tsx`; test `src/lib/admin/permissions.test.ts` | Il ruolo letto è affidabile solo dopo SR-AUTHZ-04. |
 | SR-AUTHZ-09 | Un viaggio ha al massimo 2 membri (vincolo nel DB) | P2 | ✅ Fatto | `0021_trip_invites.sql` (trigger `AFTER INSERT` `enforce_trip_member_limit` con lock sul viaggio; `trip_members_insert` limitata all'owner che inserisce se stesso; `create_trip`, `create_trip_invite`, `accept_trip_invite` `SECURITY DEFINER`); test `supabase/tests/0021_trip_invites.test.sql`, `invites/route.test.ts` | T-2.5. Il trigger è `AFTER` perché la `WITH CHECK` della RLS viene valutata dopo i trigger `BEFORE`. Verificato con due inserimenti concorrenti: uno solo passa. Inviti: token da 256 bit salvato solo come SHA-256, 7 giorni, monouso, legato all'email invitata, un solo invito pendente per viaggio. |
-| SR-AUTHZ-10 | L'impersonazione è in sola lettura, revocabile e limitata nel tempo | P1 | ✅ Fatto | `src/lib/admin/impersonation-token.ts`, `middleware.ts`; test `impersonation-token.test.ts`, `middleware.test.ts`, `impersonation.test.ts` | T-1.8 (ADR-07): scritture bloccate, scadenza 30 min, revoca verificata a ogni richiesta (cache 30 s). L'identità impersonata non viene applicata per scelta: rimossi gli header `x-impersonated-*` che nessuno leggeva. |
+| SR-AUTHZ-10 | L'impersonazione è in sola lettura, revocabile e limitata nel tempo | P1 | ✅ Fatto | `src/lib/admin/impersonation-token.ts`, `src/middleware.ts`; test `impersonation-token.test.ts`, `src/middleware.test.ts`, `impersonation.test.ts` | T-1.8 (ADR-07): scritture bloccate, scadenza 30 min, revoca verificata a ogni richiesta (cache 30 s). L'identità impersonata non viene applicata per scelta: rimossi gli header `x-impersonated-*` che nessuno leggeva. |
 
 ## SR-INPUT — Validazione dell'input
 
@@ -93,7 +93,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-CRYPTO-01 | TLS ovunque e HSTS con preload | P1 | ✅ Fatto | `next.config.ts` (`Strict-Transport-Security`) | — |
 | SR-CRYPTO-02 | Token di impersonazione firmato HS256, segreto ≥ 32 caratteri, scadenza 30 min | P1 | ✅ Fatto | `src/app/api/admin/users/[id]/impersonate/route.ts`; test `impersonation.test.ts` | Il segreto attuale è compromesso (SR-DEV-01). |
 | SR-CRYPTO-03 | I token persistiti nel DB sono salvati come hash, non in chiaro | P2 | ✅ Fatto | `impersonation_tokens.token` contiene SHA-256 del `jti` (`0019_impersonation_token_hash.sql`); test `impersonation.test.ts` | T-1.8. La migration elimina le righe in chiaro esistenti. Gli inviti (T-2.5) seguiranno lo stesso schema. |
-| SR-CRYPTO-04 | Revoca del token di impersonazione verificata a ogni richiesta (`jti` + lista revoche) | P2 | ✅ Fatto | `isImpersonationTokenActive` in `middleware.ts`; test `impersonation-token.test.ts`, `middleware.test.ts` | T-1.8. Fail closed: un errore di rete o di configurazione equivale a token revocato. |
+| SR-CRYPTO-04 | Revoca del token di impersonazione verificata a ogni richiesta (`jti` + lista revoche) | P2 | ✅ Fatto | `isImpersonationTokenActive` in `src/middleware.ts`; test `impersonation-token.test.ts`, `src/middleware.test.ts` | T-1.8. Fail closed: un errore di rete o di configurazione equivale a token revocato. |
 | SR-CRYPTO-05 | I media privati sono serviti con URL firmati a breve durata | P1 | ✅ Fatto | `src/lib/trip-storage.ts` (`withSignedUrls`, TTL 1 h, firmati con il client dell'utente), `GET /api/trips/[id]/media`; mobile `withSignedMediaUrls`; test `trip-storage.test.ts`, `media/route.test.ts` | T-2.1. Documenti e carte d'imbarco passano invece da un proxy autenticato (nessun URL di storage al browser). |
 
 ## SR-INT — Integrazioni esterne
@@ -134,10 +134,10 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-WEB-01 | Header di sicurezza: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy | P1 | ✅ Fatto | `next.config.ts`, `vercel.json` | `vercel.json` e `next.config.ts` definiscono `Permissions-Policy` diverse (geolocation). |
-| SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | 🟡 Parziale | `next.config.ts` (CSP con `unsafe-inline` e `unsafe-eval`) | — |
+| SR-WEB-01 | Header di sicurezza: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy | P1 | ✅ Fatto | `next.config.ts` (unico posto per gli header statici, più `Cross-Origin-Opener-Policy`) | T-4.4. Rimossi gli header di `vercel.json` (Permissions-Policy diversa, `X-XSS-Protection` deprecato). |
+| SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | ✅ Fatto | `src/lib/csp.ts`, `src/middleware.ts` (nonce per richiesta su richiesta e risposta), `src/app/layout.tsx` (rendering dinamico); test `csp.test.ts`, `src/middleware.test.ts` | T-4.4. Verificato su build di produzione con Playwright: script con `nonce`, zero violazioni CSP, pagine idratate. `connect-src` senza `api.anthropic.com`. Dipende dal middleware in `src/` (#109). Da verificare dopo il deploy: securityheaders.com grado A. |
 | SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` | — |
-| SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | ✅ Fatto | `middleware.ts` (`Origin` / `Sec-Fetch-Site` sui metodi di scrittura di `/api/*`); test `middleware.test.ts` | T-1.9. Oltre a `SameSite=Lax`. Le route cron sono escluse (server-to-server, segreto proprio). |
+| SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | ✅ Fatto | `src/middleware.ts` (`Origin` / `Sec-Fetch-Site` sui metodi di scrittura di `/api/*`); test `src/middleware.test.ts` | T-1.9. Oltre a `SameSite=Lax`. Le route cron sono escluse (server-to-server, segreto proprio). **Attivo in produzione solo da quando il middleware sta in `src/`:** in radice Next.js lo ignorava (con `src/app` carica solo `src/middleware.ts`), quindi questo controllo, il 401 JSON, il blocco dei sospesi e la sola lettura dell'impersonazione non giravano. Guardia: `src/middleware-location.test.ts`. |
 | SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`, `withRoute`; test `errors.test.ts`, `with-route.test.ts` | Le route `/api/ai/*` ora passano da `withRoute`; restano le route `/api/admin/*` senza `withErrorHandler`. |
 | SR-WEB-06 | Rate limiting sulle route pubbliche e su quelle costose (upload, export, AI) | P2 | ✅ Fatto | Migration `0024_rate_limits.sql` (`check_rate_limit` atomica a finestra fissa, solo service role; `prune_rate_limits` nel cron di cleanup), `src/lib/rate-limit.ts`, opzione `rateLimit` di `withRoute`; test `rate-limit.test.ts`, `rate-limit.route.test.ts`, `0024_rate_limits.test.sql` | T-4.5. Per IP (hash SHA-256, mai in chiaro) su `/api/posts/[slug]` 60/min; per utente: upload foto 300/h, documenti/carte d'imbarco/avatar 60/h, export Instagram 10/h, AI 10/min oltre alla quota giornaliera. Oltre soglia 429 con `Retry-After`. Fail open se il contatore non risponde (errore loggato). |
 

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { isImpersonationTokenActive, verifyImpersonationToken } from '@/lib/admin/impersonation-token';
+import { buildCsp, createNonce } from '@/lib/csp';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -38,7 +39,24 @@ function isCrossSiteWrite(request: NextRequest): boolean {
 }
 
 /**
- * Route protection middleware.
+ * Every response gets a Content-Security-Policy with a per-request nonce
+ * (T-4.4). The nonce also travels on the request (`x-nonce`, and the CSP
+ * header Next.js reads to tag its own scripts); static security headers live
+ * in next.config.ts.
+ */
+export async function middleware(request: NextRequest) {
+    const nonce = createNonce();
+    const csp = buildCsp({ nonce, dev: process.env.NODE_ENV === 'development' });
+    request.headers.set('x-nonce', nonce);
+    request.headers.set('content-security-policy', csp);
+
+    const response = await protect(request);
+    response.headers.set('content-security-policy', csp);
+    return response;
+}
+
+/**
+ * Route protection.
  * - Rejects cross-site writes to the API
  * - Refreshes the Supabase session on every request
  * - Unauthenticated: 401 JSON for /api/*, redirect to /auth/login for pages
@@ -46,7 +64,7 @@ function isCrossSiteWrite(request: NextRequest): boolean {
  * - Protects /admin routes — admin role required
  * - Read-only impersonation, with revocation checked against the database
  */
-export async function middleware(request: NextRequest) {
+async function protect(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const isApi = pathname.startsWith('/api/');
     const isWrite = WRITE_METHODS.has(request.method);
