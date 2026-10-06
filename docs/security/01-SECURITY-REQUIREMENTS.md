@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 51 | 10 | 5 |
+| **66** | 53 | 9 | 4 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -27,7 +27,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-PRIV · Privacy e dati personali | 7 | 6 | 1 | 0 | 0 |
 | SR-OPS · Operatività | 5 | 2 | 1 | 2 | 0 |
 | SR-WEB · Sicurezza web | 6 | 4 | 2 | 0 | 0 |
-| SR-SDLC · Ciclo di sviluppo | 7 | 5 | 1 | 1 | 0 |
+| SR-SDLC · Ciclo di sviluppo | 7 | 7 | 0 | 0 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
 
@@ -150,8 +150,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-SDLC-03 | Coverage ≥ 70% su `src/lib/`, imposta in CI | P2 | ✅ Fatto | `vitest.config.ts` (soglie righe/istruzioni/funzioni 70%, branch 60%; esclusi solo `src/lib/supabase/**`), job CI Unit Tests con `npm run test:coverage` e report caricato | T-3.1. Al 29/09/2026: 81% righe, 79% istruzioni, 66% branch. La CI fallisce sotto soglia. |
 | SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | ✅ Fatto | `supabase/tests/rls_matrix.test.sql` (matrice SELECT/INSERT/UPDATE/DELETE × anonimo/estraneo/partner/owner su ogni tabella con `trip_id`), `supabase/tests/0016_phase0_rls.test.sql` (regressioni S-02/S-03/S-04); job CI `rls-tests` (Postgres 15 + `supabase/tests/support/supabase-stub.sql`) | T-1.1, T-1.2. Una nuova tabella di viaggio senza fixture fa fallire il test. |
 | SR-SDLC-05 | Secret scanning in CI e pre-commit | P1 | ✅ Fatto | job `secrets-scan` in `.github/workflows/ci.yml` (bloccante), `.gitleaks.toml`, `.pre-commit-config.yaml` | T-0.3. Scansiona l'albero, non la storia (già esposta: vedi SR-DEV-01). |
-| SR-SDLC-06 | Aggiornamenti e audit delle dipendenze | P2 | 🟡 Parziale | Dependabot attivo (PR #19–#48), commit c8d939c `npm audit fix` | Manca `npm audit` bloccante in CI e `dependabot.yml` versionato. |
-| SR-SDLC-07 | GitHub Actions con permessi minimi e azioni fissate per SHA | P2 | 🔴 Da fare | `.github/workflows/*.yml` | `amondnet/vercel-action@v25` riceve il token Vercel. |
+| SR-SDLC-06 | Aggiornamenti e audit delle dipendenze | P2 | ✅ Fatto | `.github/dependabot.yml` (npm root, npm `mobile/`, GitHub Actions; settimanale, minor/patch raggruppati), job CI `dependency-audit` (`npm audit --omit=dev --audit-level=high`, bloccante) | T-4.7. Le dipendenze di sviluppo (eslint-config-next, catena tailwind) e `mobile/` restano in report non bloccante, coperte da Dependabot. `sharp` portato a 0.35.5, `postcss`/`source-map-js` forzati con `overrides`. |
+| SR-SDLC-07 | GitHub Actions con permessi minimi e azioni fissate per SHA | P2 | ✅ Fatto | `.github/workflows/*.yml`: `permissions: contents: read` a livello di workflow (preview: `pull-requests: write` solo nel job che commenta), ogni `uses:` fissato per SHA con la versione in commento, `persist-credentials: false` nei job con segreti | T-4.1. `amondnet/vercel-action` sostituita dalla CLI ufficiale `vercel@62.4.0`: il token non passa più da codice di terze parti. |
 
 ## Manutenzione del registro
 
