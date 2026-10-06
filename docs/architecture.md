@@ -72,7 +72,7 @@ Punti chiave che la mappa rende visibili:
 | Dati | `supabase/migrations` 0001–0015 | 25 tabelle, tutte con RLS; helper `is_trip_member`, `is_trip_owner`, `delete_my_account`. |
 | UI | `src/components/*` (31 componenti) | Tab del viaggio, drawer, mappa, calendario, wallet, admin. Nessuna libreria di primitive (`components/ui` non esiste). |
 | Mobile | `mobile/` (Expo Router) | Login, lista viaggi, dettaglio, blog, profilo, cancellazione account. Token in SecureStore su nativo, `localStorage` su web. |
-| CI/CD | `.github/workflows` | `ci.yml` (lint, tsc, test, build), `deploy-preview.yml`, `deploy-production.yml` (Vercel + `supabase db push`). |
+| CI/CD | `.github/workflows` | `ci.yml` (gitleaks, RLS, `npm audit` prod, lint, tsc, test+coverage, build), `deploy-preview.yml`, `deploy-production.yml` (dopo CI verde su `main`: `supabase db push`, poi Vercel CLI). Azioni fissate per SHA, `dependabot.yml`. |
 
 ### 1.3 Modello dati
 

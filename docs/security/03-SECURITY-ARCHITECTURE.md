@@ -76,7 +76,7 @@ flowchart TB
 | `RESEND_API_KEY` | `re_…` | Fino a rotazione | Env server | `lib/email.ts` | Dashboard Resend | ✅ |
 | `SENTRY_DSN` / `SENTRY_AUTH_TOKEN` | URL / token | Fino a rotazione | DSN pubblico; token solo in CI | Sentry SDK / build | Dashboard Sentry | 🟡 Nomi incoerenti; token solo nel job di build |
 | `SUPABASE_DB_URL` | Connection string con password | Fino a rotazione | GitHub secret (environment `production`) | Job migration | Reset password DB | ✅ Limitare all'environment protetto |
-| `VERCEL_TOKEN` | Token personale | Fino a revoca | GitHub secret | `amondnet/vercel-action` | Dashboard Vercel | 🟡 Passato a un'action di terze parti non fissata per SHA |
+| `VERCEL_TOKEN` | Token personale | Fino a revoca | GitHub secret (environment `production`/`staging`) | CLI ufficiale `vercel@62.4.0` in `deploy-*.yml` | Dashboard Vercel | ✅ Nessuna action di terze parti (T-4.1) |
 | Token di invito (futuro) | 32 byte casuali, base64url | 7 giorni, monouso | Link email; nel DB solo SHA-256 | RPC `accept_trip_invite` | Scadenza / cancellazione | Da progettare (T-2.5) |
 | URL firmati Storage (futuro) | URL con token Supabase | 1 h (UI), 24 h (ZIP) | Solo risposta API | Browser | Scadenza | Da introdurre (T-2.1) |
 

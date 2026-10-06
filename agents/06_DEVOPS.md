@@ -37,13 +37,18 @@ You are the **DevOps Agent** for *motonui*. You configure CI/CD, deployment, mon
 # 3. Run Supabase migrations against preview Supabase project
 ```
 
-**`.github/workflows/deploy-production.yml`** — runs on push to `main`:
+**`.github/workflows/deploy-production.yml`** — runs when the CI workflow completes on `main` (T-4.1):
 ```yaml
-# 1. Run full CI
-# 2. Deploy to Vercel production
-# 3. Run Supabase migrations on production
-# 4. Notify via email (or Discord webhook) on success/failure
+# 0. Gate: only if that CI run succeeded on a push to main; deploys its head_sha
+# 1. Apply Supabase migrations (CLI pinned) — code never meets an old schema
+# 2. Build and deploy with the official Vercel CLI (pinned), only if 1 passed
+# 3. Notify (Slack webhook) on success/failure
 ```
+Every `uses:` is pinned by commit SHA with the version in a comment; workflows
+declare `permissions: contents: read`. Vercel's own Git deploy of `main` is off
+(`vercel.json` → `git.deploymentEnabled`), so this workflow is the only path to
+production. Dependabot (`.github/dependabot.yml`) bumps npm, `mobile/` and the
+action SHAs; CI fails on a high advisory in a production dependency.
 
 **Vercel Cron** (`vercel.json` → `crons`) — daily at 3am UTC:
 ```

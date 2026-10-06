@@ -2,6 +2,11 @@
     "buildCommand": "npm run build",
     "outputDirectory": ".next",
     "framework": "nextjs",
+    "git": {
+        "deploymentEnabled": {
+            "main": false
+        }
+    },
     "regions": [
         "fra1"
     ],
