@@ -131,6 +131,7 @@ import type { Trip } from '@/lib/types'
 - Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`
 - Le route sotto `/api/trips/**` usano tutte `withRoute` e quelle sotto `/api/trips/[id]/**` dichiarano `tripMember: true`: lo verifica `src/app/api/trips/route-authz.test.ts`. `route-contract.test.ts` genera dagli schemi (`handler.route`) tre richieste per handler: valida, non valida (400), non membro (403). Se un input valido non si ricava dallo schema (`refine`, path costruiti dal server) aggiungi un esempio in `VALID_BODIES`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
+- Header di sicurezza statici solo in `next.config.ts`; la CSP la costruisce `src/lib/csp.ts` con un nonce per richiesta nel middleware. Un nuovo host chiamato dal browser va aggiunto lì (`connect-src`, `img-src`…), mai `unsafe-eval` né `unsafe-inline` negli script; niente `<script>` inline senza nonce (`(await headers()).get('x-nonce')`)
 - Ogni `fetch` lato server verso un servizio esterno passa da `safeFetch()` (`src/lib/safe-fetch.ts`) con un'allowlist di host in `EXTERNAL_HOSTS`
 
 ---

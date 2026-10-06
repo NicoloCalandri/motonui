@@ -14,7 +14,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 49 | 8 | 9 |
+| **66** | 50 | 7 | 9 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
@@ -26,7 +26,7 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 | SR-INT · Integrazioni esterne | 7 | 6 | 0 | 1 | 0 |
 | SR-PRIV · Privacy e dati personali | 7 | 6 | 1 | 0 | 0 |
 | SR-OPS · Operatività | 5 | 1 | 0 | 4 | 0 |
-| SR-WEB · Sicurezza web | 6 | 3 | 2 | 1 | 0 |
+| SR-WEB · Sicurezza web | 6 | 4 | 1 | 1 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 5 | 1 | 1 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
@@ -134,8 +134,8 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-WEB-01 | Header di sicurezza: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy | P1 | ✅ Fatto | `next.config.ts`, `vercel.json` | `vercel.json` e `next.config.ts` definiscono `Permissions-Policy` diverse (geolocation). |
-| SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | 🟡 Parziale | `next.config.ts` (CSP con `unsafe-inline` e `unsafe-eval`) | — |
+| SR-WEB-01 | Header di sicurezza: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy | P1 | ✅ Fatto | `next.config.ts` (unico posto per gli header statici, più `Cross-Origin-Opener-Policy`) | T-4.4. Rimossi gli header di `vercel.json` (Permissions-Policy diversa, `X-XSS-Protection` deprecato). |
+| SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | ✅ Fatto | `src/lib/csp.ts`, `src/middleware.ts` (nonce per richiesta su richiesta e risposta), `src/app/layout.tsx` (rendering dinamico); test `csp.test.ts`, `src/middleware.test.ts` | T-4.4. Verificato su build di produzione con Playwright: script con `nonce`, zero violazioni CSP, pagine idratate. `connect-src` senza `api.anthropic.com`. Dipende dal middleware in `src/` (#109). Da verificare dopo il deploy: securityheaders.com grado A. |
 | SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` | — |
 | SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | ✅ Fatto | `src/middleware.ts` (`Origin` / `Sec-Fetch-Site` sui metodi di scrittura di `/api/*`); test `src/middleware.test.ts` | T-1.9. Oltre a `SameSite=Lax`. Le route cron sono escluse (server-to-server, segreto proprio). **Attivo in produzione solo da quando il middleware sta in `src/`:** in radice Next.js lo ignorava (con `src/app` carica solo `src/middleware.ts`), quindi questo controllo, il 401 JSON, il blocco dei sospesi e la sola lettura dell'impersonazione non giravano. Guardia: `src/middleware-location.test.ts`. |
 | SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`, `withRoute`; test `errors.test.ts`, `with-route.test.ts` | Le route `/api/ai/*` ora passano da `withRoute`; restano le route `/api/admin/*` senza `withErrorHandler`. |
