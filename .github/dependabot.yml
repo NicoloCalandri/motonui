@@ -1,0 +1,39 @@
+# T-4.7 (SR-SDLC-06): versioned Dependabot config. Weekly, grouped minor and
+# patch updates so the PR queue stays reviewable; majors arrive one by one.
+# Security updates are enabled in the repository settings and are not
+# limited by these schedules.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: [dependencies]
+    groups:
+      web-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies, mobile]
+    groups:
+      mobile-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Actions are pinned by commit SHA; Dependabot bumps the SHA and the
+  # version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]
+    groups:
+      github-actions:
+        patterns: ['*']
