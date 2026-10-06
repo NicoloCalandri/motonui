@@ -127,7 +127,7 @@ import type { Trip } from '@/lib/types'
   ```
 - Log strutturato: `[motonui][/api/trips][GET] errore descrittivo`
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
-- Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `middleware.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`)
+- Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `src/middleware.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`). Il middleware sta in `src/middleware.ts`: con `src/app` Next.js ignora un `middleware.ts` in radice (lo controlla `src/middleware-location.test.ts`)
 - Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`
 - Le route sotto `/api/trips/**` usano tutte `withRoute` e quelle sotto `/api/trips/[id]/**` dichiarano `tripMember: true`: lo verifica `src/app/api/trips/route-authz.test.ts`. `route-contract.test.ts` genera dagli schemi (`handler.route`) tre richieste per handler: valida, non valida (400), non membro (403). Se un input valido non si ricava dallo schema (`refine`, path costruiti dal server) aggiungi un esempio in `VALID_BODIES`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
