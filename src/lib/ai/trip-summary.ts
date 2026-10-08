@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { TiptapDoc } from '@/lib/types';
 import { AI_MODELS } from '@/lib/ai/models';
+import { untrustedBlock, withUntrustedRule } from '@/lib/ai/untrusted';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -30,7 +31,7 @@ export async function generateTripSummary(
     trip: TripContext,
     language: 'it' | 'en' = 'it'
 ): Promise<TiptapDoc> {
-    const system = language === 'it'
+    const baseSystem = language === 'it'
         ? `Sei un blogger di viaggio di coppia. Scrivi post coinvolgenti, poetici e autentici.
        Quando descrivi un viaggio, vai oltre i fatti — racconti emozioni, odori, conversazioni notturne.
        Rispondi SOLO con JSON Tiptap valido (type: doc, content: [...])
@@ -39,29 +40,31 @@ export async function generateTripSummary(
        When describing a trip, go beyond facts — tell emotions, smells, late-night conversations.
        Reply ONLY with valid Tiptap JSON (type: doc, content: [...])
        Use: paragraph, heading (level 2/3), blockquote for special moments.`;
+    const system = withUntrustedRule(baseSystem, language);
 
-    const daysText = trip.days?.map((d) =>
+    const itinerary = trip.days?.map((d) =>
         `${d.date} — ${d.title ?? 'Giorno'}: ${d.legs?.map((l) => `${l.from} → ${l.to} ${l.type}`).join(', ') ?? 'no legs'}`
-    ).join('\n') ?? '';
+    ) ?? [];
 
-    const userPrompt = language === 'it'
-        ? `Scrivi un post di blog di viaggio completo (600-900 parole) per questo viaggio:
-       Titolo: ${trip.title}
-       Destinazione: ${trip.destination}
-       Dal: ${trip.startDate ?? '?'} al ${trip.endDate ?? '?'}
-       ${trip.description ? `Note: ${trip.description}` : ''}
-       ${daysText ? `Itinerario:\n${daysText}` : ''}
-       ${trip.expenses ? `Spese totali: €${trip.expenses.total_eur}, Paesi: ${trip.expenses.countries_visited.join(', ')}` : ''}
-       
-       Inizia con un titolo H2 evocativo. Poi scrivi il post in prima persona plurale.`
-        : `Write a complete travel blog post (600-900 words) for this trip:
-       Title: ${trip.title}
-       Destination: ${trip.destination}
-       From: ${trip.startDate ?? '?'} to ${trip.endDate ?? '?'}
-       ${trip.description ? `Notes: ${trip.description}` : ''}
-       ${daysText ? `Itinerary:\n${daysText}` : ''}
-       
-       Start with an evocative H2 title. Write in first person plural.`;
+    // T-5.3: every trip field is user input and goes in the untrusted block.
+    const it = language === 'it';
+    const data = untrustedBlock({
+        [it ? 'Titolo' : 'Title']: trip.title,
+        [it ? 'Destinazione' : 'Destination']: trip.destination,
+        [it ? 'Periodo' : 'Dates']: `${trip.startDate ?? '?'} – ${trip.endDate ?? '?'}`,
+        [it ? 'Note' : 'Notes']: trip.description,
+        [it ? 'Itinerario' : 'Itinerary']: itinerary,
+        [it ? 'Spese totali (EUR)' : 'Total spent (EUR)']: trip.expenses?.total_eur,
+        [it ? 'Paesi' : 'Countries']: trip.expenses?.countries_visited,
+    }, 8000);
+
+    const userPrompt = it
+        ? `Scrivi un post di blog di viaggio completo (600-900 parole) sul viaggio descritto nei dati.
+${data}
+Inizia con un titolo H2 evocativo. Poi scrivi il post in prima persona plurale.`
+        : `Write a complete travel blog post (600-900 words) about the trip described in the data.
+${data}
+Start with an evocative H2 title. Write in first person plural.`;
 
     const message = await anthropic.messages.create({
         model: AI_MODELS.longForm,

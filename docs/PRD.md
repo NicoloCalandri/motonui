@@ -85,8 +85,8 @@ Legenda: ✅ presente e funzionante · 🟡 presente con lacune · 🔴 assente 
 | FR-40 | Editor Tiptap con bozza e pubblicazione | ✅ | |
 | FR-41 | Blog pubblico `/blog` e `/blog/[slug]` senza login | ✅ | |
 | FR-42 | SEO: metadata, Open Graph, sitemap | 🟡 | Sitemap referenziata ma assente |
-| FR-43 | Assistente di scrittura AI in streaming | ✅ | Quota aggirabile |
-| FR-44 | Generazione bozza post dai dati del giorno | ✅ | |
+| FR-43 | Assistente di scrittura AI in streaming | ✅ | Quota atomica (T-1.5); testo dell'editor delimitato come dato non fidato (T-5.3) |
+| FR-44 | Generazione bozza post dai dati del giorno | ✅ | Dati del viaggio delimitati come non fidati (T-5.3) |
 | FR-45 | Briefing destinazione con cache 30 giorni | ✅ | Retention mai eseguita |
 
 ### 4.6 Amministrazione

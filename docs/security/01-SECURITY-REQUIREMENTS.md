@@ -14,13 +14,13 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 56 | 7 | 3 |
+| **66** | 57 | 6 | 3 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
 | SR-AUTH · Autenticazione | 7 | 5 | 2 | 0 | 0 |
 | SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 10 | 0 | 0 | 0 |
-| SR-INPUT · Validazione dell'input | 7 | 5 | 2 | 0 | 0 |
+| SR-INPUT · Validazione dell'input | 7 | 6 | 1 | 0 | 0 |
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 5 | 0 | 0 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 6 | 0 | 1 | 0 |
@@ -73,7 +73,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-INPUT-03 | Gli errori di validazione restituiscono 400 con messaggio leggibile | P3 | ✅ Fatto | `formatZodError` in `src/lib/validation.ts` (test `validation.test.ts`), usato da `withRoute` e da tutte le route con `Errors.validation`; `validateFile` lancia un `AppError` 400 | T-1.4. Messaggi `campo: motivo` in italiano, senza valori in ingresso. |
 | SR-INPUT-04 | Il contenuto Tiptap è sanificato in scrittura (whitelist di nodi, marks, protocolli URL, limiti di profondità) | P1 | ✅ Fatto | `src/lib/sanitize.ts`; test `src/lib/sanitize.test.ts` | — |
 | SR-INPUT-05 | Il contenuto del blog è sanificato anche in rendering (difesa contro scritture dirette via REST) | P1 | ✅ Fatto | `src/lib/blog/render.ts` (`sanitizeTiptapDocument` prima di `generateHTML`), usato da `blog/[slug]/page.tsx`; test `render.test.ts` | T-1.6. Il test fallisce se si toglie la sanificazione (link `javascript:` scritto via REST). |
-| SR-INPUT-06 | I dati utente nei prompt AI sono delimitati e trattati come non fidati | P2 | 🟡 Parziale | `src/lib/ai/blog-assistant.ts` (`buildPromptBoundary`) | Assente in `destination.ts`, `packing.ts`, `seo.ts`, `trip-summary.ts`, `media/captions.ts`. |
+| SR-INPUT-06 | I dati utente nei prompt AI sono delimitati e trattati come non fidati | P2 | ✅ Fatto | `src/lib/ai/untrusted.ts` (`untrustedBlock`, `withUntrustedRule`), usato da `blog-assistant`, `destination`, `packing`, `seo` (anche categorizzazione spese), `trip-summary`, `media/captions`; test `untrusted.test.ts`, `prompt-injection.test.ts` | T-5.3. I dati stanno in un unico blocco `<untrusted_data>` che il testo non può chiudere (parentesi angolari neutralizzate); le istruzioni e il formato restano fuori, il system prompt dichiara il blocco come dati. L'output SEO è validato con Zod (fallback deterministico) e la categoria spesa è in whitelist. |
 | SR-INPUT-07 | Le richieste HTTP lato server vanno solo verso host in allowlist (anti-SSRF) | P1 | ✅ Fatto | `src/lib/safe-fetch.ts` (HTTPS, allowlist, niente redirect, timeout) usato da `weather.ts` ed `expenses.ts`; `src/lib/media/instagram-export.ts` legge dal bucket privato con path ricontrollato (`isTripFilePath`), nessun `fetch` verso URL salvati nel DB; test `safe-fetch.test.ts`, `instagram-export.test.ts` | T-2.4. I media con solo un link esterno non sono esportabili (errore 400). |
 
 ## SR-DEV — Ambiente di sviluppo e segreti nel repo

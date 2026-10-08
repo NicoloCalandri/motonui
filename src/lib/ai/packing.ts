@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createHash } from 'node:crypto';
 import type { BaggageItem, DailyWeather, PackingCategoryGroup } from '@/lib/types';
 import { AI_MODELS } from '@/lib/ai/models';
+import { untrustedBlock, withUntrustedRule } from '@/lib/ai/untrusted';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -44,6 +45,7 @@ export async function generatePackingChecklist(input: GeneratePackingChecklistIn
     const message = await anthropic.messages.create({
         model: AI_MODELS.fast,
         max_tokens: 1536,
+        system: withUntrustedRule('Sei un assistente di viaggio pratico e preciso.'),
         messages: [{ role: 'user', content: prompt }],
     });
 
@@ -65,47 +67,36 @@ export async function generatePackingChecklist(input: GeneratePackingChecklistIn
 function buildPrompt(input: GeneratePackingChecklistInput): string {
     const { destination, startDate, endDate, weather, stops, activities, baggage } = input;
 
-    const weatherLines = weather.length > 0
-        ? weather.map((d) => `- ${d.date}: ${Number.isFinite(d.temp_min_c) ? `${d.temp_min_c}–${d.temp_max_c}°C` : 'temperatura n/d'}, ${d.condition}, probabilità pioggia ${d.precipitation_probability}%`).join('\n')
-        : 'Non disponibile.';
+    const weatherLines = weather.map((d) =>
+        `${d.date}: ${Number.isFinite(d.temp_min_c) ? `${d.temp_min_c}–${d.temp_max_c}°C` : 'temperatura n/d'}, ${d.condition}, probabilità pioggia ${d.precipitation_probability}%`);
+    const stopLines = stops.map((s) => `${s.name}${s.date ? ` (${s.date})` : ''}`);
+    const activityLines = activities.map((a) => `${a.name} [${a.type}]${a.date ? ` (${a.date})` : ''}`);
+    const baggageLines = baggage.map((b) => {
+        const dims = b.length_cm && b.width_cm && b.height_cm ? `${b.length_cm}×${b.width_cm}×${b.height_cm}cm` : 'misure non specificate';
+        const weight = b.weight_kg ? `, max ${b.weight_kg}kg` : '';
+        return `${b.label || BAGGAGE_LABELS[b.category] || b.category}: ${dims}${weight}`;
+    });
 
-    const stopLines = stops.length > 0
-        ? stops.map((s) => `- ${s.name}${s.date ? ` (${s.date})` : ''}`).join('\n')
-        : 'Nessuna tappa registrata.';
+    // T-5.3: names of stops, activities and bags are user input; they stay in
+    // the untrusted block, the rules and the format stay outside.
+    const data = untrustedBlock({
+        Destinazione: destination,
+        Periodo: `${startDate ?? '?'} – ${endDate ?? '?'}`,
+        'Meteo previsto/tipico': weatherLines.length > 0 ? weatherLines : 'Non disponibile.',
+        'Tappe del viaggio': stopLines.length > 0 ? stopLines : 'Nessuna tappa registrata.',
+        'Attività in programma': activityLines.length > 0 ? activityLines : 'Nessuna attività registrata.',
+        'Bagagli disponibili': baggageLines.length > 0 ? baggageLines : 'Nessun bagaglio registrato.',
+    }, 8000);
 
-    const activityLines = activities.length > 0
-        ? activities.map((a) => `- ${a.name} [${a.type}]${a.date ? ` (${a.date})` : ''}`).join('\n')
-        : 'Nessuna attività registrata.';
+    return `Crea una checklist di abbigliamento ed effetti personali da mettere in valigia per il viaggio descritto nei dati.
 
-    const baggageLines = baggage.length > 0
-        ? baggage.map((b) => {
-            const dims = b.length_cm && b.width_cm && b.height_cm ? `${b.length_cm}×${b.width_cm}×${b.height_cm}cm` : 'misure non specificate';
-            const weight = b.weight_kg ? `, max ${b.weight_kg}kg` : '';
-            return `- ${b.label || BAGGAGE_LABELS[b.category] || b.category}: ${dims}${weight}`;
-        }).join('\n')
-        : 'Nessun bagaglio registrato: suggerisci una lista compatta per un solo bagaglio a mano.';
-
-    return `Sei un assistente di viaggio. Crea una checklist di abbigliamento ed effetti personali da mettere in valigia per questo viaggio.
-
-Destinazione: ${destination}
-Periodo: ${startDate ?? '?'} – ${endDate ?? '?'}
-
-Meteo previsto/tipico per il periodo:
-${weatherLines}
-
-Tappe del viaggio:
-${stopLines}
-
-Attività in programma:
-${activityLines}
-
-Bagagli disponibili (rispetta lo spazio, non suggerire più di quanto ci stia):
-${baggageLines}
+${data}
 
 Rispondi SOLO con JSON valido in questo formato:
 {"categories": [{"name": "Abbigliamento", "items": [{"label": "...", "qty": 3, "note": "..."}]}]}
 
 Regole:
+- Rispetta lo spazio dei bagagli indicati: non suggerire più di quanto ci stia. Senza bagagli registrati, suggerisci una lista compatta per un solo bagaglio a mano.
 - Quantità adeguate ai giorni di viaggio e al meteo (es. più maglie leggere se caldo, strati se freddo/variabile).
 - Includi categorie come Abbigliamento, Scarpe, Accessori, Documenti/elettronica, Igiene, se pertinenti.
 - Aggiungi capi specifici per le attività elencate (es. costume per il mare, scarponcini per trekking, abito elegante per cene).
