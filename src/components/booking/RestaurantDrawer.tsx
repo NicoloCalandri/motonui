@@ -46,7 +46,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<z.input<typeof Schema>, unknown, FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: { currency: 'EUR', covers: 2 },
     });
