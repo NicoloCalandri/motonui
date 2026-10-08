@@ -83,8 +83,8 @@ Legenda: ✅ presente e funzionante · 🟡 presente con lacune · 🔴 assente 
 | ID | Requisito | Stato | Note |
 |---|---|---|---|
 | FR-40 | Editor Tiptap con bozza e pubblicazione | ✅ | |
-| FR-41 | Blog pubblico `/blog` e `/blog/[slug]` senza login | ✅ | |
-| FR-42 | SEO: metadata, Open Graph, sitemap | 🟡 | Sitemap referenziata ma assente |
+| FR-41 | Blog pubblico `/blog` e `/blog/[slug]` senza login | ✅ | `(public)/blog` con layout server e client anonimo: nessuna chiamata auth dal browser (T-5.1) |
+| FR-42 | SEO: metadata, Open Graph, sitemap | ✅ | `app/sitemap.ts` e `app/robots.ts` nativi, URL canonico e metadata `article` (T-5.2); immagine Open Graph generata per ogni post e per `/blog` (T-5.4) |
 | FR-43 | Assistente di scrittura AI in streaming | ✅ | Quota atomica (T-1.5); testo dell'editor delimitato come dato non fidato (T-5.3) |
 | FR-44 | Generazione bozza post dai dati del giorno | ✅ | Dati del viaggio delimitati come non fidati (T-5.3) |
 | FR-45 | Briefing destinazione con cache 30 giorni | ✅ | Retention mai eseguita |

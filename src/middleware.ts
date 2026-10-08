@@ -80,6 +80,8 @@ async function protect(request: NextRequest) {
         pathname === '/suspended' ||
         pathname.startsWith('/auth') ||
         pathname.startsWith('/blog') ||
+        pathname === '/sitemap.xml' ||
+        pathname === '/robots.txt' ||
         pathname.startsWith('/api/posts') ||
         isCronRoute ||
         pathname.startsWith('/_next') ||

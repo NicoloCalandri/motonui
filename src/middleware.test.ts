@@ -151,6 +151,15 @@ describe('middleware', () => {
         expect(result.redirectUrl).toBeUndefined();
     });
 
+    it.each(['/blog', '/blog/rapa-nui', '/sitemap.xml', '/robots.txt'])('serves %s to anonymous visitors (T-5.1, T-5.2)', async (path) => {
+        session(null);
+        const { middleware } = await import('./middleware');
+        const result = (await middleware(makeRequest(path))) as unknown as MockNextResponse;
+
+        expect(result.redirectUrl).toBeUndefined();
+        expect(result.status).not.toBe(401);
+    });
+
     // ── T-1.9: API behaviour ────────────────────────────────────────────────
 
     it('answers 401 JSON (not a redirect) for unauthenticated API calls', async () => {
