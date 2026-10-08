@@ -64,7 +64,7 @@ Punti chiave che la mappa rende visibili:
 | Livello | Dove | Stato |
 |---|---|---|
 | Routing e protezione | `src/middleware.ts`, `src/lib/supabase/middleware.ts` | Refresh sessione, redirect login, blocco sospesi, gate `/admin`, sola lettura in impersonazione. Reindirizza anche le API (vedi SR-AUTH-05). |
-| Pagine | `src/app/(app)`, `(admin)`, `(public)`, `auth/` | 16 pagine. Il blog pubblico sta in `(app)/blog` ed è reso pubblico da un'eccezione nel middleware. |
+| Pagine | `src/app/(app)`, `(admin)`, `(public)`, `auth/` | 16 pagine. Il blog pubblico sta in `(public)/blog` con un layout server proprio e legge con il client anonimo `createPublicClient()` (T-5.1). |
 | API | `src/app/api/**` | 50 route: `trips/**` (30), `admin/**` (12), `ai/*` (3), `profile/*` (3), `posts/[slug]`, `expenses/[id]`, `instagram/generate`. |
 | Dominio | `src/lib/*.ts` | `expenses.ts` (conversione e split), `trips.ts` (statistiche), `authz.ts`, `sanitize.ts`, `storage.ts`, `errors.ts`, `premium/access.ts`, `reminders.ts`, `weather.ts`, `email.ts`. |
 | AI | `src/lib/ai/*` | blog assistant (streaming SSE), destinazione, packing, SEO, riepilogo viaggio, caption. |
@@ -127,7 +127,7 @@ Browser ──► middleware (getUser, profilo, impersonazione)
 | Upload foto e griglia | 🟡 | Upload e `MediaTab` presenti; niente thumbnail, niente EXIF strip, bucket pubblico |
 | Carousel ZIP Instagram | 🔴 | API presente, nessuna UI (`components/instagram` assente); ZIP mai cancellati |
 | Scrivere e pubblicare un post | ✅ | `PostEditor`, route `posts` |
-| Blog pubblico senza login | ✅ | `/blog` pubblico nel middleware; manca `/api/sitemap` referenziato in `vercel.json` |
+| Blog pubblico senza login | ✅ | `/blog`, `/sitemap.xml` e `/robots.txt` pubblici nel middleware; sitemap e robots nativi di Next.js (T-5.2) |
 | CI verde | 🟡 | tsc 0 errori, test verdi, lint 306 warning, coverage `src/lib` 29,6% contro 70% |
 | Deploy Vercel | 🟡 | Workflow presente ma senza gate sulla CI e con ordine codice → migration |
 
