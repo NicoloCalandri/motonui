@@ -114,6 +114,21 @@ Obiettivo: chiudere quattro dei cinque requisiti P0 aperti e mitigare il quinto 
 
 ---
 
+## Migrazioni di dipendenze (fuori fase)
+
+Salti di versione maggiore che non sono semplici aggiornamenti: provati il 2026-10-08 su `main`, ognuno fallisce oggi. `dependabot.yml` li ignora finché non vengono pianificati.
+
+| ID | Task | Perché non è un bump | Criterio di accettazione |
+|---|---|---|---|
+| D-1 | Zod 4 | `errorMap` rimosso, `src/test/zod-sample.ts` usa interni di Zod 3, 39 test e la build falliscono | type-check, lint, test e build verdi; `route-contract.test.ts` invariato |
+| D-2 | Tiptap 3 (tutti i pacchetti `@tiptap/*` insieme) | aggiornare due pacchetti su cinque rompe `npm ci`; l'editor e `lib/blog/render.ts` usano le estensioni | editor e rendering dei post invariati; test di `render.ts` verdi |
+| D-3 | Tailwind 4 | configurazione spostata in CSS: la build fallisce su `globals.css` | build verde e controllo visivo delle pagine principali |
+| D-4 | ESLint 10 | `eslint-config-next` 15 supporta solo ESLint ≤ 9: dopo Next 16 | `npm run lint` a zero warning |
+| D-5 | Mobile: allineare a Expo SDK 57 | `main` ha `expo` 57 ma React Native 0.76 e React 18 (SDK 57 richiede 0.86 e 19.2): il type-check del mobile fallisce già oggi | `npx expo install --fix`, type-check verde e prova su dispositivo; in alternativa tornare a SDK 52 |
+| D-6 | Next 16 (PR Dependabot #127) | type-check, lint, test e build passano; manca la prova a runtime (cache, middleware, immagini) | deploy di anteprima verificato a mano, poi merge |
+
+---
+
 ## Tracciamento
 
 | Fase | Task | P0 chiusi | Requisiti SR toccati |

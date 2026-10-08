@@ -14,6 +14,18 @@ updates:
     groups:
       web-minor-and-patch:
         update-types: [minor, patch]
+    # Majors that are migrations, not drop-in bumps: each one fails on main
+    # today (see docs/tasks.md, "Migrazioni di dipendenze"). Minor and patch
+    # releases of these packages still arrive through the group above.
+    ignore:
+      - dependency-name: zod
+        update-types: [version-update:semver-major]
+      - dependency-name: tailwindcss
+        update-types: [version-update:semver-major]
+      - dependency-name: '@tiptap/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /mobile
@@ -25,6 +37,17 @@ updates:
     groups:
       mobile-minor-and-patch:
         update-types: [minor, patch]
+    # Expo pins the versions of React, React Native and its native modules per
+    # SDK: they are aligned with `expo install --fix` and tested on a device,
+    # never bumped one by one.
+    ignore:
+      - dependency-name: expo
+      - dependency-name: 'expo-*'
+      - dependency-name: '@expo/*'
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-native
+      - dependency-name: 'react-native-*'
 
   # Actions are pinned by commit SHA; Dependabot bumps the SHA and the
   # version comment together.
