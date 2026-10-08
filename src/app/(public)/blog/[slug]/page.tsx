@@ -37,8 +37,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             title,
             description: post.og_description ?? description,
             publishedTime: post.published_at ?? undefined,
-            images: post.cover_image ? [post.cover_image] : [],
+            // The image comes from ./opengraph-image.tsx (T-5.4).
         },
+        twitter: { card: 'summary_large_image', title, description },
     };
 }
 
