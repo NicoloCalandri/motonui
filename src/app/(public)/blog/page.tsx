@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import type { Post } from '@/lib/types';
+import { createPublicClient } from '@/lib/supabase/public';
+import { listPublishedPosts } from '@/lib/blog/public-posts';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Clock, MapPin } from 'lucide-react';
@@ -14,27 +14,13 @@ export const metadata: Metadata = {
 // Revalidate every hour for public caching
 export const revalidate = 3600;
 
-/** Shape of each row returned by the blog index query */
-type PostCard = Pick<Post, 'id' | 'title' | 'slug' | 'cover_image' | 'published_at' | 'reading_time' | 'seo_description'> & { trips: { destination: string } | null };
-
 /**
- * Public blog index — accessible without authentication.
+ * Public blog index — accessible without authentication (T-5.1): server
+ * component, anonymous client, no auth call in the browser.
  * Lists all published posts ordered by newest first.
  */
 export default async function BlogIndexPage() {
-    const supabase = await createClient();
-
-    const { data: posts } = await supabase
-        .from('posts')
-        .select(`
-      id, title, slug, cover_image, published_at, reading_time,
-      seo_description,
-      trips (destination)
-    `)
-        .eq('status', 'published')
-        .order('published_at', { ascending: false });
-
-    const allPosts = (posts ?? []) as unknown as PostCard[];
+    const allPosts = await listPublishedPosts(createPublicClient());
 
     return (
         <div className="max-w-5xl mx-auto pb-20 animate-fade-in">

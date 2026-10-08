@@ -6,17 +6,17 @@ import { seriousA11yViolations } from '@/test/axe';
 // Mutable so individual tests can control post data
 let mockPosts: Record<string, unknown>[] = [];
 
-vi.mock('@/lib/supabase/server', () => ({
-    createClient: () =>
-        Promise.resolve({
-            from: () => ({
-                select: () => ({
-                    eq: () => ({
-                        order: () => Promise.resolve({ data: mockPosts }),
-                    }),
+// Public blog reads through the anonymous client (T-5.1)
+vi.mock('@/lib/supabase/public', () => ({
+    createPublicClient: () => ({
+        from: () => ({
+            select: () => ({
+                eq: () => ({
+                    order: () => Promise.resolve({ data: mockPosts }),
                 }),
             }),
         }),
+    }),
 }));
 
 describe('BlogIndexPage', () => {

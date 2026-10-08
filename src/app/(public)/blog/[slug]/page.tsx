@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import type { Post } from '@/lib/types';
+import { createPublicClient } from '@/lib/supabase/public';
+import { getPublishedPost, listRelatedPosts } from '@/lib/blog/public-posts';
+import { getAppBaseUrl } from '@/lib/url';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Clock, MapPin, ArrowLeft } from 'lucide-react';
@@ -18,62 +19,46 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const supabase = await createClient();
+    const post = await getPublishedPost(createPublicClient(), slug);
 
-    const { data: post } = await supabase
-        .from('posts')
-        .select('title, seo_title, seo_description, cover_image')
-        .eq('slug', slug)
-        .eq('status', 'published')
-        .single();
+    if (!post) return { title: 'Post non trovato', robots: { index: false } };
 
-    if (!post) return { title: 'Post non trovato' };
+    const title = post.seo_title ?? post.title;
+    const description = post.seo_description ?? undefined;
+    const url = new URL(`/blog/${post.slug}`, getAppBaseUrl()).toString();
 
     return {
-        title: post.seo_title ?? post.title,
-        description: post.seo_description ?? undefined,
+        title,
+        description,
+        alternates: { canonical: url },
         openGraph: {
-            title: post.seo_title ?? post.title,
-            description: post.seo_description ?? undefined,
-            images: post.cover_image ? [post.cover_image] : [],
+            type: 'article',
+            url,
+            title,
+            description: post.og_description ?? description,
+            publishedTime: post.published_at ?? undefined,
+            // The image comes from ./opengraph-image.tsx (T-5.4).
         },
+        twitter: { card: 'summary_large_image', title, description },
     };
 }
 
 /**
- * Public blog post view — server component, no auth required.
+ * Public blog post view — server component, no auth required (T-5.1).
  * Renders Tiptap JSON to HTML server-side for SEO.
  */
 export default async function BlogPostPage({ params }: Props) {
     const { slug } = await params;
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
-    const { data: post } = await supabase
-        .from('posts')
-        .select(`
-      *, trips (id, destination, title)
-    `)
-        .eq('slug', slug)
-        .eq('status', 'published')
-        .single();
-
+    const post = await getPublishedPost(supabase, slug);
     if (!post) notFound();
 
-    // Fetch related posts from the same trip
-    const { data: related } = post.trip_id
-        ? await supabase
-            .from('posts')
-            .select('id, title, slug, cover_image, reading_time, published_at')
-            .eq('trip_id', post.trip_id)
-            .eq('status', 'published')
-            .neq('id', post.id)
-            .limit(3)
-        : { data: [] };
+    // Other published posts from the same trip
+    const related = await listRelatedPosts(supabase, post);
 
     // Tiptap JSON → sanitized HTML for server-side rendering
     const htmlContent = renderPostHtml(post.content_json);
-
-    const typedPost = post as Post & { trips: { destination: string; title: string } | null };
 
     return (
         <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
@@ -86,15 +71,15 @@ export default async function BlogPostPage({ params }: Props) {
                     <ArrowLeft className="w-4 h-4" />
                     Tutti i post
                 </Link>
-                <ShareButton title={typedPost.title} />
+                <ShareButton title={post.title} />
             </div>
 
             {/* Hero image */}
-            {typedPost.cover_image && (
+            {post.cover_image && (
                 <div className="relative h-64 md:h-96 overflow-hidden rounded-3xl mb-10">
                     <img
-                        src={typedPost.cover_image}
-                        alt={typedPost.title}
+                        src={post.cover_image}
+                        alt={post.title}
                         className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 hero-gradient" />
@@ -104,25 +89,25 @@ export default async function BlogPostPage({ params }: Props) {
             {/* Article content */}
             <article className="max-w-2xl mx-auto">
                 {/* Meta */}
-                {typedPost.trips?.destination && (
+                {post.trips?.destination && (
                     <div className="flex items-center gap-1.5 text-terracotta-400 text-sm mb-3">
                         <MapPin className="w-4 h-4" />
-                        <Link href="/blog" className="hover:underline">{typedPost.trips.destination}</Link>
+                        <Link href="/blog" className="hover:underline">{post.trips.destination}</Link>
                     </div>
                 )}
 
                 <h1 className="font-display text-3xl md:text-5xl font-bold text-ink-900 mb-4 leading-tight">
-                    {typedPost.title}
+                    {post.title}
                 </h1>
 
                 <div className="flex items-center gap-4 text-ink-400 text-sm mb-10 pb-8 border-b border-sand-200">
-                    {typedPost.published_at && (
-                        <span>{format(new Date(typedPost.published_at), 'd MMMM yyyy', { locale: it })}</span>
+                    {post.published_at && (
+                        <span>{format(new Date(post.published_at), 'd MMMM yyyy', { locale: it })}</span>
                     )}
-                    {typedPost.reading_time && (
+                    {post.reading_time && (
                         <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
-                            {typedPost.reading_time} minuti di lettura
+                            {post.reading_time} minuti di lettura
                         </span>
                     )}
                 </div>
@@ -139,13 +124,13 @@ export default async function BlogPostPage({ params }: Props) {
             </article>
 
             {/* Related posts */}
-            {related && related.length > 0 && (
+            {related.length > 0 && (
                 <div className="border-t border-sand-200 mt-16 pt-12">
                     <h2 className="font-display text-2xl font-bold text-ink-900 mb-6">
                         Altri post dallo stesso viaggio
                     </h2>
                     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-                        {(related as Post[]).map((rel) => (
+                        {related.map((rel) => (
                             <Link key={rel.id} href={`/blog/${rel.slug}`} className="card group overflow-hidden hover:shadow-card-hover transition-shadow">
                                 {rel.cover_image && (
                                     <img src={rel.cover_image} alt="" className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />

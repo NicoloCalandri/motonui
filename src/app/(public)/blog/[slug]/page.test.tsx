@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import BlogPostPage from './page';
+import BlogPostPage, { generateMetadata } from './page';
+import { seriousA11yViolations } from '@/test/axe';
 
 const mockPostData = {
     id: '1',
@@ -17,23 +18,21 @@ const mockPostData = {
     trips: { destination: 'Francia', title: 'Viaggio in Francia' },
 };
 
-// Mock Supabase — supports main post query + related posts chain
-vi.mock('@/lib/supabase/server', () => ({
-    createClient: () =>
-        Promise.resolve({
+// Public blog reads through the anonymous client (T-5.1): the post query
+// selects content_json, the related-posts query does not.
+vi.mock('@/lib/supabase/public', async () => {
+    const { queryChain } = await import('@/test/supabase-mock');
+    return {
+        createPublicClient: () => ({
             from: () => ({
-                select: () => ({
-                    eq: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: mockPostData }),
-                            limit: () => Promise.resolve({ data: [] }),
-                            neq: () => ({ limit: () => Promise.resolve({ data: [] }) }),
-                        }),
-                    }),
-                }),
+                select: (columns: string) =>
+                    columns.includes('content_json')
+                        ? queryChain({ data: mockPostData, error: null })
+                        : queryChain({ data: [], error: null }),
             }),
         }),
-}));
+    };
+});
 
 // Mock Tiptap HTML generation
 vi.mock('@tiptap/html', () => ({
@@ -75,5 +74,17 @@ describe('BlogPostPage', () => {
         render(Result);
         const backLink = screen.getByRole('link', { name: /Tutti i post/i });
         expect(backLink.getAttribute('href')).toBe('/blog');
+    });
+
+    it('builds article metadata with a canonical URL (T-5.2)', async () => {
+        const meta = await generateMetadata({ params: Promise.resolve({ slug: 'post-slug' }) });
+        expect(meta.title).toBe('Post Titolo');
+        expect(meta.alternates?.canonical).toMatch(/\/blog\/post-slug$/);
+        expect(meta.openGraph).toMatchObject({ type: 'article', publishedTime: '2025-01-01' });
+    });
+
+    it('has no serious axe violations (T-3.9)', async () => {
+        const { container } = render(await BlogPostPage({ params: Promise.resolve({ slug: 'post-slug' }) }));
+        expect(await seriousA11yViolations(container)).toEqual([]);
     });
 });
