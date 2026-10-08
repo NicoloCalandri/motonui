@@ -12,7 +12,7 @@ import BoardingPassField from './BoardingPassField';
 import FlightSegmentsPicker from './FlightSegmentsPicker';
 import LegScheduleFields from './LegScheduleFields';
 import { LegBookingFields, LegLocationFields, LegTypePicker } from './leg-fields';
-import { Schema, coordsOf, defaultSegment, formValuesFromLeg, legTimes, segmentsPayload, type Coords, type FlightSegment, type FormValues } from './leg-form';
+import { Schema, coordsOf, defaultSegment, formValuesFromLeg, legTimes, segmentsPayload, type Coords, type FlightSegment, type FormInput, type FormValues } from './leg-form';
 
 interface LegDrawerProps {
     tripId: string;
@@ -45,7 +45,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
     const [fromInitial, setFromInitial] = useState('');
     const [toInitial, setToInitial] = useState('');
 
-    const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
+    const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormInput, unknown, FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: {
             type: 'flight',

@@ -1,6 +1,6 @@
 import type { UseFormRegister } from 'react-hook-form';
 import LocationSearch, { type LocationResult } from '@/components/map/LocationSearch';
-import { LEG_TYPES, type Coords, type FormValues } from './leg-form';
+import { LEG_TYPES, type Coords, type FormInput, type FormValues } from './leg-form';
 
 interface LegTypePickerProps {
     value: FormValues['type'];
@@ -75,7 +75,7 @@ export function LegLocationFields({ fromInitial, toInitial, fromError, toError, 
 }
 
 interface LegBookingFieldsProps {
-    register: UseFormRegister<FormValues>;
+    register: UseFormRegister<FormInput>;
     type: FormValues['type'];
 }
 

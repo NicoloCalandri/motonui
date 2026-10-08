@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, type BaseSyntheticEvent } from 'react';
+import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Loader2 } from 'lucide-react';
@@ -28,7 +29,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
 
-    const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
+    const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<z.input<typeof Schema>, unknown, FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: { currency: 'EUR', type: 'tour' },
     });
