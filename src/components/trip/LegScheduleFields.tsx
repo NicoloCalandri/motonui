@@ -1,8 +1,8 @@
 import type { UseFormRegister } from 'react-hook-form';
-import type { FormValues } from './leg-form';
+import type { FormInput } from './leg-form';
 
 interface LegScheduleFieldsProps {
-    register: UseFormRegister<FormValues>;
+    register: UseFormRegister<FormInput>;
     departureDate?: string;
     tripStartDate?: string | null;
     tripEndDate?: string | null;

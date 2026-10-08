@@ -40,6 +40,8 @@ export const Schema = z.object({
 });
 
 export type FormValues = z.infer<typeof Schema>;
+/** Form input shape: fields with a schema default are optional before parsing. */
+export type FormInput = z.input<typeof Schema>;
 
 export type Coords = { lat: number; lng: number };
 

@@ -40,7 +40,7 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
     const [error, setError] = useState<string | null>(null);
     const isEditing = !!initialData;
 
-    const { register, handleSubmit, reset, watch } = useForm<FormValues>({
+    const { register, handleSubmit, reset, watch } = useForm<z.input<typeof Schema>, unknown, FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: {
             currency: 'EUR',
