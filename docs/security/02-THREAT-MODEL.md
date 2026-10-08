@@ -102,7 +102,7 @@ Il confine più importante è **TB-2**: esiste sia per scelta (app mobile) sia p
 |---|---|---|---|---|---|---|---|---|
 | T-AI-01 | D | Azzeramento della quota `ai_usage` via REST, costi illimitati | TA-2 | 3 | 2 | **6 Alto** | Aperta | SR-INT-02, SR-INT-03 |
 | T-AI-02 | D | Race sulle quote con richieste parallele | TA-2 | 2 | 1 | 2 Basso | Aperta | RPC atomica |
-| T-AI-03 | T | Prompt injection tramite testi del viaggio o di pagine esterne | TA-5 | 2 | 1 | 2 Basso | Parziale | SR-INPUT-06 |
+| T-AI-03 | T | Prompt injection tramite testi del viaggio o di pagine esterne | TA-5 | 2 | 1 | 2 Basso | Mitigato | SR-INPUT-06 (T-5.3) |
 | T-AI-04 | I | Chiave Anthropic esposta | TA-4 | 3 | 2 | **6 Alto** | Aperta | SR-DEV-01, SR-INT-01 |
 
 ### 5.6 Admin e impersonazione

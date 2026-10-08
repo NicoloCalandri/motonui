@@ -170,6 +170,7 @@ import type { Trip } from '@/lib/types'
 - **Le API key non devono mai arrivare al browser** — solo route server-side
 - Model id solo da `src/lib/ai/models.ts`: `AI_MODELS.fast` (`claude-haiku-4-5`) per task brevi, `AI_MODELS.longForm` (`claude-sonnet-4-6`) per generazione long-form
 - Fai sempre streaming per testo lungo — non far aspettare l'utente con una chiamata bloccante
+- Ogni dato scritto da un utente (titoli, destinazioni, note, nomi di tappe, didascalie, testo dei post) entra nel prompt solo dentro `untrustedBlock()`/`untrustedText()` e il system prompt passa da `withUntrustedRule()` (`src/lib/ai/untrusted.ts`); istruzioni e formato di risposta restano fuori dal blocco. Le risposte strutturate si validano (Zod o whitelist) prima di usarle. Un nuovo prompt aggiunge il suo caso a `src/lib/ai/prompt-injection.test.ts`
 - Ogni chiamata AI passa da `requireFeatureAccess` (`src/lib/premium/access.ts`), che consuma la quota in modo atomico con la RPC `consume_feature_quota` — limite 20 chiamate AI/giorno per utente (`AI_DAILY_LIMIT`). `ai_usage` non si scrive più
 - Cache le risposte riusabili (es. briefing destinazione) per 30 giorni
 

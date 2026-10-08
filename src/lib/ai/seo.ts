@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { AI_MODELS } from '@/lib/ai/models';
+import { untrustedBlock, withUntrustedRule } from '@/lib/ai/untrusted';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
 
@@ -17,6 +19,18 @@ interface SEOResult {
 }
 
 /**
+ * The model's answer is checked before use (T-5.3): an injected instruction
+ * that changes the shape or stuffs a field is rejected and the deterministic
+ * fallback is used instead. Lengths have some slack over the prompt's limits.
+ */
+const SEOResultSchema = z.object({
+    seoTitle: z.string().trim().min(1).max(80),
+    seoDescription: z.string().trim().min(1).max(200),
+    ogDescription: z.string().trim().min(1).max(260),
+    suggestedSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
+});
+
+/**
  * Generates SEO metadata for a blog post using Claude Haiku.
  * Returns title, meta description, OG description, and URL slug.
  */
@@ -26,14 +40,13 @@ export async function generateSEOMetadata(input: SEOInput): Promise<SEOResult> {
     const message = await anthropic.messages.create({
         model: AI_MODELS.fast,
         max_tokens: 512,
+        system: withUntrustedRule('You are an SEO assistant for a travel blog.', 'en'),
         messages: [{
             role: 'user',
-            content: `Generate SEO metadata for this travel blog post.
+            content: `Generate SEO metadata for the travel blog post given in the data.
 Return ONLY valid JSON with these fields: seoTitle, seoDescription, ogDescription, suggestedSlug.
 
-Title: ${title}
-Destination: ${destination ?? 'Unknown'}
-Content excerpt: ${content.slice(0, 800)}
+${untrustedBlock({ Title: title, Destination: destination ?? 'Unknown', 'Content excerpt': content.slice(0, 800) }, 1200)}
 
 Rules:
 - seoTitle: 50-60 chars, include destination
@@ -47,7 +60,10 @@ Rules:
 
     try {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) return JSON.parse(jsonMatch[0]) as SEOResult;
+        if (jsonMatch) {
+            const parsed = SEOResultSchema.safeParse(JSON.parse(jsonMatch[0]));
+            if (parsed.success) return parsed.data;
+        }
     } catch { /* fallback below */ }
 
     // Fallback
@@ -118,11 +134,12 @@ export async function categorizeExpenseAI(description: string): Promise<string> 
     const message = await anthropic.messages.create({
         model: AI_MODELS.fast,
         max_tokens: 16,
+        system: withUntrustedRule('You classify travel expenses.', 'en'),
         messages: [{
             role: 'user',
-            content: `Categorize this travel expense in one word.
+            content: `Categorize the travel expense given in the data in one word.
 Options: food, transport, accommodation, activity, shopping, other
-Expense: "${description}"
+${untrustedBlock({ Expense: description }, 300)}
 Reply with only the category word.`,
         }],
     });

@@ -7,6 +7,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' })
 import { DestinationBriefing } from '@/lib/types';
 import { AI_MODELS } from '@/lib/ai/models';
 import { toJson } from '@/lib/json';
+import { untrustedBlock, withUntrustedRule } from '@/lib/ai/untrusted';
 
 
 /**
@@ -47,19 +48,27 @@ export async function getDestinationBriefing(
 }
 
 async function generateBriefing(destination: string, language: 'it' | 'en'): Promise<DestinationBriefing> {
+    // T-5.3: the destination is user input, kept apart from the instructions.
+    const data = untrustedBlock({ [language === 'it' ? 'Destinazione' : 'Destination']: destination }, 200);
     const prompt = language === 'it'
-        ? `Crea un briefing di viaggio conciso per: ${destination}
-       Rispondi SOLO con JSON valido con questi campi:
-       summary (2 frasi), bestTimeToVisit (1 frase), mustSee (array 3-5 posti), 
-       localTips (array 3-4 consigli pratici), currencyTip (1 frase), languageTip (1 frase)`
-        : `Create a concise travel briefing for: ${destination}
-       Reply ONLY with valid JSON with these fields:
-       summary (2 sentences), bestTimeToVisit (1 sentence), mustSee (array 3-5 places),
-       localTips (array 3-4 practical tips), currencyTip (1 sentence), languageTip (1 sentence)`;
+        ? `Crea un briefing di viaggio conciso per la destinazione indicata nei dati.
+${data}
+Rispondi SOLO con JSON valido con questi campi:
+summary (2 frasi), bestTimeToVisit (1 frase), mustSee (array 3-5 posti),
+localTips (array 3-4 consigli pratici), currencyTip (1 frase), languageTip (1 frase)`
+        : `Create a concise travel briefing for the destination given in the data.
+${data}
+Reply ONLY with valid JSON with these fields:
+summary (2 sentences), bestTimeToVisit (1 sentence), mustSee (array 3-5 places),
+localTips (array 3-4 practical tips), currencyTip (1 sentence), languageTip (1 sentence)`;
 
     const message = await anthropic.messages.create({
         model: AI_MODELS.fast,
         max_tokens: 768,
+        system: withUntrustedRule(
+            language === 'it' ? 'Sei un assistente di viaggio esperto e conciso.' : 'You are a concise, expert travel assistant.',
+            language,
+        ),
         messages: [{ role: 'user', content: prompt }],
     });
 
