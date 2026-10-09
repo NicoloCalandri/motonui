@@ -35,12 +35,12 @@ vi.mock('@/lib/supabase/public', async () => {
 });
 
 // Mock Tiptap HTML generation
-vi.mock('@tiptap/html', () => ({
+vi.mock('@tiptap/html/server', () => ({
     generateHTML: () => '<p>Contenuto test</p>',
 }));
 
 // Avoid loading actual Tiptap extensions in test environment
-vi.mock('@tiptap/starter-kit', () => ({ default: {} }));
+vi.mock('@tiptap/starter-kit', () => ({ default: { configure: () => ({}) } }));
 vi.mock('@tiptap/extension-image', () => ({ default: {} }));
 vi.mock('@tiptap/extension-link', () => ({ default: {} }));
 
