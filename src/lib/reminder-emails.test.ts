@@ -34,7 +34,7 @@ describe('loadReminderEntities', () => {
             queryChain({
                 data: table === 'legs'
                     ? [{ id: 'l-1', from_name: 'Roma', to_name: 'Santiago' }]
-                    : [{ id: 'a-1', name: 'Hotel Hanga Roa', booking_ref: null }],
+                    : [{ id: 'a-1', name: 'Hotel Hanga Roa', booking_ref: null, payment_deadline: '2026-10-10', cancellation_deadline: null }],
                 error: null,
             }),
         );
@@ -76,13 +76,33 @@ describe('buildReminderEmail', () => {
 
     it('distinguishes payment and cancellation deadlines', () => {
         const entities = empty();
-        entities.accommodations.set('e-1', { id: 'e-1', name: 'Hotel Hanga Roa', booking_ref: null });
+        entities.accommodations.set('e-1', { id: 'e-1', name: 'Hotel Hanga Roa', booking_ref: null, payment_deadline: '2026-10-10', cancellation_deadline: '2026-10-12' });
 
         const pay = buildReminderEmail(reminder({ entity_type: 'accommodation', type: 'payment_deadline' }), entities, 'g');
         const cancel = buildReminderEmail(reminder({ entity_type: 'accommodation', type: 'cancellation_deadline' }), entities, 'g');
 
         expect(pay?.subject).toBe('💳 Scadenza pagamento: Hotel Hanga Roa');
         expect(cancel?.subject).toBe('⚠️ Scadenza cancellazione: Hotel Hanga Roa');
+    });
+
+    it('shows the deadline itself, not the day the reminder fires', () => {
+        const entities = empty();
+        entities.accommodations.set('e-1', { id: 'e-1', name: 'Hotel Hanga Roa', booking_ref: null, payment_deadline: '2026-10-10', cancellation_deadline: '2026-10-12' });
+        // remind_at is three days before the deadline.
+        const fired = { entity_type: 'accommodation', remind_at: '2026-10-07T00:00:00Z' } as const;
+
+        const pay = buildReminderEmail(reminder({ ...fired, type: 'payment_deadline' }), entities, 'g');
+        const cancel = buildReminderEmail(reminder({ ...fired, remind_at: '2026-10-09T00:00:00Z', type: 'cancellation_deadline' }), entities, 'g');
+
+        expect(pay?.html).toContain('sabato 10 ottobre 2026');
+        expect(pay?.html).not.toContain('07 ottobre');
+        expect(cancel?.html).toContain('lunedì 12 ottobre 2026');
+    });
+
+    it('sends nothing when the deadline was removed after the reminder was created', () => {
+        const entities = empty();
+        entities.accommodations.set('e-1', { id: 'e-1', name: 'Hotel Hanga Roa', booking_ref: null, payment_deadline: null, cancellation_deadline: null });
+        expect(buildReminderEmail(reminder({ entity_type: 'accommodation', type: 'payment_deadline' }), entities, 'g')).toBeNull();
     });
 
     it('builds restaurant and activity emails', () => {
