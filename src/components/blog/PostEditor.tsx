@@ -6,6 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import { Bold, Italic, Quote, Link as LinkIcon, Image as ImageIcon, Heading1, Heading2, Minus, Undo, Redo, Sparkles, Loader2 } from 'lucide-react';
+import { STARTER_KIT_OPTIONS } from '@/lib/blog/editor-config';
 import type { TiptapDoc } from '@/lib/types';
 import { readSseText } from '@/lib/ai/sse';
 import { AiSuggestionPanel, ToolbarButton } from './editor-parts';
@@ -32,11 +33,15 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
 
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit.configure(STARTER_KIT_OPTIONS),
             Image.configure({ inline: false, allowBase64: false }),
             Link.configure({ openOnClick: false }),
         ],
         content: initialContent ?? undefined,
+        // The page is server-rendered first: create the editor on the client only.
+        immediatelyRender: false,
+        // Tiptap 3 no longer re-renders on every transaction: the toolbar reads editor.isActive().
+        shouldRerenderOnTransaction: true,
         editorProps: {
             attributes: {
                 class: [

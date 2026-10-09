@@ -1,7 +1,9 @@
-import { generateHTML } from '@tiptap/html';
+// The /server entry renders without a browser DOM; the default one is picked by bundler conditions.
+import { generateHTML } from '@tiptap/html/server';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
 import TiptapLink from '@tiptap/extension-link';
+import { STARTER_KIT_OPTIONS } from '@/lib/blog/editor-config';
 import { sanitizeTiptapDocument } from '@/lib/sanitize';
 
 export const UNAVAILABLE_CONTENT_HTML = '<p>Contenuto non disponibile.</p>';
@@ -18,7 +20,7 @@ export function renderPostHtml(contentJson: unknown): string {
     if (!contentJson) return '';
     try {
         const doc = sanitizeTiptapDocument(contentJson);
-        return generateHTML(doc, [StarterKit, TiptapImage, TiptapLink]);
+        return generateHTML(doc, [StarterKit.configure(STARTER_KIT_OPTIONS), TiptapImage, TiptapLink]);
     } catch {
         return UNAVAILABLE_CONTENT_HTML;
     }

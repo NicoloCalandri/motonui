@@ -1,6 +1,7 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { renderPostHtml, UNAVAILABLE_CONTENT_HTML } from '@/lib/blog/render';
+import { FULL_DOC } from './render-fixture';
 
 /** A document as it could be written straight into posts.content_json via REST. */
 function docWith(...content: unknown[]) {
@@ -8,6 +9,22 @@ function docWith(...content: unknown[]) {
 }
 
 describe('renderPostHtml', () => {
+    it('renders every supported node and mark (pinned)', () => {
+        // If a Tiptap upgrade changes this string, published posts change too: decide on purpose.
+        // Tiptap 2 produced the same markup, except that it wrote the quotes in text as &quot;.
+        expect(renderPostHtml(FULL_DOC)).toBe(
+            "<h1>Rapa Nui</h1><h2>Giorno 1</h2><h3>Mattina</h3><p>Moai <strong>grandi</strong>, <em>antichi</em>, <s>lontani</s> e <code>ahu</code><br><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://example.com/moai\">Il sito</a> in <strong><em>grassetto corsivo</em></strong></p><ul><li><p>Anakena</p></li><li><p>Orongo</p></li></ul><ol><li><p>Volo</p></li><li><p>Alba</p></li></ol><blockquote><p>A 2.688 km da tutto.</p></blockquote><pre><code>const isola = \"Motu Nui\";\n&lt;b&gt;non html&lt;/b&gt;</code></pre><hr><img src=\"https://example.com/moai.jpg\" alt=\"Moai al tramonto\" title=\"Tongariki\"><p></p>",
+        );
+    });
+
+    it('registers each extension once', () => {
+        // Tiptap 3's StarterKit bundles Link: adding it again makes Tiptap warn about duplicates.
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        renderPostHtml(FULL_DOC);
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
     it('renders a normal post', () => {
         const html = renderPostHtml(docWith(
             { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Rapa Nui' }] },
