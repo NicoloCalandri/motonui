@@ -1,6 +1,8 @@
 # Security & Code Review Fixes Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **Status: completed.** Verified on `main` on 2026-10-09: all six tasks are in the code and the regression tests named below pass (5 files, 51 tests). Paths have moved since this plan was written: `middleware.ts` is now `src/middleware.ts`, the bypass guard lives in `src/lib/auth/admin-bypass.ts`, and the dead migration `007_admin_role.sql` is gone. Nothing here is left to execute.
 
 **Goal:** Fix the critical/high/medium findings from the motonui code review (dead suspension check in middleware, unsafe admin dev-bypass, non-httpOnly impersonation cookie, inconsistent error handling / missing validation on `/api/profile`, dead migration file).
 
@@ -59,7 +61,7 @@
 **Interfaces:**
 - Produces: `updateSession(request: NextRequest): Promise<{ supabaseResponse: NextResponse; user: User | null; profile: { role: string; suspended_at: string | null } | null }>` — the new `profile` field is consumed directly by `middleware.ts`.
 
-- [ ] **Step 1: Write the failing regression test**
+- [x] **Step 1: Write the failing regression test**
 
 Create `middleware.test.ts` at the project root (same folder as `middleware.ts`):
 
@@ -200,12 +202,12 @@ describe('middleware', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run middleware.test.ts`
 Expected: FAIL — `updateSession` mock doesn't return a `profile` field the current `middleware.ts` understands (current code ignores it and does its own broken `fetch`, which is now stubbed to reject), so the suspended-user and non-admin-on-`/admin` redirects don't happen. At least the first, third and fourth assertions fail.
 
-- [ ] **Step 3: Fix `updateSession` to return the caller's own profile**
+- [x] **Step 3: Fix `updateSession` to return the caller's own profile**
 
 Edit `src/lib/supabase/middleware.ts` — replace the whole file with:
 
@@ -267,7 +269,7 @@ export async function updateSession(request: NextRequest) {
 }
 ```
 
-- [ ] **Step 4: Consume `profile` in `middleware.ts` instead of the manual fetch**
+- [x] **Step 4: Consume `profile` in `middleware.ts` instead of the manual fetch**
 
 Edit `middleware.ts` — replace lines 71-118 (the `if (user) { ... }` block) with:
 
@@ -306,17 +308,17 @@ And update the destructuring above it (currently `const { supabaseResponse: resp
     const { supabaseResponse: response, user, profile } = await updateSession(request);
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run middleware.test.ts`
 Expected: PASS (all 6 cases)
 
-- [ ] **Step 6: Type-check and full test suite**
+- [x] **Step 6: Type-check and full test suite**
 
 Run: `npm run type-check && npm test`
 Expected: no new errors, no new failures.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add middleware.ts middleware.test.ts src/lib/supabase/middleware.ts
@@ -351,7 +353,7 @@ EOF
 - Consumes: none new.
 - Produces: none new (same `requireAdmin(): Promise<AdminResult>` signature).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `src/lib/admin/permissions.test.ts`, inside the existing `describe('requireAdmin', ...)` block (after the existing tests, before the closing `});`):
 
@@ -386,12 +388,12 @@ Add `afterEach` to the existing `import { describe, it, expect, vi, beforeEach }
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/admin/permissions.test.ts`
 Expected: FAIL — with current code, stubbing `NODE_ENV=development` bypasses the check (first new test fails because `mockGetUser` is never called and status isn't 401), and stubbing `ADMIN_AUTH_BYPASS=true` alone does nothing (second new test fails because the real auth path runs and returns 401 instead of the bypass `adminId`).
 
-- [ ] **Step 3: Implement the flag in `require-admin.ts`**
+- [x] **Step 3: Implement the flag in `require-admin.ts`**
 
 Edit `src/lib/auth/require-admin.ts:17-21`, replacing:
 
@@ -414,7 +416,7 @@ export async function requireAdmin(): Promise<AdminResult> {
     }
 ```
 
-- [ ] **Step 4: Implement the flag in `admin/layout.tsx`**
+- [x] **Step 4: Implement the flag in `admin/layout.tsx`**
 
 Edit `src/app/(admin)/admin/layout.tsx:11-12`, replacing:
 
@@ -432,7 +434,7 @@ async function checkAdminAccess() {
     if (process.env.ADMIN_AUTH_BYPASS === 'true') return;
 ```
 
-- [ ] **Step 5: Document the new variable in `.env.example`**
+- [x] **Step 5: Document the new variable in `.env.example`**
 
 Edit `.env.example`, in the `# ── Admin ─────` section, after the `ADMIN_EMAIL` line, add:
 
@@ -442,17 +444,17 @@ Edit `.env.example`, in the `# ── Admin ─────` section, after the 
 # ADMIN_AUTH_BYPASS=true
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `npx vitest run src/lib/admin/permissions.test.ts`
 Expected: PASS (all cases, including the two new ones)
 
-- [ ] **Step 7: Type-check and full test suite**
+- [x] **Step 7: Type-check and full test suite**
 
 Run: `npm run type-check && npm test`
 Expected: no new errors, no new failures.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/lib/auth/require-admin.ts src/app/\(admin\)/admin/layout.tsx src/lib/admin/permissions.test.ts .env.example
@@ -489,7 +491,7 @@ EOF
 - Produces: `POST /api/admin/users/[id]/impersonate` now responds `{ started: true }` (no `token` field) and sets two cookies: `impersonation_token` (httpOnly) and `impersonation_display_name` (readable).
 - Consumes: `impersonation-banner.tsx` now keys its visibility off the `impersonation_display_name` cookie instead of `impersonation_token`.
 
-- [ ] **Step 1: Update the test mocks and write the failing assertions**
+- [x] **Step 1: Update the test mocks and write the failing assertions**
 
 In `src/lib/admin/impersonation.test.ts`, replace the `MockNextResponse` class (lines 6-16) with one that supports cookies:
 
@@ -540,12 +542,12 @@ Replace the `'returns token when target user exists'` test (lines 122-133) with:
     });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/admin/impersonation.test.ts`
 Expected: FAIL — current route returns `{ token: 'signed.jwt.token' }` in the body and never calls `response.cookies.set` (in fact the mocked response object from the removed `ok()` mock has no `.cookies` at all).
 
-- [ ] **Step 3: Rewrite the impersonate route to set httpOnly cookies**
+- [x] **Step 3: Rewrite the impersonate route to set httpOnly cookies**
 
 Replace `src/app/api/admin/users/[id]/impersonate/route.ts` in full with:
 
@@ -644,12 +646,12 @@ export async function POST(_req: Request, { params }: Params) {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run src/lib/admin/impersonation.test.ts`
 Expected: PASS (all cases)
 
-- [ ] **Step 5: Clear the display-name cookie on exit too**
+- [x] **Step 5: Clear the display-name cookie on exit too**
 
 Edit `src/app/api/admin/impersonate/exit/route.ts`, after the existing `response.cookies.set('impersonation_token', '', { ... })` block, add:
 
@@ -663,7 +665,7 @@ Edit `src/app/api/admin/impersonate/exit/route.ts`, after the existing `response
     });
 ```
 
-- [ ] **Step 6: Stop setting the cookie from client JS in the confirm dialog**
+- [x] **Step 6: Stop setting the cookie from client JS in the confirm dialog**
 
 Edit `src/components/admin/impersonate-confirm-dialog.tsx`, replace the `handleStart` body:
 
@@ -692,7 +694,7 @@ Edit `src/components/admin/impersonate-confirm-dialog.tsx`, replace the `handleS
     };
 ```
 
-- [ ] **Step 7: Update the banner to key off the readable display-name cookie**
+- [x] **Step 7: Update the banner to key off the readable display-name cookie**
 
 Edit `src/components/admin/impersonation-banner.tsx`, replace the component body:
 
@@ -748,19 +750,19 @@ export default function ImpersonationBanner() {
 
 (The `interface ImpersonationInfo` at the top of the file becomes unused — remove it.)
 
-- [ ] **Step 8: Type-check and full test suite**
+- [x] **Step 8: Type-check and full test suite**
 
 Run: `npm run type-check && npm test`
 Expected: no new errors, no new failures.
 
-- [ ] **Step 9: Manual smoke check (no automated UI test exists for these components)**
+- [x] **Step 9: Manual smoke check (no automated UI test exists for these components)**
 
 Run: `npm run dev`, log in as an admin, start impersonation from `/admin/users`, confirm:
 - The banner shows the target's display name.
 - `document.cookie` in devtools does NOT contain `impersonation_token` (only `impersonation_display_name`).
 - Exiting removes the banner and both cookies.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/app/api/admin/users/\[id\]/impersonate/route.ts src/app/api/admin/impersonate/exit/route.ts src/components/admin/impersonate-confirm-dialog.tsx src/components/admin/impersonation-banner.tsx src/lib/admin/impersonation.test.ts
@@ -794,7 +796,7 @@ EOF
 **Interfaces:**
 - Produces: `PATCH /api/profile` now rejects (400, `VALIDATION_ERROR`) any `fullName` that's missing, empty after trimming, or longer than 100 characters.
 
-- [ ] **Step 1: Write the failing tests for `profile/route.ts`**
+- [x] **Step 1: Write the failing tests for `profile/route.ts`**
 
 Create `src/app/api/profile/route.test.ts`:
 
@@ -930,12 +932,12 @@ describe('PATCH /api/profile', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/app/api/profile/route.test.ts`
 Expected: FAIL — the current route has no length limit (the 101-char test fails) and the current error-body shape/status handling differs slightly from what `withErrorHandler` produces (some assertions may already pass by coincidence, but the 100-char-limit test must fail).
 
-- [ ] **Step 3: Rewrite `profile/route.ts` on `withErrorHandler` + Zod**
+- [x] **Step 3: Rewrite `profile/route.ts` on `withErrorHandler` + Zod**
 
 Replace `src/app/api/profile/route.ts` in full with:
 
@@ -988,12 +990,12 @@ export const PATCH = withErrorHandler(async (request) => {
 }, 'profile PATCH');
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/app/api/profile/route.test.ts`
 Expected: PASS (all cases)
 
-- [ ] **Step 5: Rewrite `profile/stats/route.ts` on `withErrorHandler`**
+- [x] **Step 5: Rewrite `profile/stats/route.ts` on `withErrorHandler`**
 
 Replace `src/app/api/profile/stats/route.ts` in full with:
 
@@ -1016,7 +1018,7 @@ export const GET = withErrorHandler(async () => {
 }, 'profile/stats GET');
 ```
 
-- [ ] **Step 6: Rewrite `profile/avatar/route.ts` on `withErrorHandler`**
+- [x] **Step 6: Rewrite `profile/avatar/route.ts` on `withErrorHandler`**
 
 Replace `src/app/api/profile/avatar/route.ts` in full with:
 
@@ -1073,12 +1075,12 @@ export const POST = withErrorHandler(async (request) => {
 }, 'profile/avatar POST');
 ```
 
-- [ ] **Step 7: Type-check and full test suite**
+- [x] **Step 7: Type-check and full test suite**
 
 Run: `npm run type-check && npm test`
 Expected: no new errors, no new failures. `stats/route.ts` and `avatar/route.ts` had no prior tests and their behavior is unchanged (same checks, same success responses), so this is a mechanical refactor — verified by type-check + the absence of regressions in the full suite rather than new tests for those two files.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/app/api/profile/route.ts src/app/api/profile/route.test.ts src/app/api/profile/stats/route.ts src/app/api/profile/avatar/route.ts
@@ -1103,23 +1105,23 @@ EOF
 **Files:**
 - Delete: `supabase/migrations/007_admin_role.sql`
 
-- [ ] **Step 1: Confirm nothing else references the old filename**
+- [x] **Step 1: Confirm nothing else references the old filename**
 
 Run: `git grep -n "007_admin_role.sql"`
 Expected: only `supabase/migrations/007_admin_role.sql` itself, `supabase/migrations/0007_admin_role.sql`'s content, and `agents/07_ADMIN.md` (a historical build-agent prompt, not living docs — leave it untouched).
 
-- [ ] **Step 2: Delete the file**
+- [x] **Step 2: Delete the file**
 
 ```bash
 git rm supabase/migrations/007_admin_role.sql
 ```
 
-- [ ] **Step 3: Confirm the app still builds/tests clean**
+- [x] **Step 3: Confirm the app still builds/tests clean**
 
 Run: `npm run type-check && npm test`
 Expected: no change in outcome (this file was never executed as SQL by the app or by Vitest).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -1138,22 +1140,22 @@ EOF
 
 ### Task 6: Final verification
 
-- [ ] **Step 1: Full type-check**
+- [x] **Step 1: Full type-check**
 
 Run: `npm run type-check`
 Expected: no errors.
 
-- [ ] **Step 2: Full lint**
+- [x] **Step 2: Full lint**
 
 Run: `npm run lint`
 Expected: no errors on touched files.
 
-- [ ] **Step 3: Full test suite**
+- [x] **Step 3: Full test suite**
 
 Run: `npm test`
 Expected: all tests pass, including all new ones added in Tasks 1–4.
 
-- [ ] **Step 4: Review the diff end-to-end**
+- [x] **Step 4: Review the diff end-to-end**
 
 Run: `git log --oneline -6` and `git diff main --stat` (or equivalent against the base branch) to confirm exactly the 5 commits from Tasks 1–5 are present and no unrelated files changed.
 
