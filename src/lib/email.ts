@@ -11,11 +11,15 @@ const FROM = process.env.RESEND_FROM_EMAIL ?? 'motonui <reminders@motonui.app>';
 
 const REMINDER_FOOTER = `Ricevi questa email perché hai un promemoria attivo su motonui · il tuo compagno di viaggio di coppia`;
 
-/** Formats an ISO date in Italian, or returns null when the value is missing or invalid. */
+/**
+ * Formats an ISO date in Italian, or returns null when the value is missing or invalid.
+ * Times are saved without an offset and stored as UTC, so UTC is the wall-clock time the user typed.
+ */
 function formatDate(value: string, options: Intl.DateTimeFormatOptions, withTime = false): string | null {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
-    return withTime ? date.toLocaleString('it-IT', options) : date.toLocaleDateString('it-IT', options);
+    const utc = { ...options, timeZone: 'UTC' };
+    return withTime ? date.toLocaleString('it-IT', utc) : date.toLocaleDateString('it-IT', utc);
 }
 
 export interface EmailPayload {

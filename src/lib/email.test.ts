@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { activityReminderEmail, flightCheckinEmail, paymentDeadlineEmail, restaurantReminderEmail } from '@/lib/email';
 import { escapeHtml } from '@/lib/html';
 
@@ -49,6 +49,30 @@ describe('email templates escape user data (SR-INT-07)', () => {
         expect(html).not.toContain('Invalid Date');
         expect(html).not.toContain('>Data</td>');
         expect(html).not.toContain('>Orario</td>');
+    });
+
+    describe('times are shown as the user typed them', () => {
+        const originalTz = process.env.TZ;
+        afterEach(() => {
+            process.env.TZ = originalTz;
+        });
+
+        it.each(['Europe/Rome', 'America/Los_Angeles', 'Pacific/Auckland'])('flight at 23:30 on a server in %s', (tz) => {
+            process.env.TZ = tz;
+            const html = flightCheckinEmail({
+                userName: 'Giorgia', from: 'Roma', to: 'Santiago', carrier: 'LATAM', pnr: null,
+                departureAt: '2026-10-01T23:30:00+00:00', checkinOpensAt: '2026-09-30T23:30:00+00:00',
+            });
+            expect(html).toContain('giovedì 01 ottobre 2026');
+            expect(html).toContain('23:30');
+            expect(html).toContain('mercoledì 30 settembre');
+        });
+
+        it.each(['Europe/Rome', 'America/Los_Angeles'])('date-only value on a server in %s', (tz) => {
+            process.env.TZ = tz;
+            const html = restaurantReminderEmail({ userName: 'Nicolò', restaurantName: 'Osteria', bookingRef: null, date: '2026-10-01', time: '20:30' });
+            expect(html).toContain('giovedì 01 ottobre');
+        });
     });
 });
 
