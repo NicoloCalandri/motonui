@@ -14,7 +14,8 @@ export default defineConfig({
     pool: 'forks',
     testTimeout: 15000,
     // nextgen/ has its own package.json, deps and vitest config.
-    exclude: [...configDefaults.exclude, 'nextgen/**', 'mobile/**'],
+    // .claude/ holds git worktrees: full copies of the repo on other branches.
+    exclude: [...configDefaults.exclude, 'nextgen/**', 'mobile/**', '.claude/**'],
     // T-3.1 (SR-SDLC-03): domain logic in src/lib must stay covered. CI runs
     // `npm run test:coverage` and fails below these thresholds.
     coverage: {

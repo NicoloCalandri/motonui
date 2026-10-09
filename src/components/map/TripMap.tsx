@@ -27,15 +27,21 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
         }
 
         let map: mapboxgl.Map | undefined;
+        let cancelled = false;
 
         const initMap = async () => {
             const mapboxgl = (await import('mapbox-gl')).default;
             await import('mapbox-gl/dist/mapbox-gl.css');
 
+            // The effect was cleaned up while the imports were pending (Strict
+            // Mode, new legs): creating the map now would leak a second one
+            // into the same container.
+            if (cancelled || !containerRef.current) return;
+
             mapboxgl.accessToken = token;
 
             map = new mapboxgl.Map({
-                container: containerRef.current!,
+                container: containerRef.current,
                 style: 'mapbox://styles/mapbox/outdoors-v12',
                 center: [12.4964, 41.9028], // default: Rome
                 zoom: 4,
@@ -139,7 +145,10 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
             setError('Impossibile caricare la mappa');
         });
 
-        return () => { map?.remove(); };
+        return () => {
+            cancelled = true;
+            map?.remove();
+        };
     }, [legs]);
 
     if (error) {

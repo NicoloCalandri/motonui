@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
+import { getOptionalAuthUser } from '@/lib/auth/get-user';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import SignOutButton from './SignOutButton';
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function SuspendedPage() {
     const supabase = await createClient();
-    const user = await getAuthUser(supabase);
+    const user = await getOptionalAuthUser(supabase);
 
     if (!user) {
         redirect('/auth/login');

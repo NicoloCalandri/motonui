@@ -20,3 +20,12 @@ export async function getAuthUser(supabase: SupabaseWithAuth): Promise<AuthUser>
     if (!user) throw Errors.unauthorized();
     return user;
 }
+
+/**
+ * Returns the current user, or null without a session.
+ * For public pages that render for anonymous visitors too.
+ */
+export async function getOptionalAuthUser(supabase: SupabaseWithAuth): Promise<AuthUser | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+}
