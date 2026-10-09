@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plane, Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { authErrorMessage } from '@/lib/auth/auth-error-message';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
@@ -23,7 +24,7 @@ export default function ForgotPasswordPage() {
         });
 
         if (resetError) {
-            setError(resetError.message);
+            setError(authErrorMessage(resetError));
             setLoading(false);
             return;
         }
@@ -98,7 +99,7 @@ export default function ForgotPasswordPage() {
                                     disabled={loading}
                                     className="w-full py-4 bg-neutral-900 text-white rounded-xl font-bold hover:bg-black transition-all mt-4"
                                 >
-                                    {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Invia Link di Reset'}
+                                    {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Invia il link'}
                                 </button>
                             </form>
                         )}
@@ -109,12 +110,12 @@ export default function ForgotPasswordPage() {
                 <div className="hidden lg:block lg:w-1/2 relative bg-neutral-900">
                     <img
                         src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&q=80&w=2070"
-                        alt="Background"
+                        alt=""
                         className="absolute inset-0 w-full h-full object-cover opacity-50"
                     />
                     <div className="absolute inset-0 flex flex-col justify-end p-20 text-white">
-                        <h2 className="text-6xl font-bold mb-4 leading-tight tracking-tighter">Trova la tua pace</h2>
-                        <p className="text-lg text-white/70">Reimposta la tua password e continua il tuo viaggio.</p>
+                        <h2 className="text-6xl font-bold mb-4 leading-tight tracking-tighter">Si riparte</h2>
+                        <p className="text-lg text-white/70">Reimposta la password e riprendi il viaggio da dove l&apos;avevi lasciato.</p>
                     </div>
                 </div>
             </div>

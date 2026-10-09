@@ -102,7 +102,7 @@ export function buildReminderEmail(
         const act = entities.activities.get(reminder.entity_id);
         if (!act) return null;
         return {
-            subject: `🎟️ Attività: ${act.name}`,
+            subject: `🎟️ Ci siamo quasi: ${act.name}`,
             html: activityReminderEmail({ userName, activityName: act.name, bookingRef: act.booking_ref, date: act.date ?? '', time: act.time ?? '' }),
         };
     }

@@ -22,7 +22,7 @@ export default function DeleteTripButton({ tripId, tripTitle }: { tripId: string
                 if (res.ok) {
                     router.refresh();
                 } else {
-                    alert("Errore durante l'eliminazione del viaggio.");
+                    alert('Ops! Non riusciamo a eliminare il viaggio. Riprova tra poco 🏝️');
                 }
             } catch {
                 alert("Si è verificato un errore.");

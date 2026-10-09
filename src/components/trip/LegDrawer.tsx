@@ -115,7 +115,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.error ?? 'Errore nel salvataggio');
+                    throw new Error(data.error ?? 'Ops! Non riusciamo a salvare. Riprova tra poco 🏝️');
                 }
             } else {
                 // ── Single leg (non-flight or editing or single segment) ─────
@@ -153,7 +153,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.error ?? 'Errore nel salvataggio');
+                    throw new Error(data.error ?? 'Ops! Non riusciamo a salvare. Riprova tra poco 🏝️');
                 }
             }
 
@@ -173,7 +173,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
             setHasBoardingPassFile(false);
             setSegments([defaultSegment()]);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

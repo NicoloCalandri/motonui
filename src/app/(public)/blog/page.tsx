@@ -7,7 +7,7 @@ import { it } from 'date-fns/locale';
 import { Clock, MapPin } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Blog di viaggio — motonui',
+    title: 'Blog di viaggio',
     description: 'Storie di viaggio di Nicolò e Giorgia. Destinazioni, consigli e avventure di coppia.',
 };
 
@@ -37,7 +37,7 @@ export default async function BlogIndexPage() {
             {/* Posts grid */}
             {allPosts.length === 0 ? (
                 <div className="card p-16 text-center text-ink-400">
-                    <p className="font-display text-xl">Nessun post pubblicato ancora.</p>
+                    <p className="font-display text-xl">Il diario è ancora in bianco. Torna presto: la prossima storia è in viaggio 🏝️</p>
                 </div>
             ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

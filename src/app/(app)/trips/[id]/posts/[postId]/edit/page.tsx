@@ -135,7 +135,7 @@ export default function PostEditPage() {
                     {/* Save status indicator */}
                     {saveStatus === 'saving' && <Loader2 className="w-4 h-4 text-ink-400 animate-spin" />}
                     {saveStatus === 'saved' && <span className="text-xs text-sage-500">✓ Salvato</span>}
-                    {saveStatus === 'error' && <span className="text-xs text-terracotta-500">Errore</span>}
+                    {saveStatus === 'error' && <span className="text-xs text-terracotta-500">Non salvato</span>}
 
                     {/* Preview link */}
                     {post?.status === 'published' && (

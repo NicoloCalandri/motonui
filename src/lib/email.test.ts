@@ -43,6 +43,13 @@ describe('email templates escape user data (SR-INT-07)', () => {
         expect(html).toContain('L&#39;Osteria &amp; Co');
         expect(html).not.toContain('Prenotazione</td>');
     });
+
+    it('omits date and time rows when the value is missing', () => {
+        const html = restaurantReminderEmail({ userName: 'Nicolò', restaurantName: 'Osteria', bookingRef: null, date: '', time: '' });
+        expect(html).not.toContain('Invalid Date');
+        expect(html).not.toContain('>Data</td>');
+        expect(html).not.toContain('>Orario</td>');
+    });
 });
 
 describe('escapeHtml', () => {

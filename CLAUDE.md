@@ -35,6 +35,7 @@ Documenti di riferimento:
 | `docs/security/03-SECURITY-ARCHITECTURE.md` | Confini di fiducia, token, livelli di autorizzazione, header, log |
 | `docs/security/04-SECURITY-CHECKLIST.md` | Checklist per PR e rilasci, registro verifiche |
 | `docs/security/05-OPS-RUNBOOK.md` | Parità Auth locale/cloud, backup e restore, rotazione dei segreti |
+| `docs/brand-voice.md` | Voce del brand: persona (tu/voi/noi), tono per contesto, parole da usare, struttura degli errori |
 
 `docs/archive/` contiene documenti superati (vecchio `ARCHITECTURE.md` e `SECURITY.md`): non usarli come fonte.
 
@@ -180,7 +181,7 @@ import type { Trip } from '@/lib/types'
 
 - **UI e messaggi all'utente**: italiano
 - **Codice, commenti, nomi di variabili**: inglese
-- **Messaggi di errore user-facing**: italiano, warm, con l'emoji 🏝️ quando appropriato
+- **Messaggi di errore user-facing**: italiano, warm, con l'emoji 🏝️ quando appropriato (dettagli ed esempi in `docs/brand-voice.md`). Gli errori di Supabase Auth non si mostrano mai grezzi: passano da `authErrorMessage()` (`src/lib/auth/auth-error-message.ts`)
 - **Testo utente**: `sanitizePlainText` normalizza (trim, caratteri di controllo, lunghezza) senza fare escape; l'escape si fa in output (React, `escapeHtml`/`escapeFields` di `src/lib/html.ts` negli HTML generati a mano come le email)
   - Esempio: `"Ops! Non riusciamo a caricare le foto. Riprova tra poco 🏝️"`
 - **Commit message**: inglese, formato `feat(scope): description`

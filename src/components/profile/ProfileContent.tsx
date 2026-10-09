@@ -32,7 +32,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
         if (res.ok) {
             onProfileChange({ avatarUrl: data.avatarUrl });
         } else {
-            setAvatarError(data.error ?? 'Errore durante l\'upload.');
+            setAvatarError(data.error ?? 'Ops! Non riusciamo a caricare la foto. Riprova tra poco 🏝️');
         }
         setAvatarUploading(false);
         // Reset so the same file can be re-selected
@@ -52,7 +52,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
 
         if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            setMessage({ type: 'error', text: 'Errore durante l\'aggiornamento: ' + (data.error ?? res.statusText) });
+            setMessage({ type: 'error', text: 'Ops! Non riusciamo ad aggiornare il profilo: ' + (data.error ?? res.statusText) });
         } else {
             onProfileChange({ fullName });
             setMessage({ type: 'success', text: 'Profilo aggiornato con successo!' });
@@ -70,7 +70,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                 </div>
                 <div className="flex items-center gap-3">
                     <span className="px-4 py-1.5 bg-neutral-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
-                        Premium Member
+                        Membro Premium
                     </span>
                 </div>
             </div>
@@ -233,7 +233,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                     <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-[40px] p-8 md:p-12 border border-neutral-200/50 overflow-hidden relative">
                         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                             <div className="space-y-4">
-                                <h3 className="text-2xl font-bold text-neutral-900 tracking-tight leading-tight">Motonui Passport</h3>
+                                <h3 className="text-2xl font-bold text-neutral-900 tracking-tight leading-tight">motonui Passport</h3>
                                 <p className="text-neutral-400 font-medium text-sm max-w-sm">
                                     Sblocca mappe offline, esportazioni AI illimitate e backup cloud avanzato.
                                 </p>

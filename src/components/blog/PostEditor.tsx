@@ -110,7 +110,7 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
 
             if (!res.ok || !res.body) {
                 const err = await res.json().catch(() => ({}));
-                setAiError((err as { error?: string }).error ?? 'Errore AI');
+                setAiError((err as { error?: string }).error ?? 'Ops! L’assistente non risponde. Riprova tra poco 🏝️');
                 return;
             }
 
@@ -118,7 +118,7 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
 
             if (!full) setAiError('Nessuna risposta dall\'AI');
         } catch {
-            setAiError('Errore di connessione');
+            setAiError('Ops! La connessione è caduta. Riprova tra poco 🏝️');
         } finally {
             setIsAiLoading(false);
         }

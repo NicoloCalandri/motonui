@@ -95,7 +95,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
             if (!res.ok) {
                 const data = await res.json();
-                throw new Error(data.error ?? 'Errore nel salvataggio');
+                throw new Error(data.error ?? 'Ops! Non riusciamo a salvare. Riprova tra poco 🏝️');
             }
 
             onSaved();
@@ -108,7 +108,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
             reset({ currency: values.currency || 'EUR', covers: values.covers || 2 });
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

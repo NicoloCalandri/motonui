@@ -94,7 +94,7 @@ describe('buildReminderEmail', () => {
         expect(buildReminderEmail(reminder({ entity_type: 'restaurant', type: 'restaurant_reservation' }), entities, 'g')?.subject)
             .toBe('🍽️ Prenotazione ristorante: Te Moana');
         expect(buildReminderEmail(reminder({ entity_type: 'activity', type: 'activity_ticket' }), entities, 'g')?.subject)
-            .toBe('🎟️ Attività: Rano Raraku');
+            .toBe('🎟️ Ci siamo quasi: Rano Raraku');
     });
 
     it('returns null when the entity is gone or the pair is unknown', () => {

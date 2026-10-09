@@ -57,7 +57,7 @@ export default function NewTripPage() {
 
       if (!res.ok) {
         const data: { error?: string } = await res.json();
-        throw new Error(data.error ?? 'Errore durante la creazione');
+        throw new Error(data.error ?? 'Ops! Non riusciamo a creare il viaggio. Riprova tra poco 🏝️');
       }
 
       const trip: { id: string } = await res.json();

@@ -64,14 +64,14 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
 
             if (!res.ok) {
                 const data = await res.json();
-                throw new Error(data.error ?? 'Errore nel salvataggio');
+                throw new Error(data.error ?? 'Ops! Non riusciamo a salvare. Riprova tra poco 🏝️');
             }
 
             reset();
             onClose();
             onSaved();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

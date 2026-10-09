@@ -109,7 +109,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
 
             if (!res.ok) {
                 const data: { error?: string } = await res.json();
-                throw new Error(data.error ?? 'Errore nel salvataggio');
+                throw new Error(data.error ?? 'Ops! Non riusciamo a salvare. Riprova tra poco 🏝️');
             }
 
             reset();

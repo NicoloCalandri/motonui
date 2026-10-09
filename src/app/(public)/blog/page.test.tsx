@@ -69,7 +69,7 @@ describe('BlogIndexPage', () => {
         mockPosts = [];
         const Result = await BlogIndexPage();
         render(Result);
-        expect(screen.getByText(/Nessun post pubblicato ancora/i)).toBeDefined();
+        expect(screen.getByText(/Il diario è ancora in bianco/i)).toBeDefined();
     });
 
     it('renders multiple posts when provided', async () => {
