@@ -2,12 +2,14 @@ import { z } from 'zod';
 import { Errors, ok } from '@/lib/errors';
 import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
+import { postContentSchema } from '@/lib/blog/content-schema';
 
 const UpdatePostSchema = z.object({
     title: z.string().min(1).optional(),
     slug: z.string().min(1).optional(),
     status: z.enum(['draft', 'published']).optional(),
-    content_json: z.any().optional(),
+    // Sanitized on every save: the autosave of the editor goes through here.
+    content_json: postContentSchema.optional(),
     published_at: z.string().nullable().optional(),
     seo_title: z.string().max(60).nullable().optional(),
     seo_description: z.string().max(160).nullable().optional(),

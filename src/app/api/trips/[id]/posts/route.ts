@@ -2,12 +2,12 @@ import { z } from 'zod';
 import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { ok, created } from '@/lib/errors';
-import { sanitizeTiptapDocument } from '@/lib/sanitize';
+import { postContentSchema } from '@/lib/blog/content-schema';
 
 const CreatePostSchema = z.object({
     title: z.string().min(1).max(300),
     slug: z.string().min(1).max(300).regex(/^[a-z0-9-]+$/),
-    content_json: z.record(z.unknown()).optional(),
+    content_json: postContentSchema.optional(),
     cover_image: z.string().url().optional(),
     status: z.enum(['draft', 'published']).default('draft'),
 });
@@ -33,13 +33,12 @@ export const POST = withRoute(
     { name: 'trips/[id]/posts POST', params: tripParams(), body: CreatePostSchema, tripMember: true },
     async ({ supabase, user, params, body }) => {
     const { id } = params;
-    const contentJson = body.content_json ? sanitizeTiptapDocument(body.content_json) : null;
 
     const { data: post, error } = await supabase
         .from('posts')
         .insert({
             ...body,
-            content_json: contentJson,
+            content_json: body.content_json ?? null,
             trip_id: id,
             author_id: user.id,
             published_at: body.status === 'published' ? new Date().toISOString() : null,

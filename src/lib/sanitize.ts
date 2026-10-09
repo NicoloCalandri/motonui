@@ -1,4 +1,5 @@
 import type { JSONContent } from '@tiptap/react';
+import type { TiptapDoc, TiptapNode } from '@/lib/types';
 
 const MAX_DOC_DEPTH = 12;
 const MAX_DOC_NODES = 1500;
@@ -137,4 +138,18 @@ export function sanitizeTiptapDocument(input: unknown): JSONContent {
   }
 
   return doc;
+}
+
+/**
+ * Sanitized document, or null when the input is missing or not a valid
+ * document. For places that must not throw, like loading a stored post into
+ * the editor.
+ */
+export function safeTiptapDocument(input: unknown): TiptapDoc | null {
+  try {
+    const doc = sanitizeTiptapDocument(input);
+    return { type: 'doc', content: (doc.content ?? []) as TiptapNode[] };
+  } catch {
+    return null;
+  }
 }

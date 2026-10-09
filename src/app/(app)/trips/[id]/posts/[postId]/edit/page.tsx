@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { ArrowLeft, Globe, FileText, Loader2, Eye } from 'lucide-react';
 import PostEditor from '@/components/blog/PostEditor';
 import { jsonFetcher } from '@/lib/fetcher';
+import { safeTiptapDocument } from '@/lib/sanitize';
 import type { Post, TiptapDoc } from '@/lib/types';
 
 const MetaSchema = z.object({
@@ -63,7 +64,8 @@ export default function PostEditPage() {
     useEffect(() => {
         if (!loadedPost) return;
         setPost(loadedPost);
-        setContent(loadedPost.content_json);
+        // The stored document may have been written outside the editor: it reaches Tiptap only sanitized.
+        setContent(safeTiptapDocument(loadedPost.content_json));
         setValue('title', loadedPost.title);
         setValue('slug', loadedPost.slug);
         setValue('status', loadedPost.status);
