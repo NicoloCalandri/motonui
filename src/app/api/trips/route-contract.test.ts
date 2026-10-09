@@ -55,6 +55,9 @@ const VALID_BODIES: Record<string, (params: Record<string, string>) => unknown> 
     'trips/[id]/media/uploads POST': () => ({ mime_type: 'image/jpeg', size: 1024 }),
     'trips/[id]/media/confirm POST': ({ id }) => ({ path: `trips/${id}/incoming/10000000-0000-4000-8000-00000000000b.jpg` }),
     'trips/[id]/documents POST': () => zodSample(CreateLinkDocumentSchema),
+    // content_json is a transform (sanitizer): the sampler cannot build a Tiptap document.
+    'trips/[id]/posts POST': () => ({ title: 'Post', slug: 'post', content_json: { type: 'doc', content: [] } }),
+    'trips/[id]/posts/[postId] PUT': () => ({ content_json: { type: 'doc', content: [] } }),
 };
 type Handler = ((request: Request, context: { params: Promise<Record<string, string>> }) => Promise<Response>) & { route?: RouteConfig };
 
