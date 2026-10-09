@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { wallClockDayTime } from '@/lib/wall-clock';
 import {
     Plane, Hotel, Utensils, Bus, Train, Car, Ship,
     Pencil, Trash2, MapPin, Clock, Users, QrCode, PersonStanding,
@@ -37,7 +38,7 @@ export function FlightCard({ leg, onEdit, onDelete }: { leg: Leg; onEdit: () => 
                     {leg.departure_at && (
                         <span className="text-xs text-ink-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(leg.departure_at), 'd MMM · HH:mm', { locale: it })}
+                            {wallClockDayTime(leg.departure_at)}
                         </span>
                     )}
                 </div>
@@ -201,7 +202,7 @@ export function TransportCard({ leg, onEdit, onDelete }: { leg: Leg; onEdit: () 
                     {leg.departure_at && (
                         <span className="text-xs text-ink-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(leg.departure_at), 'd MMM · HH:mm', { locale: it })}
+                            {wallClockDayTime(leg.departure_at)}
                         </span>
                     )}
                 </div>

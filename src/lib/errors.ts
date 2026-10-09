@@ -35,8 +35,9 @@ export const Errors = {
         new AppError('Non sei autenticato. Effettua il login per continuare.', 'UNAUTHORIZED', 401),
     forbidden: () =>
         new AppError("Non hai i permessi per accedere a questa risorsa.", 'FORBIDDEN', 403),
-    notFound: (resource = 'Risorsa') =>
-        new AppError(`${resource} non trovata.`, 'NOT_FOUND', 404),
+    // "introvabile" has no gender: the resource name can be masculine or feminine.
+    notFound: (resource = 'Elemento') =>
+        new AppError(`Ops! ${resource} introvabile 🏝️`, 'NOT_FOUND', 404),
     validation: (detail: string) =>
         new AppError(`Dati non validi: ${detail}`, 'VALIDATION_ERROR', 400),
     internal: () =>

@@ -108,6 +108,8 @@ export default function BoardingPassViewer({ leg, onClose }: BoardingPassViewerP
                         {new Date(leg.departure_at).toLocaleString('it-IT', {
                             day: '2-digit', month: 'short', year: 'numeric',
                             hour: '2-digit', minute: '2-digit',
+                            // Stored as the typed wall-clock time in UTC (src/lib/wall-clock.ts).
+                            timeZone: 'UTC',
                         })}
                     </span>
                 </div>

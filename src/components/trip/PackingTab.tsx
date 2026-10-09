@@ -78,7 +78,7 @@ export default function PackingTab({ trip }: PackingTabProps) {
             const response = await fetch(`/api/trips/${trip.id}/packing`, { method: 'POST' });
             if (!response.ok) {
                 const err = (await response.json()) as ApiError;
-                setChecklistError(err.error || 'Errore nella generazione della checklist.');
+                setChecklistError(err.error || 'Ops! Non riusciamo a preparare la checklist. Riprova tra poco 🏝️');
                 return;
             }
             fetchChecklist();

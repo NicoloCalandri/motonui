@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useColors } from '@/hooks/useColors';
 import { queryClient } from '@/lib/queryClient';
 import { validateTripInput, type NewTripData } from '@/lib/validation';
+import { SAVE_ERROR, friendlyError } from '@/lib/errors';
 
 /**
  * create_trip() (migration 0021) inserts the trip and the owner membership in
@@ -67,7 +68,7 @@ export default function NewTripScreen() {
       router.replace(`/trips/${trip.id}` as any);
     },
     onError: (err: Error) => {
-      Alert.alert('Errore', err.message);
+      Alert.alert('Ops!', friendlyError(err, SAVE_ERROR));
     },
   });
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import SignOutButton from './SignOutButton';
 
 export const metadata = {
-    title: 'Account sospeso – Motonui',
+    title: 'Account sospeso',
 };
 
 export default async function SuspendedPage() {
@@ -30,10 +30,10 @@ export default async function SuspendedPage() {
             <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
                 <div className="text-6xl mb-6">🏝️</div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-3">
-                    Account temporaneamente sospeso
+                    Il tuo account è in pausa
                 </h1>
                 <p className="text-gray-500 mb-4">
-                    Il tuo account è stato temporaneamente sospeso e non puoi accedere all&apos;applicazione in questo momento.
+                    Il tuo account è stato sospeso: per ora non puoi entrare in motonui.
                 </p>
 
                 {reason && (
@@ -44,7 +44,7 @@ export default async function SuspendedPage() {
                 )}
 
                 <p className="text-sm text-gray-500 mb-6">
-                    Se ritieni che si tratti di un errore, contatta il supporto all&apos;indirizzo{' '}
+                    Se pensi che sia un errore, scrivici a{' '}
                     <a
                         href="mailto:support@motonui.com"
                         className="text-blue-600 hover:underline font-medium"

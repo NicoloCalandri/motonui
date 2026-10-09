@@ -14,7 +14,7 @@ import type { Database } from '@/lib/supabase/database.types';
 type Tables = Database['public']['Tables'];
 export type ReminderRow = Tables['reminders']['Row'];
 type Leg = Pick<Tables['legs']['Row'], 'id' | 'from_name' | 'to_name' | 'carrier' | 'pnr' | 'booking_ref' | 'departure_at' | 'checkin_opens_at'>;
-type Accommodation = Pick<Tables['accommodations']['Row'], 'id' | 'name' | 'booking_ref'>;
+type Accommodation = Pick<Tables['accommodations']['Row'], 'id' | 'name' | 'booking_ref' | 'payment_deadline' | 'cancellation_deadline'>;
 type Booking = Pick<Tables['restaurants']['Row'], 'id' | 'name' | 'booking_ref' | 'date' | 'time'>;
 
 export interface ReminderEntities {
@@ -44,7 +44,7 @@ export async function loadReminderEntities(admin: SupabaseClient<Database>, remi
         legIds.length
             ? admin.from('legs').select('id, from_name, to_name, carrier, pnr, booking_ref, departure_at, checkin_opens_at').in('id', legIds)
             : none,
-        accIds.length ? admin.from('accommodations').select('id, name, booking_ref').in('id', accIds) : none,
+        accIds.length ? admin.from('accommodations').select('id, name, booking_ref, payment_deadline, cancellation_deadline').in('id', accIds) : none,
         restaurantIds.length ? admin.from('restaurants').select('id, name, booking_ref, date, time').in('id', restaurantIds) : none,
         activityIds.length ? admin.from('activities').select('id, name, booking_ref, date, time').in('id', activityIds) : none,
     ]);
@@ -83,9 +83,12 @@ export function buildReminderEmail(
     if ((reminder.type === 'payment_deadline' || reminder.type === 'cancellation_deadline') && reminder.entity_type === 'accommodation') {
         const acc = entities.accommodations.get(reminder.entity_id);
         if (!acc) return null;
+        // remind_at is when the reminder fires (days earlier), not the deadline.
+        const deadline = reminder.type === 'payment_deadline' ? acc.payment_deadline : acc.cancellation_deadline;
+        if (!deadline) return null;
         return {
             subject: reminder.type === 'payment_deadline' ? `💳 Scadenza pagamento: ${acc.name}` : `⚠️ Scadenza cancellazione: ${acc.name}`,
-            html: paymentDeadlineEmail({ userName, hotelName: acc.name, bookingRef: acc.booking_ref, deadline: reminder.remind_at, type: reminder.type }),
+            html: paymentDeadlineEmail({ userName, hotelName: acc.name, bookingRef: acc.booking_ref, deadline, type: reminder.type }),
         };
     }
 
@@ -102,7 +105,7 @@ export function buildReminderEmail(
         const act = entities.activities.get(reminder.entity_id);
         if (!act) return null;
         return {
-            subject: `🎟️ Attività: ${act.name}`,
+            subject: `🎟️ Ci siamo quasi: ${act.name}`,
             html: activityReminderEmail({ userName, activityName: act.name, bookingRef: act.booking_ref, date: act.date ?? '', time: act.time ?? '' }),
         };
     }

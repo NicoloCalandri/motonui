@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { activityReminderEmail, flightCheckinEmail, paymentDeadlineEmail, restaurantReminderEmail } from '@/lib/email';
-import { escapeHtml } from '@/lib/html';
+import { activityReminderEmail, flightCheckinEmail, paymentDeadlineEmail, restaurantReminderEmail } from './email';
+import { escapeHtml } from './html';
 
 // What a trip partner could type into carrier, hotel, restaurant or PNR fields.
 const INJECTION = '<a href="https://phish.example">Accedi</a><img src=x onerror=alert(1)>';

@@ -9,7 +9,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' })
 
 const BLOG_SYSTEM_IT = `Sei un assistente AI per la scrittura di blog di viaggio di coppia.
 Aiuti a scrivere contenuti autentici, poetici e coinvolgenti.
-Scivi in prima persona plurale (noi/nostro) con un tono caldo e personale.
+Scrivi in prima persona plurale (noi/nostro) con un tono caldo e personale.
 Evita i cliché del turismo. Focalizzati sulle emozioni, i dettagli inaspettati e l'esperienza condivisa.
 Quando continui o migliori un testo esistente, mantieni il tono e lo stile dell'autore.`;
 

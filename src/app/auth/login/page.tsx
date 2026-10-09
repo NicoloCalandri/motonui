@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plane, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { authErrorMessage } from '@/lib/auth/auth-error-message';
 import { safeRedirectPath } from '@/lib/redirect';
-//import { getAuthUser } from '@/lib/auth/get-user';
 
 export default function LoginPage() {
     return (
@@ -50,7 +50,7 @@ function LoginForm() {
         });
 
         if (authError) {
-            setError(authError.message);
+            setError(authErrorMessage(authError));
             setLoading(false);
             return;
         }
@@ -68,7 +68,7 @@ function LoginForm() {
             },
         });
         if (!isDev && authError) {
-            setError('Errore con Google. Riprova.');
+            setError('Ops! L’accesso con Google non è riuscito. Riprova 🏝️');
             setLoading(false);
         }
     };
@@ -99,12 +99,10 @@ function LoginForm() {
                     <Plane className="w-8 h-8" />
                     <span className="font-bold text-2xl tracking-tight">motonui</span>
                 </div>
-                <nav className="hidden lg:flex items-center gap-8">
-                    {['Discover', 'Plan a trip', 'All tours', 'Check flights', 'Blog'].map(item => (
-                        <button key={item} className="text-neutral-400 hover:text-white text-sm font-medium transition-colors">
-                            {item}
-                        </button>
-                    ))}
+                <nav aria-label="Navigazione" className="hidden lg:flex items-center gap-8">
+                    <Link href="/blog" className="text-neutral-400 hover:text-white text-sm font-medium transition-colors">
+                        Blog
+                    </Link>
                 </nav>
                 <div className="w-24" />
             </header>
@@ -114,8 +112,8 @@ function LoginForm() {
                 <div className="flex-1 flex flex-col justify-center px-8 lg:px-24 bg-white relative">
                     <div className="max-w-md w-full mx-auto">
                         <div className="mb-10">
-                            <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-2 tracking-tight">Welcome Back!</h1>
-                            <p className="text-neutral-400 font-medium">Log in to your account</p>
+                            <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-2 tracking-tight">Che bello rivederti 🏝️</h1>
+                            <p className="text-neutral-400 font-medium">Entra nel tuo account</p>
                         </div>
 
                         {error && (
@@ -156,11 +154,7 @@ function LoginForm() {
                                 </button>
                             </div>
 
-                            <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" className="rounded border-gray-300" />
-                                    <span>Remember me</span>
-                                </label>
+                            <div className="flex items-center justify-end text-xs font-bold text-gray-400 uppercase tracking-widest">
                                 <Link href="/auth/forgot-password">Password dimenticata?</Link>
                             </div>
 
@@ -169,7 +163,7 @@ function LoginForm() {
                                 disabled={loading}
                                 className="w-48 py-4 bg-neutral-900 text-white rounded-xl font-bold hover:bg-black transition-all mt-4"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Log in'}
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Accedi'}
                             </button>
                         </form>
 
@@ -205,12 +199,12 @@ function LoginForm() {
                 <div className="hidden lg:block lg:w-1/2 relative bg-neutral-900">
                     <img
                         src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=2070"
-                        alt="Background"
+                        alt=""
                         className="absolute inset-0 w-full h-full object-cover opacity-50"
                     />
                     <div className="absolute inset-0 flex flex-col justify-end p-20 text-white">
-                        <h2 className="text-6xl font-bold mb-4 leading-tight tracking-tighter">Go around the world</h2>
-                        <p className="text-lg text-white/70">Get a new experience with our exciting tours!</p>
+                        <h2 className="text-6xl font-bold mb-4 leading-tight tracking-tighter">A 2.688 km da tutto</h2>
+                        <p className="text-lg text-white/70">I viaggi migliori sembrano impossibili finché non li fai.</p>
                     </div>
                 </div>
             </div>

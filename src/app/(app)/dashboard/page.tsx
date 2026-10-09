@@ -116,7 +116,7 @@ export default async function DashboardPage() {
                 <div className="lg:col-span-2 space-y-8">
                     {activeTrip ? (
                         <div className="space-y-4">
-                            <h3 className="text-sm font-bold text-ink-muted uppercase tracking-wider px-1">Location Live</h3>
+                            <h3 className="text-sm font-bold text-ink-muted uppercase tracking-wider px-1">Viaggio in corso</h3>
                             <Link href={`/trips/${activeTrip.id}`} className="block group">
                                 <div className="card overflow-hidden h-[400px] relative">
                                     <img
@@ -142,9 +142,9 @@ export default async function DashboardPage() {
                         <div className="card p-12 text-center flex flex-col items-center justify-center border-2 border-dashed border-gray-200 bg-transparent shadow-none min-h-[400px]">
                             <PlusCircle className="w-12 h-12 text-gray-300 mb-4" />
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Pronti per una nuova avventura?</h3>
-                            <p className="text-gray-500 text-sm max-w-xs mx-auto mb-6">Pianifica ora il vostro prossimo viaggio di coppia e tieni traccia di tutto in un unico posto.</p>
+                            <p className="text-gray-500 text-sm max-w-xs mx-auto mb-6">Pianificate il vostro prossimo viaggio e tenete traccia di tutto in un unico posto.</p>
                             <Link href="/trips/new" className="px-6 py-3 bg-[var(--color-ink)] text-white rounded-2xl text-sm font-bold">
-                                Crea Viaggio
+                                Crea viaggio
                             </Link>
                         </div>
                     )}
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
                 <div className="space-y-8">
                     {/* Past Trips List */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-ink-muted uppercase tracking-wider px-1">Recent Trips</h3>
+                        <h3 className="text-sm font-bold text-ink-muted uppercase tracking-wider px-1">Ultimi viaggi</h3>
                         <div className="space-y-4">
                             {pastTrips.slice(0, 3).map((trip) => (
                                 <Link key={trip.id} href={`/trips/${trip.id}`} className="card p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">

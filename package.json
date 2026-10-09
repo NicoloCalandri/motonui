@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:pages": "vitest run src/app",
+    "test:mobile": "vitest run --root mobile",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:rls": "sh scripts/run-sql-tests.sh",

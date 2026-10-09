@@ -40,10 +40,10 @@ describe('ProfilePage', () => {
         expect(screen.getByLabelText('Email (non modificabile)')).toBeDefined();
     });
 
-    it('renders the Premium Member badge', async () => {
+    it('renders the Membro Premium badge', async () => {
         render(<ProfilePage />, { wrapper: SWRTestProvider });
         await screen.findByText('Profilo');
-        expect(screen.getByText('Premium Member')).toBeDefined();
+        expect(screen.getByText('Membro Premium')).toBeDefined();
     });
 
     it('email field is not editable', async () => {

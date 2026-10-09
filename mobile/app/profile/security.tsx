@@ -17,6 +17,7 @@ import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useColors } from '@/hooks/useColors';
+import { friendlyError } from '@/lib/errors';
 
 export default function SecurityScreen() {
   const colors = useColors();
@@ -39,14 +40,14 @@ export default function SecurityScreen() {
       Alert.alert('Conferma richiesta', 'Controlla la nuova email per confermare la modifica.');
     },
     onError: (error: Error) => {
-      Alert.alert('Errore', error.message);
+      Alert.alert('Ops!', friendlyError(error));
     },
   });
 
   const sendMagicLinkMutation = useMutation({
     mutationFn: async () => {
       if (!user?.email) {
-        throw new Error('Nessuna email associata all account.');
+        throw new Error('Nessuna email associata all’account.');
       }
       const { error } = await supabase.auth.signInWithOtp({ email: user.email });
       if (error) throw error;
@@ -55,7 +56,7 @@ export default function SecurityScreen() {
       Alert.alert('Link inviato', 'Ti abbiamo inviato un nuovo link di accesso via email.');
     },
     onError: (error: Error) => {
-      Alert.alert('Errore', error.message);
+      Alert.alert('Ops!', friendlyError(error));
     },
   });
 
@@ -70,7 +71,7 @@ export default function SecurityScreen() {
       router.replace('/auth/login');
     },
     onError: (error: Error) => {
-      Alert.alert('Errore', error.message);
+      Alert.alert('Ops!', friendlyError(error));
     },
   });
 

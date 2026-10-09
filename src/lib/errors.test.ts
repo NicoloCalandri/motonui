@@ -65,14 +65,14 @@ describe('Errors factory', () => {
 
     it('notFound uses default resource name when none provided', () => {
         const e = Errors.notFound();
-        expect(e.message).toContain('Risorsa');
-        expect(e.message).toContain('non trovata');
+        expect(e.message).toContain('Elemento');
+        expect(e.message).toContain('introvabile');
     });
 
     it('notFound includes custom resource name in message', () => {
         const e = Errors.notFound('Viaggio');
         expect(e.message).toContain('Viaggio');
-        expect(e.message).toContain('non trovata');
+        expect(e.message).toContain('introvabile');
     });
 
     it('validation returns status 400 and code VALIDATION_ERROR', () => {

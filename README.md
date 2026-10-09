@@ -1,6 +1,6 @@
 # 🏝️ motonui
 
-> *Dal nome di Motu Nui, l'isolotto più vicino al Point Nemo, il posto più remoto della Terra. Perché i viaggi migliori sono quelli che sembrano impossibili finché non li fai.*
+> *Dal nome di Motu Nui, una delle tre terre più vicine al Point Nemo, il posto più remoto della Terra. Perché i viaggi migliori sono quelli che sembrano impossibili finché non li fai.*
 
 **motonui** è una web app per coppie che viaggiano. Si pianificano gli itinerari insieme, si tracciano spese e spostamenti, si pubblica un travel blog e si generano contenuti pronti per Instagram.
 
@@ -98,7 +98,7 @@ Il deploy di produzione parte da `main` solo dopo una CI verde: applica le migra
 
 ---
 
-## 📱 Debug Mobile App (VS Code)
+## 📱 Debug dell'app mobile (VS Code)
 
 ### Prerequisiti
 
@@ -139,15 +139,13 @@ Il file `.vscode/launch.json` nella root del progetto contiene già tre configur
 
 ---
 
----
-
 ## 📧 Email e autenticazione
 
 Per il reset della password serve un provider SMTP configurato nel dashboard Supabase. In sviluppo si consiglia [Mailtrap](https://mailtrap.io/) (Sandbox):
 
 1. In Supabase vai su `Settings > Auth > SMTP`.
 2. Imposta host `sandbox.smtp.mailtrap.io`, porta `2525` e le credenziali del tuo inbox Mailtrap.
-3. Imposta un indirizzo mittente (es. `noreply@motonui.com`).
+3. Imposta un indirizzo mittente (es. `noreply@motonui.app`).
 
 La configurazione di Auth in produzione (conferma email, durata dei token, policy password) segue la tabella di parità in [`docs/security/05-OPS-RUNBOOK.md`](./docs/security/05-OPS-RUNBOOK.md).
 

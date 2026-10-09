@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Home, Compass } from 'lucide-react';
 
 /**
- * Custom 404 page for Motonui.
+ * Custom 404 page for motonui.
  * Shows a premium "Lost at sea" message with a link back to safety.
  */
 export default function NotFound() {
@@ -28,7 +28,11 @@ export default function NotFound() {
                 className="flex items-center gap-2 px-8 py-4 bg-neutral-900 text-white rounded-2xl font-bold shadow-panel hover:bg-black transition-all active:scale-95"
             >
                 <Home className="w-5 h-5" />
-                Torna alla Dashboard
+                Torna alla dashboard
+            </Link>
+
+            <Link href="/blog" className="mt-4 text-sm font-medium text-ink-muted hover:text-ink-900 transition-colors">
+                Oppure leggi il blog
             </Link>
         </div>
     );

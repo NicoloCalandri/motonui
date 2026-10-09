@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useColors } from '@/hooks/useColors';
 import { queryClient } from '@/lib/queryClient';
+import { friendlyError } from '@/lib/errors';
 
 export default function DeleteAccountScreen() {
   const colors = useColors();
@@ -43,7 +44,7 @@ export default function DeleteAccountScreen() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
 
       await signOut();
@@ -54,7 +55,7 @@ export default function DeleteAccountScreen() {
       router.replace('/auth/login');
     },
     onError: (error: Error) => {
-      Alert.alert('Eliminazione non riuscita', error.message);
+      Alert.alert('Ops!', friendlyError(error, 'Non riusciamo a eliminare l’account. Riprova tra poco 🏝️'));
     },
   });
 

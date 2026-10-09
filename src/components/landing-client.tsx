@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 import { Plane, Compass, Map, Wallet, Camera, Loader2 } from 'lucide-react';
 
 export default function LandingClient() {
@@ -19,7 +20,7 @@ export default function LandingClient() {
             },
         });
         if (authError) {
-            setError('Errore con Google. Riprova.');
+            setError('Ops! L’accesso con Google non è riuscito. Riprova 🏝️');
             setLoading(false);
         }
     };
@@ -32,12 +33,13 @@ export default function LandingClient() {
                     <Plane className="w-8 h-8 text-indigo-600" />
                     <span className="font-bold text-2xl tracking-tight">motonui</span>
                 </div>
-                <nav className="hidden lg:flex items-center gap-8">
-                    {['Funzionalità', 'Prezzi', 'Blog', 'Chi siamo'].map(item => (
-                        <button key={item} className="text-neutral-500 hover:text-neutral-900 text-sm font-medium transition-colors">
-                            {item}
-                        </button>
-                    ))}
+                <nav aria-label="Navigazione" className="hidden lg:flex items-center gap-8">
+                    <a href="#funzionalita" className="text-neutral-500 hover:text-neutral-900 text-sm font-medium transition-colors">
+                        Funzionalità
+                    </a>
+                    <Link href="/blog" className="text-neutral-500 hover:text-neutral-900 text-sm font-medium transition-colors">
+                        Blog
+                    </Link>
                 </nav>
                 <div>
                     <button
@@ -45,7 +47,7 @@ export default function LandingClient() {
                         disabled={loading}
                         className="px-6 py-2.5 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all flex items-center gap-2"
                     >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Accedi / Registrati'}
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Entra con Google'}
                     </button>
                 </div>
             </header>
@@ -56,10 +58,10 @@ export default function LandingClient() {
                     <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12 relative z-10">
                         <div className="flex-1 text-center lg:text-left">
                             <h1 className="text-5xl lg:text-7xl font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
-                                Pianifica il tuo prossimo <span className="text-indigo-600">viaggio perfetto</span>
+                                Il vostro prossimo viaggio, <span className="text-indigo-600">pianificato in due</span>
                             </h1>
                             <p className="text-lg lg:text-xl text-neutral-500 mb-10 max-w-2xl mx-auto lg:mx-0">
-                                Unica app per gestire itinerario, prenotazioni, spese condivise e creare il tuo diario di viaggio con l&apos;aiuto dell&apos;intelligenza artificiale.
+                                Itinerario, spese divise, foto e diario in un unico posto. motonui prende il nome da Motu Nui, l&apos;isolotto accanto al punto più remoto della Terra.
                             </p>
                             
                             {error && (
@@ -87,12 +89,18 @@ export default function LandingClient() {
                                     </>
                                 )}
                             </button>
+                            <p className="mt-4 text-sm text-neutral-500">
+                                Preferisci email e password?{' '}
+                                <Link href="/auth/login" className="font-bold text-neutral-900 underline underline-offset-4">
+                                    Accedi qui
+                                </Link>
+                            </p>
                         </div>
                         <div className="flex-1 w-full">
                             <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-neutral-900 aspect-[4/3] transform lg:rotate-2 hover:rotate-0 transition-transform duration-500">
                                 <img
                                     src="https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&q=80&w=2000"
-                                    alt="Travel App"
+                                    alt=""
                                     className="absolute inset-0 w-full h-full object-cover opacity-80"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/80 to-transparent flex flex-col justify-end p-8">
@@ -112,18 +120,18 @@ export default function LandingClient() {
                 </section>
 
                 {/* Features Section */}
-                <section className="py-20 bg-neutral-50 px-8">
+                <section id="funzionalita" className="py-20 bg-neutral-50 px-8">
                     <div className="max-w-6xl mx-auto">
                         <div className="text-center mb-16">
-                            <h2 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-4">Tutto quello che ti serve</h2>
-                            <p className="text-neutral-500">Un ecosistema completo per gestire ogni aspetto della tua avventura.</p>
+                            <h2 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-4">Quello che serve, in due</h2>
+                            <p className="text-neutral-500">Dal primo volo all&apos;ultima foto, un posto solo per il vostro viaggio.</p>
                         </div>
                         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {[
-                                { icon: Map, title: 'Itinerario', desc: 'Organizza i tuoi giorni, voli e hotel in un\'unica vista chiara.' },
-                                { icon: Wallet, title: 'Spese condivise', desc: 'Traccia chi ha pagato cosa e lascia calcolare a noi i bilanci.' },
-                                { icon: Compass, title: 'Prenotazioni', desc: 'Conserva documenti, biglietti e conferme tutto in tasca.' },
-                                { icon: Camera, title: 'Diario AI', desc: 'Carica le foto e lascia che l\'AI scriva il blog e i post Instagram.' },
+                                { icon: Map, title: 'Itinerario', desc: 'Organizzate giorni, voli e alloggi in un\'unica vista chiara.' },
+                                { icon: Wallet, title: 'Spese condivise', desc: 'Segnate chi ha pagato cosa: ai conti pensiamo noi.' },
+                                { icon: Compass, title: 'Prenotazioni', desc: 'Documenti, biglietti e conferme sempre in tasca.' },
+                                { icon: Camera, title: 'Diario e Instagram', desc: 'Caricate le foto, scrivete il diario con l\'aiuto dell\'AI e create i caroselli per Instagram.' },
                             ].map((feature, i) => (
                                 <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 hover:shadow-md transition-shadow">
                                     <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4 text-indigo-600">
@@ -146,7 +154,7 @@ export default function LandingClient() {
                         <span className="font-bold text-xl tracking-tight">motonui</span>
                     </div>
                     <div className="text-sm">
-                        &copy; {new Date().getFullYear()} Motonui App. Tutti i diritti riservati.
+                        &copy; {new Date().getFullYear()} motonui. Tutti i diritti riservati.
                     </div>
                 </div>
             </footer>
