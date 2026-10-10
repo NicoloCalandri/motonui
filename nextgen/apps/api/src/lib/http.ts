@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import { errorResponse } from '../middleware/request-context';
+import { Errors } from './errors';
 
 type Handler = (c: Context) => Promise<Response>;
 
@@ -38,5 +39,11 @@ export function created<T>(c: Context, data: T): Response {
 export function requireParam(c: Context, name: string): string {
     const value = c.req.param(name);
     if (value === undefined) throw new Error(`[motonui][http] missing route param '${name}'`);
+    // Every id in a path is a row id: anything else is refused here, once,
+    // before it reaches a query (params schema of withRoute in the Next.js app).
+    if (ID_PARAM.test(name) && !UUID.test(value)) throw Errors.validation('identificativo non valido');
     return value;
 }
+
+const ID_PARAM = /^(id|[A-Za-z]+Id)$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
