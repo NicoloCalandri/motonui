@@ -3,6 +3,7 @@ import type { InstagramExportOptions, InstagramType, Media } from '@motonui/shar
 import { cropToAspect, applyFilter, overlayText } from './process';
 import { uploadFile, Buckets } from '../storage';
 import { generateCaption } from './captions';
+import { isOwnStorageUrl } from './storage-url';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,7 +68,10 @@ export async function generateExport(input: GenerateExportInput): Promise<Genera
     const processedBuffers: Buffer[] = [];
 
     for (const media of mediaRows as Media[]) {
-        // Fetch source image
+        // Fetch source image: media.url is client-writable, only our own storage is downloaded.
+        if (!isOwnStorageUrl(media.url)) {
+            throw new Error(`[motonui][instagram-export] Media ${media.id} is not in our storage`);
+        }
         const res = await fetch(media.url);
         if (!res.ok) {
             throw new Error(`[motonui][instagram-export] Cannot fetch media ${media.id}: ${res.status}`);
