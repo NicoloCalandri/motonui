@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import type { DailyWeather } from '@motonui/shared-types';
 import { EXTERNAL_HOSTS, safeFetch } from './safe-fetch';
+import type { DailyWeather } from '@motonui/shared-types';
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12h
 const FORECAST_HORIZON_DAYS = 16; // Open-Meteo forecast API only covers ~16 days ahead
@@ -30,16 +30,17 @@ export async function getTripWeather(
     lng: number,
     startDate: string,
     endDate: string,
-    supabase: SupabaseClient
+    supabase: SupabaseClient,
+    now: Date = new Date(),
 ): Promise<DailyWeather[]> {
     const roundedLat = lat.toFixed(1);
     const roundedLng = lng.toFixed(1);
-    const isForecast = daysFromNow(startDate) <= FORECAST_HORIZON_DAYS;
+    const isForecast = daysFromNow(startDate, now) <= FORECAST_HORIZON_DAYS;
     const mode = isForecast ? 'forecast' : 'historical';
     const cacheKey = `${roundedLat}_${roundedLng}_${startDate}_${endDate}_${mode}`;
 
-    const cutoff = new Date(Date.now() - CACHE_TTL_MS).toISOString();
-    const { data: cached } = await (supabase.from('weather_cache') as any)
+    const cutoff = new Date(now.getTime() - CACHE_TTL_MS).toISOString();
+    const { data: cached } = await supabase.from('weather_cache')
         .select('payload, fetched_at')
         .eq('cache_key', cacheKey)
         .gte('fetched_at', cutoff)
@@ -53,17 +54,16 @@ export async function getTripWeather(
         ? await fetchForecast(lat, lng, startDate, endDate)
         : await fetchHistoricalAverage(lat, lng, startDate, endDate);
 
-    await (supabase.from('weather_cache') as any).upsert(
-        { cache_key: cacheKey, payload: days, fetched_at: new Date().toISOString() },
+    await supabase.from('weather_cache').upsert(
+        { cache_key: cacheKey, payload: days, fetched_at: now.toISOString() },
         { onConflict: 'cache_key' }
     );
 
     return days;
 }
 
-function daysFromNow(dateStr: string): number {
+function daysFromNow(dateStr: string, now: Date): number {
     const target = new Date(`${dateStr}T00:00:00Z`).getTime();
-    const now = new Date();
     const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
     return Math.round((target - today) / (24 * 60 * 60 * 1000));
 }
@@ -76,7 +76,7 @@ async function fetchForecast(lat: number, lng: number, startDate: string, endDat
     const response = await safeFetch(url, { allowedHosts: EXTERNAL_HOSTS.openMeteo });
     if (!response.ok) throw new Error(`[motonui][weather][forecast] Open-Meteo error: ${response.status}`);
 
-    const json: any = await response.json();
+    const json = await response.json();
     return normalizeDaily(json.daily?.time ?? [], {
         tempMax: json.daily?.temperature_2m_max ?? [],
         tempMin: json.daily?.temperature_2m_min ?? [],
@@ -105,7 +105,7 @@ async function fetchHistoricalAverage(lat: number, lng: number, startDate: strin
         const response = await safeFetch(url, { allowedHosts: EXTERNAL_HOSTS.openMeteo });
         if (!response.ok) continue; // skip a missing year rather than failing the whole request
 
-        const json: any = await response.json();
+        const json = await response.json();
         const days = normalizeDaily(json.daily?.time ?? [], {
             tempMax: json.daily?.temperature_2m_max ?? [],
             tempMin: json.daily?.temperature_2m_min ?? [],

@@ -50,6 +50,7 @@ const makeTrip = (overrides: Partial<Record<string, unknown>> = {}) => ({
 
 const makeStats = (overrides: Partial<TripStats> = {}): TripStats => ({
   total_days: 12,
+  unconverted_expenses: 0,
   total_km_traveled: 3450,
   countries_visited: ['Giappone'],
   total_spent_eur: 1800,

@@ -32,6 +32,7 @@ function renderOverview(trip: TripWithDetails, props: Partial<Parameters<typeof 
 
 const makeStats = (overrides: Partial<TripStats> = {}): TripStats => ({
   total_days: 12,
+  unconverted_expenses: 0,
   total_km_traveled: 3450,
   countries_visited: ['Giappone', 'Corea del Sud'],
   total_spent_eur: 1800,
@@ -137,6 +138,7 @@ describe('OverviewTab', () => {
               booking_ref: null,
               pnr: null,
               boarding_pass_url: null,
+              boarding_pass_path: null,
               checkin_opens_at: null,
               notes: null,
               sort_order: 0,

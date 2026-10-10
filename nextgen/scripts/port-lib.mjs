@@ -15,7 +15,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PORTED } from './port-manifest.mjs';
+import { PORTED, WITHOUT_TEST } from './port-manifest.mjs';
 
 const NEXTGEN = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const SRC_LIB = join(NEXTGEN, '..', 'src', 'lib');
@@ -82,7 +82,8 @@ export function transform(source, module) {
 export function portedFiles() {
     return PORTED.flatMap((module) => {
         const test = module.replace(/\.ts$/, '.test.ts');
-        return existsSync(join(SRC_LIB, test)) && !isSharedType(module) ? [module, test] : [module];
+        const wanted = existsSync(join(SRC_LIB, test)) && !isSharedType(module) && !(module in WITHOUT_TEST);
+        return wanted ? [module, test] : [module];
     });
 }
 

@@ -69,7 +69,7 @@ tripsDayAccommodationsRouter.post(
         if (error) throw new Error(`[motonui][accommodations][POST] ${error.message}`);
 
         if (parsed.data.cost && parsed.data.cost > 0) {
-            const amount_eur = await convertCurrency(parsed.data.cost, parsed.data.currency, 'EUR');
+            const amount_eur = await convertCurrency(parsed.data.cost, parsed.data.currency, 'EUR', { supabase });
             const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
 
             await supabase.from('expenses').insert({
@@ -130,7 +130,7 @@ tripsDayAccommodationsRouter.put(
 
         const expDesc = `Alloggio: ${acc.name}`;
         if (acc.cost && acc.cost > 0) {
-            const amount_eur = await convertCurrency(acc.cost, acc.currency, 'EUR');
+            const amount_eur = await convertCurrency(acc.cost, acc.currency, 'EUR', { supabase });
             const { data: existing } = await supabase
                 .from('expenses')
                 .select('id')
@@ -275,7 +275,7 @@ tripsAccommodationsRouter.post(
         if (error) throw new Error(`[motonui][accommodations][POST] ${error.message}`);
 
         if (data.cost && data.cost > 0) {
-            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
             await supabase.from('expenses').insert({
                 trip_id: id,
                 description: `Alloggio: ${data.name}`,

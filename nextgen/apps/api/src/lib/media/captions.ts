@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { InstagramType } from '@motonui/shared-types';
+import { AI_MODELS } from '../ai/models';
+import { untrustedBlock, withUntrustedRule } from '../ai/untrusted';
 
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY ?? '',
@@ -24,20 +26,21 @@ const TYPE_PROMPTS: Record<InstagramType, string> = {
 
 /**
  * Generates an Instagram caption + hashtag set for a photo export using Claude.
- * Uses claude-haiku-3-5 for cost efficiency on short text generation.
+ * Uses the fast model (AI_MODELS.fast) for cost efficiency on short text generation.
  */
 export async function generateCaption(input: GenerateCaptionInput): Promise<CaptionResult> {
     const { captions, type, language } = input;
 
+    // T-5.3: photo captions are user input, kept in the untrusted block.
     const captionContext = captions.length > 0
-        ? `Le foto hanno queste descrizioni: ${captions.join(' | ')}`
-        : 'Nessuna descrizione disponibile per le foto.';
+        ? untrustedBlock({ [language === 'it' ? 'Descrizioni delle foto' : 'Photo descriptions']: captions }, 4000)
+        : language === 'it' ? 'Nessuna descrizione disponibile per le foto.' : 'No photo descriptions available.';
 
-    const systemPrompt = language === 'it'
-        ? `Sei un esperto copywriter per Instagram specializzato in contenuti di viaggio di coppia.
+    const baseSystem = language === 'it'
+        ? `Sei un esperto copywriter per Instagram specializzato in contenuti di viaggio di coppia. 
        Scrivi caption coinvolgenti, autentiche e poetiche. Usa emoji con parsimonia (massimo 3-5).
        Rispondi SOLO con JSON valido nel formato: {"caption": "...", "hashtags": ["...", "..."]}`
-        : `You are an expert Instagram copywriter specialized in couples travel content.
+        : `You are an expert Instagram copywriter specialized in couples travel content. 
        Write engaging, authentic, and poetic captions. Use emojis sparingly (max 3-5).
        Reply ONLY with valid JSON in format: {"caption": "...", "hashtags": ["...", "..."]}`;
 
@@ -50,10 +53,10 @@ export async function generateCaption(input: GenerateCaptionInput): Promise<Capt
        Include 10-15 relevant hashtags in English.`;
 
     const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: AI_MODELS.fast,
         max_tokens: 512,
         messages: [{ role: 'user', content: userPrompt }],
-        system: systemPrompt,
+        system: withUntrustedRule(baseSystem, language),
     });
 
     const text = message.content[0]?.type === 'text' ? message.content[0].text : '';

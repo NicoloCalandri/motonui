@@ -78,7 +78,7 @@ tripsExpensesRouter.get(
             .eq('trip_id', id);
 
         const memberIds = (members ?? []).map((m: { user_id: string }) => m.user_id);
-        const summary = await getTripExpenseSummary(id);
+        const summary = await getTripExpenseSummary(id, { supabase });
         const split = splitExpenses(expenses as Expense[], memberIds);
 
         return ok(c, { expenses, summary, split });
@@ -105,7 +105,7 @@ tripsExpensesRouter.post(
         await requireDayInTrip(supabase, id, input.day_id);
         await requireTripPayer(supabase, id, payerId);
 
-        const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR');
+        const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR', { supabase });
 
         const { data: expense, error } = await supabase
             .from('expenses')

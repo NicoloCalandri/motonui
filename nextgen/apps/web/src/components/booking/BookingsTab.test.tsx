@@ -58,6 +58,7 @@ const makeLeg = (overrides: Partial<Leg> = {}): Leg => ({
     booking_ref: null,
     pnr: null,
     boarding_pass_url: null,
+    boarding_pass_path: null,
     checkin_opens_at: null,
     notes: null,
     sort_order: 0,

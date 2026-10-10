@@ -91,7 +91,7 @@ tripsRestaurantsRouter.post(
         if (error) throw new Error(`[motonui][restaurants][POST] ${error.message}`);
 
         if (parsed.data.cost && parsed.data.cost > 0) {
-            const amount_eur = await convertCurrency(parsed.data.cost, parsed.data.currency, 'EUR');
+            const amount_eur = await convertCurrency(parsed.data.cost, parsed.data.currency, 'EUR', { supabase });
             await supabase.from('expenses').insert({
                 trip_id: id,
                 day_id: parsed.data.day_id ?? null,

@@ -5,10 +5,18 @@ import { requireFeatureAccess } from '../lib/premium/access';
 import { withErrorHandler, ok, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { generateExport } from '../lib/media/instagram-export';
-import type { InstagramGenerateResponse } from '@motonui/shared-types';
+import type { CaptionResult } from '@motonui/shared-types';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+
+/** Response of the old synchronous export: this route is replaced by the asynchronous one in B4. */
+interface InstagramGenerateResponse {
+    exportId: string;
+    downloadUrl: string;
+    caption?: CaptionResult;
+    expiresAt: string;
+}
 
 export const instagramRouter = new Hono<AppEnv>();
 

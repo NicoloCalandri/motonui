@@ -108,7 +108,7 @@ tripsLegsRouter.post(
 
             // Auto-create expense for the first segment if cost is provided
             if (data.cost && data.cost > 0 && insertedRows && insertedRows.length > 0) {
-                const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+                const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
                 await supabase.from('expenses').insert({
                     trip_id: id,
                     description: `Volo: ${data.segments![0].from_name} → ${data.segments![data.segments!.length - 1].to_name}`,
@@ -152,7 +152,7 @@ tripsLegsRouter.post(
 
         // Auto-create expense if cost provided
         if (data.cost && data.cost > 0) {
-            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
             await supabase.from('expenses').insert({
                 trip_id: id,
                 description: `Spostamento: ${data.from_name} → ${data.to_name}`,
@@ -347,7 +347,7 @@ tripsDayLegsRouter.post(
             if (legsError) throw new Error(`[motonui][legs][POST] ${legsError.message}`);
 
             if (input.cost && input.cost > 0) {
-                const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR');
+                const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR', { supabase });
                 const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
                 const routeLabel = `${segs[0].from_name.split(' — ')[0]} → ${segs[segs.length - 1].to_name.split(' — ')[0]}`;
 
@@ -408,7 +408,7 @@ tripsDayLegsRouter.post(
         if (error) throw new Error(`[motonui][legs][POST] ${error.message}`);
 
         if (input.cost && input.cost > 0) {
-            const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR');
+            const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR', { supabase });
             const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
 
             await supabase.from('expenses').insert({
@@ -471,7 +471,7 @@ tripsDayLegsRouter.put(
         // Sync the related expense if cost/currency changed
         const expDesc = `Spostamento: ${leg.from_name} → ${leg.to_name}`;
         if (leg.cost && leg.cost > 0) {
-            const amount_eur = await convertCurrency(leg.cost, leg.currency, 'EUR');
+            const amount_eur = await convertCurrency(leg.cost, leg.currency, 'EUR', { supabase });
             const { data: existing } = await supabase
                 .from('expenses')
                 .select('id')

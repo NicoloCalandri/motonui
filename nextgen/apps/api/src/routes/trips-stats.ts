@@ -28,7 +28,7 @@ tripsStatsRouter.get(
         // user could read any trip's stats by guessing its id.
         await requireTripMember(supabase, id, user.id);
 
-        const stats = await getTripStats(id);
+        const stats = await getTripStats(id, { supabase });
 
         return ok(c, stats);
     }, 'trips/:id/stats GET')

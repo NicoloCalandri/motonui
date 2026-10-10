@@ -51,11 +51,11 @@ expensesRouter.put(
         // The path has no trip id, so the central guard on /api/trips/:id does not apply here.
         await requireTripMember(supabase, currentExpense.trip_id, user.id);
 
-        let amount_eur: number | undefined;
+        let amount_eur: number | null | undefined;
         if (parsed.data.amount !== undefined || parsed.data.currency !== undefined) {
             const amount = parsed.data.amount ?? currentExpense.amount ?? 0;
             const currency = parsed.data.currency ?? currentExpense.currency ?? 'EUR';
-            amount_eur = await convertCurrency(amount, currency, 'EUR');
+            amount_eur = await convertCurrency(amount, currency, 'EUR', { supabase });
         }
 
         await requireDayInTrip(supabase, currentExpense.trip_id, parsed.data.day_id ?? undefined);
