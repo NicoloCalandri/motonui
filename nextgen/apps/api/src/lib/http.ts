@@ -85,4 +85,6 @@ export function issueSummary(error: { issues: ReadonlyArray<{ path: ReadonlyArra
 }
 
 const ID_PARAM = /^(id|[A-Za-z]+Id)$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Same shape Postgres accepts for a uuid column: version and variant bits are
+// not checked, because seed and test rows use ids such as 00000000-…-0001.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
