@@ -1,0 +1,116 @@
+#!/usr/bin/env node
+/**
+ * Ports library modules from the Next.js app (src/lib) to nextgen.
+ *
+ *   node scripts/port-lib.mjs           copy every module in PORTED (and its test)
+ *   node scripts/port-lib.mjs --check   report differences, change nothing (exit 1 if any)
+ *
+ * A ported file is its source with the imports rewritten, nothing else:
+ *   '@/lib/types', '…/supabase/database.types'  →  '@motonui/shared-types'
+ *   '@/lib/<module>'                              →  a relative path
+ *   '@/test/<helper>'                             →  the relative path of apps/api/src/test/<helper>
+ * Domain types (src/lib/types) and the database types go to
+ * packages/shared-types; everything else to apps/api/src/lib.
+ */
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, posix } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { PORTED } from './port-manifest.mjs';
+
+const NEXTGEN = join(dirname(fileURLToPath(import.meta.url)), '..');
+export const SRC_LIB = join(NEXTGEN, '..', 'src', 'lib');
+const API_LIB = join(NEXTGEN, 'apps', 'api', 'src', 'lib');
+const SHARED = join(NEXTGEN, 'packages', 'shared-types', 'src');
+const SHARED_PACKAGE = '@motonui/shared-types';
+const DATABASE_TYPES = 'supabase/database.types';
+
+/** True for the modules that live in packages/shared-types instead of apps/api. */
+function isSharedType(module) {
+    return module.startsWith('types/') || module === `${DATABASE_TYPES}.ts`;
+}
+
+/** Absolute path of the nextgen copy of a src/lib module. */
+export function targetPath(module) {
+    if (module === `${DATABASE_TYPES}.ts`) return join(SHARED, 'database.types.ts');
+    if (module.startsWith('types/')) return join(SHARED, module);
+    return join(API_LIB, module);
+}
+
+function relative(fromDir, to) {
+    const path = posix.relative(fromDir, to);
+    return path.startsWith('.') ? path : `./${path}`;
+}
+
+/** Rewrites one module specifier found in the module `module` (a path relative to src/lib). */
+function rewrite(specifier, module) {
+    const dir = posix.dirname(module);
+    const shared = isSharedType(module);
+
+    // Where the specifier points, as a path relative to src/lib (null when it is a package).
+    let target = null;
+    if (specifier.startsWith('@/lib/')) target = specifier.slice('@/lib/'.length);
+    else if (specifier.startsWith('.')) target = posix.normalize(posix.join(dir, specifier));
+
+    if (specifier.startsWith('@/test/')) {
+        return relative(posix.join('lib', dir), posix.join('test', specifier.slice('@/test/'.length)));
+    }
+    if (target === null) return specifier;
+
+    if (target === DATABASE_TYPES) return shared ? relative(posix.join('types'), 'database.types') : SHARED_PACKAGE;
+    if (target === 'types' || target.startsWith('types/')) {
+        return shared ? relative(dir, target) : SHARED_PACKAGE;
+    }
+    return relative(dir, target);
+}
+
+/**
+ * Source of a src/lib module as it must appear in nextgen. Every quoted string
+ * that is a module specifier of the app ('@/lib/…', '@/test/…') or a relative
+ * path is rewritten, wherever it appears: import/export, import(), vi.mock().
+ */
+export function transform(source, module) {
+    const normalized = source.replace(/\r\n/g, '\n');
+    return normalized
+        .replace(/(['"])(@\/(?:lib|test)\/[^'"\n]+)\1/g, (_match, quote, specifier) => `${quote}${rewrite(specifier, module)}${quote}`)
+        .replace(
+            /(\bfrom\s+|\bimport\s*\(\s*|\bimport\s+|\bvi\.(?:mock|doMock|importActual|importMock)\(\s*)(['"])(\.{1,2}\/[^'"\n]+)\2/g,
+            (_match, lead, quote, specifier) => `${lead}${quote}${rewrite(specifier, module)}${quote}`,
+        );
+}
+
+/** Every file the tool manages: the PORTED modules plus the tests that exist next to them in src/lib. */
+export function portedFiles() {
+    return PORTED.flatMap((module) => {
+        const test = module.replace(/\.ts$/, '.test.ts');
+        return existsSync(join(SRC_LIB, test)) && !isSharedType(module) ? [module, test] : [module];
+    });
+}
+
+/** Expected and current content of one ported file (current is null when it does not exist). */
+export function compare(module) {
+    const expected = transform(readFileSync(join(SRC_LIB, module), 'utf8'), module);
+    const path = targetPath(module);
+    const current = existsSync(path) ? readFileSync(path, 'utf8').replace(/\r\n/g, '\n') : null;
+    return { path, expected, current, same: current === expected };
+}
+
+function main() {
+    const check = process.argv.includes('--check');
+    let changed = 0;
+    for (const module of portedFiles()) {
+        const { path, expected, same } = compare(module);
+        if (same) continue;
+        changed += 1;
+        if (check) {
+            console.log(`differs: ${module}`);
+        } else {
+            mkdirSync(dirname(path), { recursive: true });
+            writeFileSync(path, expected);
+            console.log(`ported:  ${module}`);
+        }
+    }
+    console.log(check ? `${changed} file(s) differ from src/lib` : `${changed} file(s) written`);
+    if (check && changed > 0) process.exit(1);
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();

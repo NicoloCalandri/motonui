@@ -66,7 +66,7 @@ export async function enforceRateLimit(
     deps: { admin?: SupabaseClient<Database>; now?: Date } = {},
 ): Promise<void> {
     const { limit, windowSeconds } = RATE_LIMITS[bucket];
-    const admin = deps.admin ?? createAdminClient();
+    const admin = deps.admin ?? (await createAdminClient());
     const now = deps.now ?? new Date();
     const { data, error } = await admin.rpc('check_rate_limit', {
         p_key: `${subject}:${bucket}`,
