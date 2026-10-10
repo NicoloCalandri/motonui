@@ -71,6 +71,8 @@ export function createApp() {
     // router cannot forget them. Buckets mirror the Next.js routes.
     app.use('/api/trips/:id/media', rateLimit('mediaUpload'));
     app.use('/api/trips/:id/documents', rateLimit('fileUpload'));
+    app.use('/api/trips/:id/days/:dayId/legs/:legId/boarding-pass', rateLimit('fileUpload'));
+    app.use('/api/trips/:id/packing', rateLimit('ai'));
     app.use('/api/profile/avatar', requireUser, rateLimit('fileUpload'));
     app.use('/api/ai/*', requireUser, rateLimit('ai'));
     app.use('/api/instagram/*', requireUser, rateLimit('instagramExport'));

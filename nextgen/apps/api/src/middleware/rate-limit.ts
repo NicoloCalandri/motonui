@@ -16,8 +16,11 @@ export function rateLimit(bucket: RateLimitBucket, methods: readonly string[] = 
     });
 }
 
-/** Same, for public routes: keyed by a hash of the client IP, never the address itself. */
-export function rateLimitByIp(bucket: RateLimitBucket, methods: readonly string[] = ['GET']) {
+/**
+ * Same, for public routes: keyed by a hash of the client IP, never the
+ * address itself. HEAD is counted with GET, because it runs the GET handler.
+ */
+export function rateLimitByIp(bucket: RateLimitBucket, methods: readonly string[] = ['GET', 'HEAD']) {
     return createMiddleware<AppEnv>(async (c, next) => {
         if (methods.includes(c.req.method)) {
             await enforceRateLimit(bucket, ipSubject(c.req.raw));

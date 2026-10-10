@@ -46,7 +46,11 @@ const LIMITED: Array<[string, string, keyof typeof RATE_LIMITS, 'user' | 'ip']> 
     ['POST', `/api/trips/${TRIP}/media`, 'mediaUpload', 'user'],
     ['POST', `/api/trips/${TRIP}/documents`, 'fileUpload', 'user'],
     ['POST', '/api/profile/avatar', 'fileUpload', 'user'],
+    ['POST', `/api/trips/${TRIP}/packing`, 'ai', 'user'],
+    ['POST', `/api/trips/${TRIP}/days/${TRIP}/legs/${TRIP}/boarding-pass`, 'fileUpload', 'user'],
     ['GET', '/api/posts/some-slug', 'publicPost', 'ip'],
+    // HEAD runs the GET handler: it must not be a free way around the public limit.
+    ['HEAD', '/api/posts/some-slug', 'publicPost', 'ip'],
 ];
 
 describe('rate limiting', () => {
@@ -63,7 +67,7 @@ describe('rate limiting', () => {
             const res = await call(method, path, { 'x-forwarded-for': '203.0.113.9' });
 
             expect(res.status).toBe(429);
-            expect(await res.json()).toMatchObject({ code: 'TOO_MANY_REQUESTS', status: 429 });
+            if (method !== 'HEAD') expect(await res.json()).toMatchObject({ code: 'TOO_MANY_REQUESTS', status: 429 });
             expect(Number(res.headers.get('retry-after'))).toBeGreaterThanOrEqual(1);
         });
 
