@@ -2,7 +2,9 @@ import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { handleImpersonation } from './middleware/impersonation';
 import { corsPolicy, noStore, rejectCrossSiteWrites } from './middleware/origin';
+import { rateLimit, rateLimitByIp } from './middleware/rate-limit';
 import { handleAppError, handleNotFound, requestContext } from './middleware/request-context';
+import { requireUser } from './middleware/auth';
 import { tripGuard } from './middleware/trip-guard';
 import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
@@ -64,6 +66,15 @@ export function createApp() {
     // Membership is checked here for everything under a trip, before any router.
     app.use('/api/trips/:id', ...tripGuard);
     app.use('/api/trips/:id/*', ...tripGuard);
+
+    // Abuse limits (lib/rate-limit.ts), declared here like the trip guard so a
+    // router cannot forget them. Buckets mirror the Next.js routes.
+    app.use('/api/trips/:id/media', rateLimit('mediaUpload'));
+    app.use('/api/trips/:id/documents', rateLimit('fileUpload'));
+    app.use('/api/profile/avatar', requireUser, rateLimit('fileUpload'));
+    app.use('/api/ai/*', requireUser, rateLimit('ai'));
+    app.use('/api/instagram/*', requireUser, rateLimit('instagramExport'));
+    app.use('/api/posts/:slug', rateLimitByIp('publicPost'));
 
     app.route('/api/trips', tripsRouter);
     app.route('/api/trips/:id/days', tripsDaysRouter);
