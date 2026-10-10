@@ -3,6 +3,8 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Note on task shape:** Phases 1–3 below are already shipped (documented here for continuity). Phases 4–6 are a *port*, not greenfield development — the source behavior already exists and is verified in `src/`. Tasks therefore follow the same pattern the shipped phases used: read the Next.js source at the given path, port it verbatim except for the listed framework touchpoints, verify with type-check/tests/manual smoke, commit. This is intentionally not red/green TDD — there is no new behavior to specify, only a runtime to swap out from under existing, working behavior.
+>
+> **Status (2026-10-10): superseded from Task 4.9.3 onward.** `main` moved 164 commits after the API port, so "port verbatim, the API is done" no longer holds. The task order is now in `2026-10-10-nextgen-realignment-roadmap.md`; the tasks below remain as the record of what was done (4.1–4.9.2) and as input for its sub-plans C and D.
 
 **Goal:** Finish moving motonui off Next.js onto the `nextgen/` monorepo (Vite + React SPA in `apps/web`, Hono on `@hono/node-server` in `apps/api`) without ever breaking the production app, then decommission the Next.js app.
 
