@@ -13,26 +13,33 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@motonui/shared-types": "*",
-    "@supabase/supabase-js": "^2.45.0",
-    "@anthropic-ai/sdk": "^0.27.0",
+    "@anthropic-ai/sdk": "^0.131.0",
     "@hono/node-server": "^1.13.7",
-    "@tiptap/react": "^2.8.0",
+    "@motonui/shared-types": "*",
+    "@supabase/supabase-js": "^2.117.2",
+    "@tiptap/core": "^3.31.4",
+    "@tiptap/extension-image": "^3.31.4",
+    "@tiptap/extension-link": "^3.31.4",
+    "@tiptap/html": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
     "exifr": "^7.1.3",
     "fflate": "^0.8.2",
+    "happy-dom": "^20.14.6",
     "hono": "^4.6.9",
-    "jose": "^6.2.2",
-    "jszip": "^3.10.1",
+    "jose": "^6.2.12",
+    "jszip": "^3.10.2",
     "node-cron": "^4.6.0",
-    "resend": "^6.12.3",
+    "resend": "^6.32.0",
     "sharp": "^0.35.5",
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.6.4",
     "@types/node-cron": "^3.0.11",
-    "tsx": "^4.19.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.0",
-    "vitest": "^4.1.0"
+    "vitest": "^5.0.3"
   }
 }
