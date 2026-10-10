@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useColors } from '@/hooks/useColors';
 import { queryClient } from '@/lib/queryClient';
+import { friendlyError } from '@/lib/errors';
 
 export default function DeleteAccountScreen() {
   const colors = useColors();
@@ -43,7 +44,7 @@ export default function DeleteAccountScreen() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
 
       await signOut();
@@ -54,7 +55,7 @@ export default function DeleteAccountScreen() {
       router.replace('/auth/login');
     },
     onError: (error: Error) => {
-      Alert.alert('Eliminazione non riuscita', error.message);
+      Alert.alert('Ops!', friendlyError(error, 'Non riusciamo a eliminare l’account. Riprova tra poco 🏝️'));
     },
   });
 
@@ -75,7 +76,7 @@ export default function DeleteAccountScreen() {
           <Ionicons name="warning-outline" size={20} color={colors.destructive} />
           <Text style={styles.warningTitle}>Azione irreversibile</Text>
           <Text style={styles.warningText}>
-            Eliminando l account perderai accesso a profilo, viaggi, post e contenuti associati.
+            {"Eliminando l'account perderai accesso a profilo, viaggi e post. I viaggi in cui sei da solo vengono eliminati con foto e documenti; quelli condivisi passano al tuo partner, senza le tue foto, i tuoi documenti e le spese che hai pagato."}
           </Text>
 
           <TouchableOpacity style={styles.checkRow} onPress={() => setConfirmCheck((prev) => !prev)} activeOpacity={0.8}>

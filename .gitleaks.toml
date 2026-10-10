@@ -1,0 +1,16 @@
+title = "motonui gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Lockfiles, generated files and known test fixtures"
+paths = [
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next/''',
+]
+# Dummy secret used only by tests (nextgen/apps/api).
+regexes = [
+  '''test-impersonation-secret-32-chars-min''',
+]

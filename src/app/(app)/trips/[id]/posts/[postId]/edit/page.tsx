@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Globe, FileText, Loader2, Eye } from 'lucide-react';
 import PostEditor from '@/components/blog/PostEditor';
+import { jsonFetcher } from '@/lib/fetcher';
+import { safeTiptapDocument } from '@/lib/sanitize';
 import type { Post, TiptapDoc } from '@/lib/types';
 
 const MetaSchema = z.object({
@@ -51,23 +54,24 @@ export default function PostEditPage() {
         }
     }, [title, isNew, setValue]);
 
-    // Load existing post
+    // Load existing post with SWR; no focus revalidation, it would overwrite the draft.
+    const { data: loadedPost } = useSWR<Post>(isNew ? null : `/api/trips/${tripId}/posts/${postId}`, jsonFetcher, {
+        revalidateOnFocus: false,
+        revalidateOnReconnect: false,
+    });
+
+    // Copy the loaded post into the form (sync only, the fetch is SWR's).
     useEffect(() => {
-        if (!isNew) {
-            fetch(`/api/trips/${tripId}/posts/${postId}`)
-                .then((r) => r.json())
-                .then((data: Post) => {
-                    setPost(data);
-                    setContent(data.content_json);
-                    setValue('title', data.title);
-                    setValue('slug', data.slug);
-                    setValue('status', data.status);
-                    if (data.seo_title) setValue('seo_title', data.seo_title);
-                    if (data.seo_description) setValue('seo_description', data.seo_description);
-                })
-                .catch(() => { });
-        }
-    }, [tripId, postId, isNew, setValue]);
+        if (!loadedPost) return;
+        setPost(loadedPost);
+        // The stored document may have been written outside the editor: it reaches Tiptap only sanitized.
+        setContent(safeTiptapDocument(loadedPost.content_json));
+        setValue('title', loadedPost.title);
+        setValue('slug', loadedPost.slug);
+        setValue('status', loadedPost.status);
+        if (loadedPost.seo_title) setValue('seo_title', loadedPost.seo_title);
+        if (loadedPost.seo_description) setValue('seo_description', loadedPost.seo_description);
+    }, [loadedPost, setValue]);
 
     const onSave = async (meta: MetaValues) => {
         setSaving(true);
@@ -133,7 +137,7 @@ export default function PostEditPage() {
                     {/* Save status indicator */}
                     {saveStatus === 'saving' && <Loader2 className="w-4 h-4 text-ink-400 animate-spin" />}
                     {saveStatus === 'saved' && <span className="text-xs text-sage-500">✓ Salvato</span>}
-                    {saveStatus === 'error' && <span className="text-xs text-terracotta-500">Errore</span>}
+                    {saveStatus === 'error' && <span className="text-xs text-terracotta-500">Non salvato</span>}
 
                     {/* Preview link */}
                     {post?.status === 'published' && (

@@ -1,29 +1,36 @@
-/.next/cache
-"node_modules/" 
-".next/" 
-node_modules
-/.next
-/.next
-/.next/server
-.next/app-build-manifest.json
-.next/prerender-manifest.json
-.next/react-loadable-manifest.json
-.next/server/app-paths-manifest.json
-.next/server/middleware-react-loadable-manifest.js
-.next/trace
-.next/trace
-.next/static/development/_buildManifest.js
-.next/server/server-reference-manifest.json
-.next/server/server-reference-manifest.js
-.next/server/pages-manifest.json
-.next/server/middleware-react-loadable-manifest.js
-.next/server/middleware-manifest.json
-.next/server/middleware-build-manifest.js
-.next/server/interception-route-rewrite-manifest.js
-.next/server/app-paths-manifest.json
-.next/routes-manifest.json
-.next/react-loadable-manifest.json
-.next/prerender-manifest.json
-.next/build-manifest.json
-.next/app-build-manifest.json
-/coverage
+# Dependencies
+node_modules/
+
+# Next.js
+/.next/
+/out/
+
+# Build / test artifacts
+/coverage/
+coverage/
+*.tsbuildinfo
+/tmp/
+/undefined/
+
+# Environment files — only the placeholder templates are tracked
+.env
+.env.*
+!.env.example
+mobile/.env
+mobile/.env.*
+!mobile/.env.example
+
+# Expo
+.expo/
+mobile/.expo/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Vercel
+.vercel/
+
+# OS / editor
+.DS_Store
+*.log

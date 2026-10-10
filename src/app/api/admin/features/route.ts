@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import { toJson } from '@/lib/json';
+import type { Database } from '@/lib/supabase/database.types';
 
 const FeatureKeySchema = z.enum(['ai_blog', 'ai_generate_post', 'ai_destination', 'instagram_caption', 'advanced_reminders']);
 
@@ -19,7 +21,7 @@ export async function GET() {
     if (result instanceof NextResponse) return result;
 
     const supabase = await createAdminClient();
-    const { data, error } = await (supabase.from('feature_controls') as any)
+    const { data, error } = await supabase.from('feature_controls')
         .select('feature_key, enabled, hard_daily_cap, daily_usage, usage_date, alert_thresholds, alerted_thresholds')
         .order('feature_key', { ascending: true });
 
@@ -28,7 +30,7 @@ export async function GET() {
     }
 
     return ok({
-        items: (data ?? []).map((item: any) => ({
+        items: (data ?? []).map((item) => ({
             featureKey: item.feature_key,
             enabled: Boolean(item.enabled),
             hardDailyCap: item.hard_daily_cap ?? null,
@@ -55,7 +57,7 @@ export async function PUT(request: Request) {
     const supabase = await createAdminClient();
     const payload = parsed.data;
 
-    const updates: Record<string, unknown> = {
+    const updates: Database['public']['Tables']['feature_controls']['Update'] = {
         updated_at: new Date().toISOString(),
         updated_by: adminId,
     };
@@ -63,7 +65,7 @@ export async function PUT(request: Request) {
     if (payload.hardDailyCap !== undefined) updates.hard_daily_cap = payload.hardDailyCap;
     if (payload.alertThresholds !== undefined) updates.alert_thresholds = payload.alertThresholds;
 
-    const { error } = await (supabase.from('feature_controls') as any)
+    const { error } = await supabase.from('feature_controls')
         .update(updates)
         .eq('feature_key', payload.featureKey);
 
@@ -71,14 +73,14 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'Errore durante aggiornamento feature control.' }, { status: 500 });
     }
 
-    await (supabase.from('admin_audit_log') as any).insert({
+    await supabase.from('admin_audit_log').insert({
         admin_id: adminId,
         action: 'premium_update',
         target_id: adminId,
         metadata: {
             type: 'feature_control',
             featureKey: payload.featureKey,
-            changes: updates,
+            changes: toJson(updates),
         },
     });
 

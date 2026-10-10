@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { jsonFetcher } from '@/lib/fetcher';
 
 interface AuditLogEntry {
     id: string;
@@ -42,10 +44,7 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export default function AuditLogPage() {
-    const [data, setData] = useState<AuditLogEntry[]>([]);
-    const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(false);
     const [exporting, setExporting] = useState(false);
 
     // Filters
@@ -55,32 +54,15 @@ export default function AuditLogPage() {
 
     const pageSize = 25;
 
-    const fetchLogs = useCallback(async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                page: String(page),
-                pageSize: String(pageSize),
-            });
-            if (action) params.set('action', action);
-            if (dateFrom) params.set('dateFrom', dateFrom);
-            if (dateTo) params.set('dateTo', dateTo);
-
-            const res = await fetch(`/api/admin/audit-log?${params}`);
-            if (!res.ok) throw new Error('Fetch failed');
-            const json: AuditLogResponse = await res.json();
-            setData(json.data ?? []);
-            setTotal(json.total ?? 0);
-        } catch {
-            // keep existing data
-        } finally {
-            setLoading(false);
-        }
-    }, [page, action, dateFrom, dateTo]);
-
-    useEffect(() => {
-        fetchLogs();
-    }, [fetchLogs]);
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    if (action) params.set('action', action);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    const { data: response, isLoading: loading } = useSWR<AuditLogResponse>(
+        `/api/admin/audit-log?${params}`, jsonFetcher, { keepPreviousData: true },
+    );
+    const data = response?.data ?? [];
+    const total = response?.total ?? 0;
 
     const handleExportCsv = async () => {
         setExporting(true);

@@ -56,7 +56,7 @@ export function validateTripInput(data: NewTripData): NewTripData {
   }
 
   if (startTs !== null && endTs !== null && endTs < startTs) {
-    throw new Error('La data di fine non puo essere precedente alla data di inizio.');
+    throw new Error('La data di fine non può essere precedente alla data di inizio.');
   }
 
   return {

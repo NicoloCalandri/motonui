@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { log } from './log';
+import { captureError } from './monitoring';
+import { requestIdFrom, runWithRequestId } from './request-context';
 
 /**
  * Standard API error structure returned to clients.
@@ -15,6 +18,8 @@ export interface ApiErrorResponse {
 export class AppError extends Error {
     public readonly code: string;
     public readonly status: number;
+    /** Extra response headers, e.g. Retry-After on a 429. */
+    public headers?: Record<string, string>;
 
     constructor(message: string, code: string, status: number = 500) {
         super(message);
@@ -30,8 +35,9 @@ export const Errors = {
         new AppError('Non sei autenticato. Effettua il login per continuare.', 'UNAUTHORIZED', 401),
     forbidden: () =>
         new AppError("Non hai i permessi per accedere a questa risorsa.", 'FORBIDDEN', 403),
-    notFound: (resource = 'Risorsa') =>
-        new AppError(`${resource} non trovata.`, 'NOT_FOUND', 404),
+    // "introvabile" has no gender: the resource name can be masculine or feminine.
+    notFound: (resource = 'Elemento') =>
+        new AppError(`Ops! ${resource} introvabile 🏝️`, 'NOT_FOUND', 404),
     validation: (detail: string) =>
         new AppError(`Dati non validi: ${detail}`, 'VALIDATION_ERROR', 400),
     internal: () =>
@@ -54,29 +60,35 @@ type RouteHandler = (
  */
 export function withErrorHandler(handler: RouteHandler, routeInfo: string): RouteHandler {
     return async (request, context) => {
-        try {
-            return await handler(request, context);
-        } catch (error) {
-            if (error instanceof AppError) {
-                console.error(`[motonui][${routeInfo}] AppError:`, {
-                    code: error.code,
-                    status: error.status,
-                    message: error.message,
-                });
+        // T-4.3: every log line below carries the id echoed in `x-request-id`.
+        const requestId = requestIdFrom(request);
+        const response = await runWithRequestId(requestId, async () => {
+            try {
+                return await handler(request, context);
+            } catch (error) {
+                if (error instanceof AppError) {
+                    log.warn(`[motonui][${routeInfo}] ${error.code}`, { status: error.status, message: error.message });
+                    return NextResponse.json(
+                        { error: error.message, code: error.code, status: error.status } satisfies ApiErrorResponse,
+                        { status: error.status, headers: error.headers }
+                    );
+                }
+
+                // Unexpected errors: structured log + Sentry (T-4.2), generic message to the client.
+                captureError(error, { route: routeInfo, requestId });
+                const internal = Errors.internal();
                 return NextResponse.json(
-                    { error: error.message, code: error.code, status: error.status } satisfies ApiErrorResponse,
-                    { status: error.status }
+                    { error: internal.message, code: internal.code, status: internal.status } satisfies ApiErrorResponse,
+                    { status: 500 }
                 );
             }
-
-            // Unexpected errors
-            console.error(`[motonui][${routeInfo}] Unexpected error:`, error);
-            const internal = Errors.internal();
-            return NextResponse.json(
-                { error: internal.message, code: internal.code, status: internal.status } satisfies ApiErrorResponse,
-                { status: 500 }
-            );
+        });
+        try {
+            response.headers.set('x-request-id', requestId);
+        } catch {
+            // Immutable headers (e.g. Response.redirect): leave as is.
         }
+        return response;
     };
 }
 

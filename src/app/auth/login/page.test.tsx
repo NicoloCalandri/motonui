@@ -23,7 +23,7 @@ describe('LoginPage', () => {
 
     it('renders the page heading', () => {
         render(<LoginPage />);
-        expect(screen.getByText('Welcome Back!')).toBeDefined();
+        expect(screen.getByText(/Che bello rivederti/)).toBeDefined();
     });
 
     it('renders email input field', () => {
@@ -38,12 +38,7 @@ describe('LoginPage', () => {
 
     it('renders the login submit button', () => {
         render(<LoginPage />);
-        expect(screen.getByText('Log in')).toBeDefined();
-    });
-
-    it('renders the "Remember me" checkbox', () => {
-        render(<LoginPage />);
-        expect(screen.getByText(/Remember me/i)).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Accedi' })).toBeDefined();
     });
 
     it('renders the "Password dimenticata?" link', () => {
@@ -67,9 +62,9 @@ describe('LoginPage', () => {
         expect(passwordInput.value).toBe('secret123');
     });
 
-    it('shows error message when login fails', async () => {
+    it('shows an Italian error message when login fails', async () => {
         mockSignInWithPassword.mockResolvedValueOnce({
-            error: { message: 'Invalid login credentials' },
+            error: { message: 'Invalid login credentials', code: 'invalid_credentials' },
         });
 
         const user = userEvent.setup();
@@ -77,10 +72,11 @@ describe('LoginPage', () => {
 
         await user.type(screen.getByPlaceholderText('Email'), 'bad@example.com');
         await user.type(screen.getByPlaceholderText('Password'), 'wrongpass');
-        await user.click(screen.getByText('Log in'));
+        await user.click(screen.getByRole('button', { name: 'Accedi' }));
 
         await waitFor(() => {
-            expect(screen.getByText('Invalid login credentials')).toBeDefined();
+            expect(screen.getByText(/Email o password non corrispondono/)).toBeDefined();
+            expect(screen.queryByText('Invalid login credentials')).toBeNull();
         });
     });
 

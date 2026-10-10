@@ -13,9 +13,10 @@ import { supabase } from '@/lib/supabase';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/hooks/useAuth';
 import { queryClient } from '@/lib/queryClient';
-import { splitExpenses } from '@/lib/expenses';
+import { splitExpenses, sumEur } from '@/lib/expenses';
 import { sanitizeTextInput, validateExpenseInput, validateTripInput, type NewTripData } from '@/lib/validation';
 import { EmptyState } from '@/components/EmptyState';
+import { DELETE_ERROR, SAVE_ERROR, friendlyError } from '@/lib/errors';
 import {
   Trip, Day, Leg, Accommodation, DayWithDetails, Expense, Media, Restaurant,
   Activity, ActivityType, ExpenseCategory, Post,
@@ -134,7 +135,36 @@ async function fetchMedia(tripId: string): Promise<Media[]> {
     .eq('trip_id', tripId)
     .order('sort_order', { ascending: true });
   if (error) return [];
-  return data ?? [];
+  return withSignedMediaUrls(tripId, data ?? []);
+}
+
+/**
+ * trip-media is private (migration 0020): sign the stored paths for one hour.
+ * The storage policy lets only trip members read, and so sign, these objects.
+ */
+async function withSignedMediaUrls(tripId: string, rows: Media[]): Promise<Media[]> {
+  const prefix = `trips/${tripId}/`;
+  const paths = [...new Set(
+    rows.flatMap((row) => [row.storage_path, row.thumb_path])
+      .filter((path): path is string => Boolean(path && path.startsWith(prefix) && !path.includes('..'))),
+  )];
+  if (paths.length === 0) return rows;
+
+  const { data } = await supabase.storage.from('trip-media').createSignedUrls(paths, 60 * 60);
+  const signed = new Map<string, string>();
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) signed.set(entry.path, entry.signedUrl);
+  }
+  return rows.map((row) => ({
+    ...row,
+    signed_url: (row.storage_path && signed.get(row.storage_path)) || null,
+    signed_thumb_url: (row.thumb_path && signed.get(row.thumb_path)) || null,
+  }));
+}
+
+function mediaImageUri(item: Media): string | undefined {
+  const external = [item.thumbnail_url, item.url].find((url) => url?.startsWith('https://'));
+  return item.signed_thumb_url ?? item.signed_url ?? external ?? undefined;
 }
 
 async function fetchRestaurants(tripId: string): Promise<Restaurant[]> {
@@ -188,12 +218,17 @@ async function requireTripMember(tripId: string, userId: string): Promise<void> 
   }
 }
 
-async function convertCurrencyToEur(amount: number, currency: string): Promise<number> {
+/**
+ * EUR value of an amount, or null when no rate is available: the expense is
+ * saved "da convertire" and left out of totals, as on the web (T-3.2). Never
+ * the unconverted amount.
+ */
+async function convertCurrencyToEur(amount: number, currency: string): Promise<number | null> {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Importo non valido per la conversione.');
   }
 
-  if (currency === 'EUR') {
+  if (currency.toUpperCase() === 'EUR') {
     return Math.round(amount * 100) / 100;
   }
 
@@ -207,15 +242,14 @@ async function convertCurrencyToEur(amount: number, currency: string): Promise<n
     .maybeSingle();
 
   if (error || !data?.rates) {
-    // Graceful fallback aligned with web behavior when rates are unavailable.
-    return Math.round(amount * 100) / 100;
+    return null;
   }
 
   const rates = data.rates as Record<string, number>;
-  const fromRate = rates[currency];
+  const fromRate = rates[currency.toUpperCase()];
 
-  if (!fromRate || fromRate <= 0) {
-    return Math.round(amount * 100) / 100;
+  if (!Number.isFinite(fromRate) || !fromRate || fromRate <= 0) {
+    return null;
   }
 
   const converted = amount / fromRate;
@@ -339,7 +373,7 @@ export default function TripDetailScreen() {
       }
 
       if (!trip || trip.owner_id !== user.id) {
-        throw new Error('Solo il proprietario puo eliminare il viaggio.');
+        throw new Error('Solo il proprietario può eliminare il viaggio.');
       }
 
       const { error } = await supabase
@@ -356,7 +390,7 @@ export default function TripDetailScreen() {
       router.replace('/(tabs)/trips' as any);
     },
     onError: (err: Error) => {
-      Alert.alert('Errore eliminazione', err.message);
+      Alert.alert('Ops!', friendlyError(err, DELETE_ERROR));
     },
   });
 
@@ -367,7 +401,7 @@ export default function TripDetailScreen() {
       }
 
       if (!trip || trip.owner_id !== user.id) {
-        throw new Error('Solo il proprietario puo modificare il viaggio.');
+        throw new Error('Solo il proprietario può modificare il viaggio.');
       }
 
       const validated = validateTripInput(payload);
@@ -392,7 +426,7 @@ export default function TripDetailScreen() {
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
     },
     onError: (err: Error) => {
-      Alert.alert('Errore modifica', err.message);
+      Alert.alert('Ops!', friendlyError(err, SAVE_ERROR));
     },
   });
 
@@ -405,7 +439,8 @@ export default function TripDetailScreen() {
     });
   }, []);
 
-  const totalEur = expenses.reduce((sum, e) => sum + (e.amount_eur ?? e.amount), 0);
+  // Expenses without a rate are "da convertire" and stay out of the total (T-3.2).
+  const { total: totalEur } = sumEur(expenses);
   const splitResult = useMemo(() => splitExpenses(expenses, tripMemberIds), [expenses, tripMemberIds]);
   const mySettlement = splitResult.settlements.find((s) => s.from_user_id === user?.id || s.to_user_id === user?.id);
 
@@ -972,7 +1007,7 @@ export default function TripDetailScreen() {
             <View style={styles.mediaGridInner}>
               {media.map((item) => (
                 <TouchableOpacity key={item.id} style={styles.mediaCell} activeOpacity={0.85}>
-                  <Image source={{ uri: item.thumbnail_url ?? item.url }} style={styles.mediaCellImage} />
+                  <Image source={{ uri: mediaImageUri(item) }} style={styles.mediaCellImage} />
                   <TouchableOpacity
                     style={styles.mediaEditBtn}
                     onPress={() => {
@@ -1277,7 +1312,7 @@ function DayForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -1292,7 +1327,7 @@ function DayForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   const styles = StyleSheet.create({
@@ -1401,7 +1436,7 @@ function RestaurantForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -1416,7 +1451,7 @@ function RestaurantForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   const styles = StyleSheet.create({
@@ -1513,7 +1548,7 @@ function ActivityForm({
     mutationFn: async () => {
       await requireTripMember(tripId, userId);
       const cleanName = sanitizeTextInput(name, 180);
-      if (!cleanName) throw new Error('Inserisci il nome dell\'attivita.');
+      if (!cleanName) throw new Error('Inserisci il nome dell\'attività.');
 
       const parsedCost = cost.trim() ? Number.parseFloat(cost) : null;
       if (parsedCost !== null && (!Number.isFinite(parsedCost) || parsedCost < 0)) {
@@ -1547,7 +1582,7 @@ function ActivityForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -1562,7 +1597,7 @@ function ActivityForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   const styles = StyleSheet.create({
@@ -1662,19 +1697,21 @@ function MediaForm({
     mutationFn: async () => {
       await requireTripMember(tripId, userId);
       const cleanUrl = url.trim();
-      if (!/^https?:\/\//i.test(cleanUrl)) {
-        throw new Error('Inserisci una URL valida (http/https).');
+      // Only new external links need a URL; photos in the bucket have none.
+      if (!media && !/^https:\/\//i.test(cleanUrl)) {
+        throw new Error('Inserisci una URL valida (https).');
       }
 
-      const payload = {
-        url: cleanUrl,
+      const editablePayload = {
         thumbnail_url: thumbnailUrl.trim() || null,
         caption: sanitizeTextInput(caption, 300) || null,
       };
 
+      // media.url is immutable once created (DB trigger, migration 0016):
+      // editing only touches thumbnail and caption.
       const { error } = media
-        ? await supabase.from('media').update(payload).eq('id', media.id).eq('trip_id', tripId)
-        : await supabase.from('media').insert({ ...payload, trip_id: tripId, uploaded_by: userId });
+        ? await supabase.from('media').update(editablePayload).eq('id', media.id).eq('trip_id', tripId)
+        : await supabase.from('media').insert({ ...editablePayload, url: cleanUrl, trip_id: tripId, uploaded_by: userId });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1682,7 +1719,7 @@ function MediaForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -1697,7 +1734,7 @@ function MediaForm({
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   const styles = StyleSheet.create({
@@ -1885,7 +1922,7 @@ function ExpenseForm({ tripId, userId, days, colors, onClose, onSaved, expense, 
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -1900,7 +1937,7 @@ function ExpenseForm({ tripId, userId, days, colors, onClose, onSaved, expense, 
       safeNotificationHaptic(Haptics.NotificationFeedbackType.Success);
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   const styles = StyleSheet.create({
@@ -2105,7 +2142,7 @@ function LegForm({
       queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -2121,7 +2158,7 @@ function LegForm({
       queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   return (
@@ -2259,7 +2296,7 @@ function AccommodationForm({
       queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -2275,7 +2312,7 @@ function AccommodationForm({
       queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   return (
@@ -2365,7 +2402,7 @@ function PostForm({
       queryClient.invalidateQueries({ queryKey: ['trip-posts', tripId] });
       onSaved();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, SAVE_ERROR)),
   });
 
   const deleteMutation = useMutation({
@@ -2378,7 +2415,7 @@ function PostForm({
       queryClient.invalidateQueries({ queryKey: ['trip-posts', tripId] });
       onDeleted?.();
     },
-    onError: (err: Error) => Alert.alert('Errore', err.message),
+    onError: (err: Error) => Alert.alert('Ops!', friendlyError(err, DELETE_ERROR)),
   });
 
   return (

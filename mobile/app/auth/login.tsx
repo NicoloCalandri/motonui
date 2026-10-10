@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { AUTHENTICATED_ROUTE } from '@/constants/routes';
 import { useColors } from '@/hooks/useColors';
+import { friendlyError } from '@/lib/errors';
 
 const OTP_LENGTH = 8;
 const normalizeOtp = (value: string) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
@@ -51,13 +52,13 @@ export default function LoginScreen() {
     try {
       const { error } = await supabase.auth.signInWithOtp({ email: trimmedEmail });
       if (error) {
-        Alert.alert('Errore', error.message);
+        Alert.alert('Ops!', friendlyError(error, 'Non riusciamo a inviare il codice. Riprova tra poco 🏝️'));
       } else {
         notify(Haptics.NotificationFeedbackType.Success);
         setStep('otp');
       }
     } catch (error) {
-      Alert.alert('Errore', error instanceof Error ? error.message : 'Impossibile inviare il codice. Riprova.');
+      Alert.alert('Ops!', friendlyError(error, 'Non riusciamo a inviare il codice. Riprova tra poco 🏝️'));
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export default function LoginScreen() {
         router.replace(AUTHENTICATED_ROUTE);
       }
     } catch (error) {
-      Alert.alert('Errore', error instanceof Error ? error.message : 'Impossibile verificare il codice. Riprova.');
+      Alert.alert('Ops!', friendlyError(error, 'Non riusciamo a verificare il codice. Riprova tra poco 🏝️'));
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ export default function LoginScreen() {
             <Ionicons name="compass" size={32} color={colors.primaryForeground} />
           </View>
           <Text style={styles.appName}>motonui</Text>
-          <Text style={styles.tagline}>Il tuo compagno di viaggio</Text>
+          <Text style={styles.tagline}>Il tuo compagno di viaggio di coppia</Text>
         </View>
 
         <View style={styles.card}>

@@ -1,7 +1,5 @@
 import { Errors } from '@/lib/errors';
 
-const DEV_USER_ID = '00000000-0000-0000-0000-000000000001';
-
 export interface AuthUser {
     id: string;
     email?: string | null;
@@ -20,5 +18,14 @@ export interface SupabaseWithAuth {
 export async function getAuthUser(supabase: SupabaseWithAuth): Promise<AuthUser> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw Errors.unauthorized();
+    return user;
+}
+
+/**
+ * Returns the current user, or null without a session.
+ * For public pages that render for anonymous visitors too.
+ */
+export async function getOptionalAuthUser(supabase: SupabaseWithAuth): Promise<AuthUser | null> {
+    const { data: { user } } = await supabase.auth.getUser();
     return user;
 }

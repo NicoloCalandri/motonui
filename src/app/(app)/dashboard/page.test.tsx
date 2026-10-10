@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardPage from './page';
+import { seriousA11yViolations } from '@/test/axe';
 
 // Mutable fixtures so individual tests can control data
 let mockUserEmail = 'test@example.com';
@@ -109,15 +110,20 @@ describe('DashboardPage', () => {
     });
 
     it('uses email prefix as name when email is different', async () => {
-        mockUserEmail = 'sara@example.com';
+        mockUserEmail = 'giorgia@example.com';
         const Result = await DashboardPage();
         render(Result);
-        expect(screen.getByText(/Ciao sara/i)).toBeDefined();
+        expect(screen.getByText(/Ciao giorgia/i)).toBeDefined();
     });
 
     it('renders the "Vedi tutti i viaggi" link', async () => {
         const Result = await DashboardPage();
         render(Result);
         expect(screen.getByText(/Vedi tutti i viaggi/i)).toBeDefined();
+    });
+
+    it('has no serious axe violations (T-3.9)', async () => {
+        const { container } = render(await DashboardPage());
+        expect(await seriousA11yViolations(container)).toEqual([]);
     });
 });

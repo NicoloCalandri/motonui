@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { SignJWT } from 'jose';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
+import { createImpersonationToken, IMPERSONATION_DURATION_SECONDS } from '@/lib/admin/impersonation-token';
+import { log } from '@/lib/log';
 
 type Params = { params: Promise<{ id: string }> };
-
-const IMPERSONATION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
-const IMPERSONATION_DURATION_SECONDS = IMPERSONATION_DURATION_MS / 1000;
 
 /** POST /api/admin/users/[id]/impersonate */
 export async function POST(_req: Request, { params }: Params) {
@@ -17,7 +15,7 @@ export async function POST(_req: Request, { params }: Params) {
 
     const secret = process.env.ADMIN_IMPERSONATION_SECRET;
     if (!secret || secret.length < 32) {
-        console.error('[admin/impersonate] ADMIN_IMPERSONATION_SECRET is missing or too short');
+        log.error('[admin/impersonate] ADMIN_IMPERSONATION_SECRET is missing or too short');
         return NextResponse.json(
             { error: 'Configurazione server non corretta.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
@@ -27,7 +25,7 @@ export async function POST(_req: Request, { params }: Params) {
     const supabase = await createAdminClient();
 
     // Ensure target user exists
-    const { data: targetProfile } = await (supabase.from('profiles') as any)
+    const { data: targetProfile } = await supabase.from('profiles')
         .select('id, display_name')
         .eq('id', targetId)
         .single();
@@ -39,30 +37,18 @@ export async function POST(_req: Request, { params }: Params) {
         );
     }
 
-    const expiresAt = Date.now() + IMPERSONATION_DURATION_MS;
+    // Signed with a random jti; only SHA-256(jti) is stored, so a database
+    // leak does not leak usable tokens and exit can revoke by jti (T-1.8).
+    const { token, jtiHash, expiresAt } = await createImpersonationToken({ adminId, targetId }, secret);
 
-    // Sign the JWT
-    const secretKey = new TextEncoder().encode(secret);
-    const token = await new SignJWT({
-        adminId,
-        targetId,
-        expiresAt,
-        type: 'impersonation',
-    })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setExpirationTime('30m')
-        .sign(secretKey);
-
-    // Persist token in DB for revocation support
-    const expiresAtDate = new Date(expiresAt).toISOString();
-    await (supabase.from('impersonation_tokens') as any).insert({
+    await supabase.from('impersonation_tokens').insert({
         admin_id: adminId,
         target_id: targetId,
-        token,
-        expires_at: expiresAtDate,
+        token: jtiHash,
+        expires_at: expiresAt.toISOString(),
     });
 
-    await (supabase.from('admin_audit_log') as any).insert({
+    await supabase.from('admin_audit_log').insert({
         admin_id: adminId,
         action: 'impersonate',
         target_id: targetId,

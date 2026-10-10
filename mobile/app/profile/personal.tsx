@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useColors } from '@/hooks/useColors';
 import { sanitizeTextInput } from '@/lib/validation';
 import type { Profile } from '@/types';
+import { SAVE_ERROR, friendlyError } from '@/lib/errors';
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
@@ -87,7 +88,7 @@ export default function PersonalDataScreen() {
       Alert.alert('Salvato', 'Dati personali aggiornati con successo.');
     },
     onError: (error: Error) => {
-      Alert.alert('Errore', error.message);
+      Alert.alert('Ops!', friendlyError(error, SAVE_ERROR));
     },
   });
 
@@ -188,7 +189,7 @@ export default function PersonalDataScreen() {
       Alert.alert('Avatar aggiornato', 'Nuova immagine profilo salvata.');
     },
     onError: (error: Error) => {
-      Alert.alert('Errore upload avatar', error.message);
+      Alert.alert('Ops!', friendlyError(error, 'Non riusciamo a caricare la foto. Riprova tra poco 🏝️'));
     },
   });
 

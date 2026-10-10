@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import { log } from '@/lib/log';
 
 const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     const { page, pageSize, adminId, action, targetId, dateFrom, dateTo, export: exportFormat } = parsed.data;
     const supabase = await createAdminClient();
 
-    let query = (supabase.from('admin_audit_log') as any)
+    let query = supabase.from('admin_audit_log')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
@@ -60,21 +61,21 @@ export async function GET(request: Request) {
 
     const { data, error, count } = await query;
     if (error) {
-        console.error('[admin/audit-log GET]', error.message);
+        log.error('[admin/audit-log GET]', error.message);
         return NextResponse.json(
             { error: 'Errore nel recupero audit log.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
         );
     }
 
-    const entries = (data ?? []).map((row: any) => ({
+    const entries = (data ?? []).map((row) => ({
         id: row.id,
         admin_id: row.admin_id,
-        admin_email: row.admin_email ?? null,
+        admin_email: null,
         action: row.action,
-        target_user_id: row.target_user_id ?? row.target_id ?? null,
-        target_email: row.target_email ?? null,
-        details: row.details ?? row.metadata ?? null,
+        target_user_id: row.target_id,
+        target_email: null,
+        details: row.metadata,
         created_at: row.created_at,
     }));
 

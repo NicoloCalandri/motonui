@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
+import { log } from '@/lib/log';
 
 const SuspendSchema = z.object({
     reason: z.string().min(1).max(500),
@@ -35,7 +36,7 @@ export async function POST(request: Request, { params }: Params) {
 
     const supabase = await createAdminClient();
 
-    const { error: updateError } = await (supabase.from('profiles') as any)
+    const { error: updateError } = await supabase.from('profiles')
         .update({
             suspended_at: new Date().toISOString(),
             suspended_reason: parsed.data.reason,
@@ -43,14 +44,14 @@ export async function POST(request: Request, { params }: Params) {
         .eq('id', id);
 
     if (updateError) {
-        console.error('[admin/users/suspend]', updateError.message);
+        log.error('[admin/users/suspend]', updateError.message);
         return NextResponse.json(
             { error: 'Impossibile sospendere l\'utente.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
         );
     }
 
-    await (supabase.from('admin_audit_log') as any).insert({
+    await supabase.from('admin_audit_log').insert({
         admin_id: adminId,
         action: 'suspend',
         target_id: id,

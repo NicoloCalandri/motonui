@@ -1,69 +1,23 @@
-/**
- * Sentry monitoring integration for motonui.
- * Tracks errors, performance, and user context.
- */
-
-let sentryInitialized = false;
+import * as Sentry from '@sentry/nextjs';
+import { log } from './log';
 
 /**
- * Initialises Sentry once. Safe to call multiple times.
+ * Error reporting (T-4.2). Sentry is initialised in src/instrumentation.ts
+ * and src/instrumentation-client.ts; when it is disabled (no DSN) the calls
+ * below are no-ops and only the structured log remains.
  */
-export async function initSentry(): Promise<void> {
-    if (sentryInitialized) return;
-    if (!process.env.SENTRY_DSN) return;
 
-    // Dynamic import prevents Sentry from increasing client bundle in environments without DSN
-    const Sentry = await import('@sentry/nextjs');
-
-    Sentry.init({
-        dsn: process.env.SENTRY_DSN,
-        environment: process.env.NODE_ENV ?? 'development',
-        tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
-        // Capture only 10% of replays in production
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
-        integrations: [
-            Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
-        ],
-        beforeSend(event) {
-            // Redact personal data
-            if (event.user) {
-                delete event.user.email;
-                delete event.user.ip_address;
-            }
-            return event;
-        },
-    });
-
-    sentryInitialized = true;
-}
-
-/**
- * Captures a caught exception with optional context.
- */
-export async function captureError(
-    error: unknown,
-    context?: Record<string, unknown>
-): Promise<void> {
-    if (!process.env.SENTRY_DSN) {
-        console.error('[motonui][error]', error);
-        return;
-    }
-
-    const Sentry = await import('@sentry/nextjs');
+/** Logs an unexpected error and reports it to Sentry with safe tags. */
+export function captureError(error: unknown, context: { route?: string; requestId?: string } = {}): void {
+    log.error(`[motonui][${context.route ?? 'error'}] unexpected error`, error);
     Sentry.withScope((scope) => {
-        if (context) {
-            scope.setExtras(context);
-        }
+        if (context.route) scope.setTag('route', context.route);
+        if (context.requestId) scope.setTag('request_id', context.requestId);
         Sentry.captureException(error);
     });
 }
 
-/**
- * Sets the current authenticated user for Sentry scope.
- */
-export async function setUserContext(userId: string): Promise<void> {
-    if (!process.env.SENTRY_DSN) return;
-    const Sentry = await import('@sentry/nextjs');
+/** Attaches the user id (never the email) to later events. */
+export function setUserContext(userId: string): void {
     Sentry.setUser({ id: userId });
 }

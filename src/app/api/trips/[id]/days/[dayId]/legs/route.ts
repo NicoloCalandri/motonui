@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, created } from '@/lib/errors';
+import { created } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertFlightCheckinReminder } from '@/lib/reminders';
 
@@ -34,19 +34,12 @@ const CreateLegSchema = z.object({
     segments: z.array(FlightSegmentSchema).min(2).max(6).optional(),
 });
 
-type Params = { params: Promise<{ id: string; dayId: string }> };
+export const POST = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs POST', params: tripParams('dayId'), body: CreateLegSchema, tripMember: true, dayInTrip: true },
+    async ({ supabase, user, params, body }) => {
+    const { id, dayId } = params;
 
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId } = await params;
-    const body: unknown = await request.json();
-    const parsed = CreateLegSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
-
-    const input = parsed.data;
+    const input = body;
 
     // ── Multi-segment flight ──────────────────────────────────────────────────
     if (input.type === 'flight' && input.segments && input.segments.length >= 2) {
@@ -84,7 +77,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
 
         // Single shared expense for the whole multi-leg journey
         if (input.cost && input.cost > 0) {
-            const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR');
+            const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR', { supabase });
             const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
             const routeLabel = `${segs[0].from_name.split(' — ')[0]} → ${segs[segs.length - 1].to_name.split(' — ')[0]}`;
 
@@ -147,7 +140,7 @@ export const POST = withErrorHandler(async (request, { params }) => {
 
     // Auto-create transport expense
     if (input.cost && input.cost > 0) {
-        const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR');
+        const amount_eur = await convertCurrency(input.cost, input.currency, 'EUR', { supabase });
         const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
 
         await supabase.from('expenses').insert({
@@ -177,4 +170,4 @@ export const POST = withErrorHandler(async (request, { params }) => {
     }
 
     return created(leg);
-}, 'trips/[id]/days/[dayId]/legs POST') as (req: Request, ctx: Params) => Promise<Response>;
+});

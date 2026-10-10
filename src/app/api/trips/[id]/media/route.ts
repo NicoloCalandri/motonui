@@ -1,91 +1,36 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok, created } from '@/lib/errors';
-import { validateFile, uploadFile, Buckets } from '@/lib/storage';
-import { requireTripMember, requireDayInTrip } from '@/lib/authz';
-import { sanitizePlainText } from '@/lib/sanitize';
-
-type Params = { params: Promise<{ id: string }> };
+import { ok } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { withSignedUrls } from '@/lib/trip-storage';
+import type { Media } from '@/lib/types';
 
 const FilterSchema = z.object({
     day_id: z.string().uuid().optional(),
 });
 
-/** GET /api/trips/[id]/media — list all media for a trip, optionally filtered by day */
-export const GET = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
+/**
+ * GET /api/trips/[id]/media — media of a trip, optionally filtered by day,
+ * with signed URLs (1 h) for files in the private bucket (T-2.1).
+ *
+ * Uploads go through `…/media/uploads` + `…/media/confirm` (T-2.2): the file
+ * never passes through this route, whose body is capped at ~4.5 MB on Vercel.
+ */
+export const GET = withRoute(
+    { name: 'trips/[id]/media GET', params: tripParams(), query: FilterSchema, tripMember: true },
+    async ({ supabase, params, query }) => {
+        let request = supabase
+            .from('media')
+            .select('*')
+            .eq('trip_id', params.id)
+            .order('taken_at', { ascending: true })
+            .order('created_at', { ascending: false });
 
-    const user = await getAuthUser(supabase);
+        if (query.day_id) request = request.eq('day_id', query.day_id);
 
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-    const { searchParams } = new URL(request.url);
+        const { data, error } = await request;
+        if (error) throw new Error(`[motonui][media][GET] ${error.message}`);
 
-    const filter = FilterSchema.safeParse({
-        day_id: searchParams.get('day_id') ?? undefined,
-    });
-
-    let query = supabase
-        .from('media')
-        .select('*')
-        .eq('trip_id', id)
-        .order('taken_at', { ascending: true })
-        .order('created_at', { ascending: false });
-
-    if (filter.success && filter.data.day_id) {
-        query = query.eq('day_id', filter.data.day_id);
-    }
-
-    const { data, error } = await query;
-    if (error) throw new Error(`[motonui][media][GET] ${error.message}`);
-
-    return ok(data ?? []);
-}, 'trips/[id]/media GET') as (req: Request, ctx: Params) => Promise<Response>;
-
-/** POST /api/trips/[id]/media — upload photo/video to Supabase Storage */
-export const POST = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id } = await params;
-    await requireTripMember(supabase, id, user.id);
-
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const dayId = formData.get('day_id') as string | null;
-    const caption = formData.get('caption') as string | null;
-
-    if (!file) throw Errors.validation('Campo "file" mancante.');
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    validateFile(file.type, file.size, buffer);
-    await requireDayInTrip(supabase, id, dayId);
-
-    const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-    const filename = `${crypto.randomUUID()}.${fileExt}`;
-    const storagePath = `trips/${id}/original/${filename}`;
-
-    const publicUrl = await uploadFile(Buckets.tripMedia, storagePath, buffer, file.type);
-
-    // Insert media record
-    const { data: media, error } = await supabase
-        .from('media')
-        .insert({
-            trip_id: id,
-            day_id: dayId ?? null,
-            uploaded_by: user.id,
-            url: publicUrl,
-            size: file.size,
-            mime_type: file.type,
-            caption: caption ? sanitizePlainText(caption, 500) : null,
-            tags: [],
-        })
-        .select()
-        .single();
-
-    if (error) throw new Error(`[motonui][media][POST] ${error.message}`);
-
-    return created(media);
-}, 'trips/[id]/media POST') as (req: Request, ctx: Params) => Promise<Response>;
+        return ok(await withSignedUrls(supabase, params.id, (data ?? []) as Media[]));
+    },
+);

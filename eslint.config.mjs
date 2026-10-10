@@ -12,7 +12,9 @@ const compat = new FlatCompat({
 
 export default defineConfig([
   {
-    ignores: [".next/**"],
+    // nextgen/ (own workspace lint) and mobile/ (Expo, React Native) are
+    // separate projects; coverage/ and tmp/ are generated or scratch output.
+    ignores: [".next/**", "nextgen/**", "mobile/**", "coverage/**", "tmp/**", "undefined/**", "next-env.d.ts"],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
@@ -22,6 +24,10 @@ export default defineConfig([
       "@typescript-eslint/triple-slash-reference": "warn",
       "react/no-unescaped-entities": "warn",
       "prefer-const": "warn",
+      // Photos and documents are private files served through short-lived
+      // signed URLs (or user-provided https links): next/image would proxy and
+      // cache them through the image optimizer. Plain <img> is deliberate.
+      "@next/next/no-img-element": "off",
     },
   },
 ]);

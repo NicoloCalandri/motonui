@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { Errors, ok } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertFlightCheckinReminder } from '@/lib/reminders';
-
-type Params = { params: Promise<{ id: string; dayId: string; legId: string }> };
+import { removeLegFiles } from '@/lib/trip-storage';
 
 const UpdateLegSchema = z.object({
     type: z.enum(['flight', 'train', 'car', 'ferry', 'walk', 'bus', 'other']).optional(),
@@ -26,19 +25,14 @@ const UpdateLegSchema = z.object({
     checkin_opens_at: z.string().nullable().optional().transform((v) => v || null),
 });
 
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId, legId } = await params;
-    const body: unknown = await request.json();
-    const parsed = UpdateLegSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+export const PUT = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs/[legId] PUT', params: tripParams('dayId', 'legId'), body: UpdateLegSchema, tripMember: true, dayInTrip: true },
+    async ({ supabase, user, params, body }) => {
+    const { id, dayId, legId } = params;
 
     const { data: leg, error } = await supabase
         .from('legs')
-        .update(parsed.data)
+        .update(body)
         .eq('id', legId)
         .eq('day_id', dayId)
         .eq('trip_id', id)
@@ -50,7 +44,9 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     // Sync the related expense if cost/currency changed
     const expDesc = `Spostamento: ${leg.from_name} → ${leg.to_name}`;
     if (leg.cost && leg.cost > 0) {
-        const amount_eur = await convertCurrency(leg.cost, leg.currency, 'EUR');
+        // legs/accommodations.currency is nullable, expenses.currency is not.
+        const currency = leg.currency ?? 'EUR';
+        const amount_eur = await convertCurrency(leg.cost, currency, 'EUR', { supabase });
         const { data: existing } = await supabase
             .from('expenses')
             .select('id')
@@ -61,7 +57,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
         if (existing) {
             await supabase
                 .from('expenses')
-                .update({ description: expDesc, amount: leg.cost, currency: leg.currency, amount_eur, category: 'transport' })
+                .update({ description: expDesc, amount: leg.cost, currency, amount_eur, category: 'transport' })
                 .eq('id', existing.id);
         } else {
             const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
@@ -70,7 +66,7 @@ export const PUT = withErrorHandler(async (request, { params }) => {
                 day_id: dayId,
                 description: expDesc,
                 amount: leg.cost,
-                currency: leg.currency,
+                currency,
                 amount_eur,
                 category: 'transport',
                 paid_by: user.id,
@@ -102,14 +98,12 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     }
 
     return ok(leg);
-}, 'trips/[id]/days/[dayId]/legs/[legId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, dayId, legId } = await params;
+export const DELETE = withRoute(
+    { name: 'trips/[id]/days/[dayId]/legs/[legId] DELETE', params: tripParams('dayId', 'legId'), tripMember: true, dayInTrip: true },
+    async ({ supabase, params }) => {
+    const { id, dayId, legId } = params;
 
     // Delete linked expense first (if any)
     await supabase
@@ -119,14 +113,19 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
         .eq('day_id', dayId)
         .like('description', 'Spostamento:%');
 
-    const { error } = await supabase
+    const { data: leg, error } = await supabase
         .from('legs')
         .delete()
         .eq('id', legId)
         .eq('day_id', dayId)
-        .eq('trip_id', id);
+        .eq('trip_id', id)
+        .select('boarding_pass_path, boarding_pass_url')
+        .maybeSingle();
 
     if (error) throw new Error(`[motonui][legs][DELETE] ${error.message}`);
 
+    // The boarding pass file goes with the leg (T-2.3).
+    if (leg) await removeLegFiles(id, leg);
+
     return ok({ success: true });
-}, 'trips/[id]/days/[dayId]/legs/[legId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

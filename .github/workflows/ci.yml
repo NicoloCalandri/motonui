@@ -6,18 +6,96 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege for every job (SR-SDLC-07); none of them writes to the repo.
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '20'
 
 jobs:
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Scans the checked-out tree (not the history: secrets already pushed
+      # before T-0.2 are handled by rotation, see docs/security/). Config in
+      # .gitleaks.toml.
+      - name: Gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:v8.21.2 \
+            dir /repo --config /repo/.gitleaks.toml --redact --no-banner --verbose --exit-code 1
+
+  rls-tests:
+    name: RLS Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Plain Postgres + supabase/tests/support/supabase-stub.sql (roles, grants,
+    # auth.uid/auth.role, auth/storage tables) instead of `supabase start`:
+    # pulling the ~11 Supabase images from public.ecr.aws hits its anonymous
+    # rate limit on shared runners. `npm run test:rls` still runs the same
+    # suite against a real local Supabase.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Applies every migration, then runs supabase/tests/*.test.sql: RLS
+      # matrix (anon, stranger, partner, owner) and regressions for REVIEW.md
+      # S-02/S-03/S-04 (T-1.1, T-1.2).
+      - name: Run RLS tests
+        env:
+          SQL_TESTS_BOOTSTRAP: '1'
+          SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: sh scripts/run-sql-tests.sh
+
+  # T-4.7: a high or critical advisory in a production dependency fails CI,
+  # and with it the production deploy (deploy-production.yml waits for a
+  # green CI). Dev-only tooling is left to Dependabot; the full report is
+  # printed for reference.
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: npm audit (production dependencies, blocking)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: npm audit (all dependencies, report only)
+        if: always()
+        run: npm audit --audit-level=high || true
+
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -35,10 +113,10 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -46,30 +124,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test -- --reporter=verbose
+      # T-3.1: fails below the src/lib thresholds in vitest.config.ts.
+      - name: Run tests with coverage
+        run: npm run test:coverage -- --reporter=verbose
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      # mobile/ has no runner of its own: its pure lib tests run with the root Vitest.
+      - name: Run mobile lib tests
+        run: npm run test:mobile
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: warn
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
 
   build:
     name: Build
     runs-on: ubuntu-latest
     needs: [lint-and-typecheck]
     environment: staging
+    # Public values only. Placeholders keep the build (a compile and prerender
+    # check) working when the staging variables are not configured; no secret
+    # and no .env file is needed here.
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      NEXT_PUBLIC_MAPBOX_TOKEN: ${{ vars.NEXT_PUBLIC_MAPBOX_TOKEN }}
-      NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
+      NEXT_PUBLIC_MAPBOX_TOKEN: ${{ vars.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.ci-placeholder' }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -81,7 +176,7 @@ jobs:
         run: npm run build
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nextjs-build
           path: .next/

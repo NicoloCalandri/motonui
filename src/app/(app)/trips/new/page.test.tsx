@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import NewTripPage from './page';
+import { seriousA11yViolations } from '@/test/axe';
 
 describe('NewTripPage', () => {
     beforeEach(() => {
@@ -105,5 +106,10 @@ describe('NewTripPage', () => {
         await waitFor(() => {
             expect(screen.getByText('Errore server')).toBeDefined();
         });
+    });
+
+    it('has no serious axe violations (T-3.9)', async () => {
+        const { container } = render(<NewTripPage />);
+        expect(await seriousA11yViolations(container)).toEqual([]);
     });
 });

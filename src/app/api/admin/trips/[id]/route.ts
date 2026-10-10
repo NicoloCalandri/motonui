@@ -28,7 +28,7 @@ export async function PATCH(
 
     const supabase = await createAdminClient();
 
-    const { data, error } = await (supabase.from('trips') as any)
+    const { data, error } = await supabase.from('trips')
         .update({ status: parsed.data.status })
         .eq('id', id)
         .select('id, status')

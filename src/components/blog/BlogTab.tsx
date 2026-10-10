@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import useSWR from 'swr';
+import { jsonFetcher } from '@/lib/fetcher';
 import type { Post } from '@/lib/types';
 import Link from 'next/link';
 import { PlusCircle, FileText, Globe, Edit3, Trash2 } from 'lucide-react';
@@ -13,17 +14,8 @@ interface BlogTabProps { tripId: string }
  * Blog tab: list of posts for this trip + link to create new post.
  */
 export default function BlogTab({ tripId }: BlogTabProps) {
-    const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchPosts = () => {
-        fetch(`/api/trips/${tripId}/posts`)
-            .then((r) => r.json())
-            .then((data: Post[]) => { setPosts(data); setLoading(false); })
-            .catch(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchPosts(); }, [tripId]);
+    const { data: posts = [], isLoading: loading, mutate } = useSWR<Post[]>(`/api/trips/${tripId}/posts`, jsonFetcher);
+    const fetchPosts = () => { void mutate(); };
 
     const deletePost = async (postId: string) => {
         if (!confirm('Eliminare questo post? L\'azione è irreversibile.')) return;

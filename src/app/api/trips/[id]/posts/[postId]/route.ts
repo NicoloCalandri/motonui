@@ -1,25 +1,25 @@
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { getAuthUser } from '@/lib/auth/get-user';
-import { withErrorHandler, Errors, ok } from '@/lib/errors';
+import { Errors, ok } from '@/lib/errors';
+import { withRoute } from '@/lib/api/with-route';
+import { tripParams } from '@/lib/api/params';
+import { postContentSchema } from '@/lib/blog/content-schema';
 
 const UpdatePostSchema = z.object({
     title: z.string().min(1).optional(),
     slug: z.string().min(1).optional(),
     status: z.enum(['draft', 'published']).optional(),
-    content_json: z.any().optional(),
+    // Sanitized on every save: the autosave of the editor goes through here.
+    content_json: postContentSchema.optional(),
     published_at: z.string().nullable().optional(),
     seo_title: z.string().max(60).nullable().optional(),
     seo_description: z.string().max(160).nullable().optional(),
 });
 
-type Params = { params: Promise<{ id: string; postId: string }> };
-
 /** GET /api/trips/[id]/posts/[postId] — get a single blog post */
-export const GET = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, postId } = await params;
+export const GET = withRoute(
+    { name: 'trips/[id]/posts/[postId] GET', params: tripParams('postId'), tripMember: true },
+    async ({ supabase, user, params }) => {
+    const { id, postId } = params;
 
     const { data: post, error } = await supabase
         .from('posts')
@@ -32,22 +32,18 @@ export const GET = withErrorHandler(async (_req, { params }) => {
     if (error || !post) throw Errors.notFound('Post');
 
     return ok(post);
-}, 'trips/[id]/posts/[postId] GET') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** PUT /api/trips/[id]/posts/[postId] — update a blog post */
-export const PUT = withErrorHandler(async (request, { params }) => {
-    const supabase = await createClient();
-    const user = await getAuthUser(supabase);
-    const { id, postId } = await params;
-
-    const body: unknown = await request.json();
-    const parsed = UpdatePostSchema.safeParse(body);
-    if (!parsed.success) throw Errors.validation(parsed.error.message);
+export const PUT = withRoute(
+    { name: 'trips/[id]/posts/[postId] PUT', params: tripParams('postId'), body: UpdatePostSchema, tripMember: true },
+    async ({ supabase, user, params, body }) => {
+    const { id, postId } = params;
 
     const { data: post, error } = await supabase
         .from('posts')
         .update({
-            ...parsed.data,
+            ...body,
             updated_at: new Date().toISOString(),
         })
         .eq('id', postId)
@@ -60,15 +56,13 @@ export const PUT = withErrorHandler(async (request, { params }) => {
     if (!post) throw Errors.notFound('Post');
 
     return ok(post);
-}, 'trips/[id]/posts/[postId] PUT') as (req: Request, ctx: Params) => Promise<Response>;
+});
 
 /** DELETE /api/trips/[id]/posts/[postId] — delete a blog post belonging to this trip */
-export const DELETE = withErrorHandler(async (_req, { params }) => {
-    const supabase = await createClient();
-
-    const user = await getAuthUser(supabase);
-
-    const { id, postId } = await params;
+export const DELETE = withRoute(
+    { name: 'trips/[id]/posts/[postId] DELETE', params: tripParams('postId'), tripMember: true },
+    async ({ supabase, user, params }) => {
+    const { id, postId } = params;
 
     const { error } = await supabase
         .from('posts')
@@ -80,4 +74,4 @@ export const DELETE = withErrorHandler(async (_req, { params }) => {
     if (error) throw Errors.notFound('Post');
 
     return ok({ success: true });
-}, 'trips/[id]/posts/[postId] DELETE') as (req: Request, ctx: Params) => Promise<Response>;
+});

@@ -1,10 +1,56 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { validateFile, getPublicUrl, Buckets } from './storage';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+    validateFile, getPublicUrl, Buckets, uploadPrivateFile, downloadFile, getSignedUrl, deleteFile, listFiles,
+} from './storage';
 
-// createAdminClient is only needed for async upload/sign/delete — not for validateFile or getPublicUrl
-vi.mock('@/lib/supabase/server', () => ({
-    createAdminClient: vi.fn(),
-}));
+/** Storage client injected into the I/O helpers (T-3.4): no module mock. */
+function fakeStorage(overrides: Record<string, unknown> = {}) {
+    const bucket = {
+        upload: vi.fn(async () => ({ data: {}, error: null })),
+        download: vi.fn(async () => ({ data: new Blob(['x']), error: null })),
+        createSignedUrl: vi.fn(async () => ({ data: { signedUrl: 'https://signed' }, error: null })),
+        remove: vi.fn(async () => ({ data: [], error: null })),
+        list: vi.fn(async () => ({ data: [{ name: 'a.jpg' }], error: null })),
+        ...overrides,
+    };
+    const client = { storage: { from: vi.fn(() => bucket) } } as unknown as SupabaseClient;
+    return { client, bucket };
+}
+
+describe('storage I/O with an injected client', () => {
+    it('uploads private files without upsert', async () => {
+        const { client, bucket } = fakeStorage();
+        await uploadPrivateFile(Buckets.tripDocuments, 'trips/t/documents/a.pdf', Buffer.from('%PDF'), 'application/pdf', client);
+        expect(client.storage.from).toHaveBeenCalledWith('trip-documents');
+        expect(bucket.upload).toHaveBeenCalledWith('trips/t/documents/a.pdf', expect.anything(), { contentType: 'application/pdf', upsert: false });
+    });
+
+    it('surfaces upload errors', async () => {
+        const { client } = fakeStorage({ upload: vi.fn(async () => ({ data: null, error: { message: 'exists' } })) });
+        await expect(uploadPrivateFile(Buckets.tripMedia, 'p', Buffer.from('x'), 'image/jpeg', client)).rejects.toThrow('exists');
+    });
+
+    it('downloads, signs, deletes and lists through the given client', async () => {
+        const { client, bucket } = fakeStorage();
+        expect(await downloadFile(Buckets.tripMedia, 'p', client)).toBeInstanceOf(Blob);
+        expect(await getSignedUrl(Buckets.tripMedia, 'p', 60, client)).toBe('https://signed');
+        await deleteFile(Buckets.tripMedia, 'p', client);
+        expect(await listFiles(Buckets.tripMedia, 'trips/t', client)).toEqual([{ name: 'a.jpg' }]);
+        expect(bucket.createSignedUrl).toHaveBeenCalledWith('p', 60);
+        expect(bucket.remove).toHaveBeenCalledWith(['p']);
+    });
+
+    it('returns null for a missing download and throws when signing fails', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const { client } = fakeStorage({
+            download: vi.fn(async () => ({ data: null, error: { message: 'not found' } })),
+            createSignedUrl: vi.fn(async () => ({ data: null, error: { message: 'denied' } })),
+        });
+        expect(await downloadFile(Buckets.tripMedia, 'p', client)).toBeNull();
+        await expect(getSignedUrl(Buckets.tripMedia, 'p', 60, client)).rejects.toThrow('denied');
+    });
+});
 
 // =============================================================================
 // validateFile

@@ -1,6 +1,7 @@
 import { withErrorHandler, Errors, ok } from '@/lib/errors';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getAuthUser } from '@/lib/auth/get-user';
+import { enforceRateLimit, userSubject } from '@/lib/rate-limit';
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -16,6 +17,8 @@ const MIME_TO_EXT: Record<string, string> = {
 export const POST = withErrorHandler(async (request) => {
     const supabase = await createClient();
     const user = await getAuthUser(supabase);
+    const admin = await createAdminClient();
+    await enforceRateLimit('fileUpload', userSubject(user.id), { admin });
 
     const formData = await request.formData();
     const file = formData.get('avatar');
@@ -28,7 +31,6 @@ export const POST = withErrorHandler(async (request) => {
     const storagePath = `${user.id}/avatar.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const admin = await createAdminClient();
     const { error: uploadError } = await admin.storage
         .from('avatars')
         .upload(storagePath, buffer, { contentType: file.type, upsert: true });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NextResponse } from 'next/server';
+import type { MockResponse } from '@/test/mock-response';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -45,7 +45,7 @@ describe('requireAdmin', () => {
         const result = await requireAdmin();
 
         expect(result).toMatchObject({ status: 401 });
-        expect((result as any).body).toMatchObject({ code: 'UNAUTHORIZED' });
+        expect((result as unknown as MockResponse).body).toMatchObject({ code: 'UNAUTHORIZED' });
     });
 
     it('returns 403 when user exists but has no profile', async () => {
@@ -55,7 +55,7 @@ describe('requireAdmin', () => {
         const result = await requireAdmin();
 
         expect(result).toMatchObject({ status: 403 });
-        expect((result as any).body).toMatchObject({ code: 'FORBIDDEN' });
+        expect((result as unknown as MockResponse).body).toMatchObject({ code: 'FORBIDDEN' });
     });
 
     it('returns 403 when user has role "user" (not admin)', async () => {
@@ -109,5 +109,18 @@ describe('requireAdmin', () => {
 
         expect(result).toEqual({ adminId: '00000000-0000-0000-0000-000000000001' });
         expect(mockGetUser).not.toHaveBeenCalled();
+    });
+
+    it('ignores ADMIN_AUTH_BYPASS in production', async () => {
+        vi.stubEnv('ADMIN_AUTH_BYPASS', 'true');
+        vi.stubEnv('NODE_ENV', 'production');
+        const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        mockGetUser.mockResolvedValue({ data: { user: null } });
+
+        const result = await requireAdmin();
+
+        expect(result).toMatchObject({ status: 401 });
+        expect(mockGetUser).toHaveBeenCalled();
+        error.mockRestore();
     });
 });
