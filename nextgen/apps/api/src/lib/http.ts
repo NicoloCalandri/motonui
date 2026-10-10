@@ -45,5 +45,44 @@ export function requireParam(c: Context, name: string): string {
     return value;
 }
 
+/**
+ * Reads a JSON request body that must be an object. Malformed JSON and any
+ * other JSON value (array, string, number, null) are a validation error, so
+ * a handler's Zod schema always starts from an object and a bad body is a
+ * 400, never a 500.
+ */
+export async function readJsonObject(c: Context): Promise<Record<string, unknown>> {
+    let body: unknown;
+    try {
+        body = await c.req.json();
+    } catch {
+        throw Errors.validation('il corpo della richiesta non è JSON valido');
+    }
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+        throw Errors.validation('il corpo della richiesta deve essere un oggetto');
+    }
+    return body as Record<string, unknown>;
+}
+
+/**
+ * Reads a multipart body. A request with another content type (or a broken
+ * multipart payload) is a validation error instead of an unhandled exception.
+ */
+export async function readFormData(c: Context): Promise<FormData> {
+    try {
+        return await c.req.formData();
+    } catch {
+        throw Errors.validation('il corpo della richiesta deve essere multipart/form-data');
+    }
+}
+
+/** Short, client-safe description of a Zod failure: the fields, not the whole issue dump. */
+export function issueSummary(error: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> }): string {
+    return error.issues
+        .slice(0, 5)
+        .map((issue) => (issue.path.length ? `${issue.path.join('.')}: ${issue.message}` : issue.message))
+        .join('; ');
+}
+
 const ID_PARAM = /^(id|[A-Za-z]+Id)$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

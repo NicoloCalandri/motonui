@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok } from '../lib/http';
+import { withErrorHandler, ok, readJsonObject, readFormData } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { createAdminClient } from '../lib/supabase/server';
 import { env } from '../lib/env';
@@ -55,7 +55,7 @@ profileRouter.patch(
         const supabase = c.get('supabase');
         const user = c.get('user');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdateProfileSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -78,7 +78,7 @@ profileRouter.post(
         const supabase = c.get('supabase');
         const user = await getAuthUser(supabase);
 
-        const formData = await c.req.formData();
+        const formData = await readFormData(c);
         const file = formData.get('avatar');
 
         if (!(file instanceof File)) throw Errors.validation('Nessun file allegato.');

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createAdminClient } from '../lib/supabase/server';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { requireUser } from '../middleware/auth';
@@ -68,7 +68,7 @@ tripsRouter.post(
         // and bypass any restrictive RLS during the initialization phase.
         const adminSupabase = createAdminClient();
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateTripSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -148,7 +148,7 @@ tripsRouter.put(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdateTripSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

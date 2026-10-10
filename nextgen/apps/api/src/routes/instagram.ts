@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
 import { requireFeatureAccess } from '../lib/premium/access';
-import { withErrorHandler, ok } from '../lib/http';
+import { withErrorHandler, ok, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { generateExport } from '../lib/media/instagram-export';
 import type { InstagramGenerateResponse } from '@motonui/shared-types';
@@ -30,7 +30,7 @@ instagramRouter.post(
         const supabase = c.get('supabase');
         const user = await getAuthUser(supabase);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = GenerateSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readFormData } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember, requireDayInTrip } from '../lib/authz';
 import { uploadFile, validateFile, Buckets } from '../lib/storage';
@@ -63,7 +63,7 @@ tripsMediaRouter.post(
         const id = requireParam(c, 'id');
         await requireTripMember(supabase, id, user.id);
 
-        const formData = await c.req.formData();
+        const formData = await readFormData(c);
         const file = formData.get('file') as File | null;
         const dayId = formData.get('day_id') as string | null;
         const caption = formData.get('caption') as string | null;

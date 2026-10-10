@@ -5,6 +5,7 @@ import { requireUser } from '../../middleware/auth';
 import { loadProfile } from '../../middleware/profile';
 import { requireAdmin } from '../../middleware/admin';
 import type { AppEnv } from '../../types';
+import { readJsonObject } from '../../lib/http';
 
 export const featuresRouter = new Hono<AppEnv>();
 
@@ -46,7 +47,7 @@ featuresRouter.get('/', requireUser, loadProfile, requireAdmin, async (c) => {
 featuresRouter.put('/', requireUser, loadProfile, requireAdmin, async (c) => {
     const adminId = c.get('adminId');
 
-    const body: unknown = await c.req.json();
+    const body: unknown = await readJsonObject(c);
     const parsed = UpdateSchema.safeParse(body);
     if (!parsed.success) {
         return c.json({ error: 'Payload non valido.' }, 400);

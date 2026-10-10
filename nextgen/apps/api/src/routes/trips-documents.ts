@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { requireUser } from '../middleware/auth';
@@ -70,7 +70,7 @@ tripsDocumentsRouter.post(
         const id = requireParam(c, 'id');
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateDocumentSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -102,7 +102,7 @@ tripsDocumentsRouter.put(
         const documentId = requireParam(c, 'documentId');
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdateDocumentSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

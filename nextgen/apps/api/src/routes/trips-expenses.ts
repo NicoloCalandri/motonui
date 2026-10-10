@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember, requireDayInTrip, requireTripPayer } from '../lib/authz';
 import { getTripExpenseSummary, convertCurrency, splitExpenses } from '../lib/expenses';
@@ -96,7 +96,7 @@ tripsExpensesRouter.post(
         const id = requireParam(c, 'id');
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateExpenseSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

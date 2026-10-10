@@ -5,7 +5,8 @@ import { streamBlogAssistant, checkRateLimit } from '../lib/ai/blog-assistant';
 import { getDestinationBriefing } from '../lib/ai/destination';
 import { generateTripSummary } from '../lib/ai/trip-summary';
 import { requireFeatureAccess } from '../lib/premium/access';
-import { withErrorHandler, ok } from '../lib/http';
+import { withErrorHandler, ok, readJsonObject, issueSummary } from '../lib/http';
+import { requireTripMember } from '../lib/authz';
 import { Errors } from '../lib/errors';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
@@ -35,20 +36,16 @@ const BlogSchema = z.object({
 aiRouter.post('/blog', requireUser, loadProfile, async (c) => {
     const supabase = c.get('supabase');
     const user = await getAuthUser(supabase);
-    await requireFeatureAccess({ userId: user.id, feature: 'ai_blog', allowAdminBypass: true });
 
-    const body: unknown = await c.req.json();
-    const parsed = BlogSchema.safeParse(body);
-    if (!parsed.success) {
-        return c.json({ error: parsed.error.message }, 400);
-    }
+    // Input first: a bad request must not consume the daily quota.
+    const parsed = BlogSchema.safeParse(await readJsonObject(c));
+    if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
+
+    await requireFeatureAccess({ userId: user.id, feature: 'ai_blog', allowAdminBypass: true });
 
     // Rate limit check (Sonnet: 50/day per user)
     const allowed = await checkRateLimit(user.id, 'sonnet', supabase);
-    if (!allowed) {
-        const err = Errors.rateLimited();
-        return c.json({ error: err.message }, 429);
-    }
+    if (!allowed) throw Errors.rateLimited();
 
     const stream = streamBlogAssistant(parsed.data);
 
@@ -74,11 +71,11 @@ aiRouter.post(
     withErrorHandler(async (c) => {
         const supabase = c.get('supabase');
         const user = await getAuthUser(supabase);
-        await requireFeatureAccess({ userId: user.id, feature: 'ai_destination', allowAdminBypass: true });
+        // Input first: a bad request must not consume the daily quota.
+        const parsed = DestinationSchema.safeParse(await readJsonObject(c));
+        if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
 
-        const body: unknown = await c.req.json();
-        const parsed = DestinationSchema.safeParse(body);
-        if (!parsed.success) throw Errors.validation(parsed.error.message);
+        await requireFeatureAccess({ userId: user.id, feature: 'ai_destination', allowAdminBypass: true });
 
         const briefing = await getDestinationBriefing(parsed.data.destination, parsed.data.language, supabase);
         return ok(c, briefing);
@@ -101,13 +98,15 @@ aiRouter.post(
     withErrorHandler(async (c) => {
         const supabase = c.get('supabase');
         const user = await getAuthUser(supabase);
-        await requireFeatureAccess({ userId: user.id, feature: 'ai_generate_post', allowAdminBypass: true });
-
-        const body: unknown = await c.req.json();
-        const parsed = GeneratePostSchema.safeParse(body);
-        if (!parsed.success) throw Errors.validation(parsed.error.message);
+        // Input first: a bad request must not consume the daily quota.
+        const parsed = GeneratePostSchema.safeParse(await readJsonObject(c));
+        if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
 
         const { tripId, language, save, title, slug } = parsed.data;
+
+        // The trip id comes from the body, so the central guard on /api/trips/:id does not cover it.
+        await requireTripMember(supabase, tripId, user.id);
+        await requireFeatureAccess({ userId: user.id, feature: 'ai_generate_post', allowAdminBypass: true });
 
         // Rate limit check (Sonnet: 50/day)
         const allowed = await checkRateLimit(user.id, 'sonnet', supabase);

@@ -98,9 +98,23 @@ async function expectStandardError(res: Response, status: number) {
     return body;
 }
 
+/**
+ * Write routes that take no body: the action is fully described by the path
+ * and the caller. A body sent to them is ignored, so the bad-body cases do
+ * not apply. Listed explicitly so that a new write route is checked by default.
+ */
+const BODYLESS = new Set([
+    'POST /api/admin/impersonate/exit',
+    'POST /api/admin/users/:id/impersonate',
+    'POST /api/admin/users/:id/unsuspend',
+    'POST /api/trips/:id/packing',
+]);
+
 const ALL = routes();
 const WITH_IDS = ALL.flatMap((route) => [...route.path.matchAll(ID_PARAM)].map((match) => [route.method, route.path, match[1]] as const));
-const WRITE_ROUTES = ALL.filter((route) => route.method === 'POST' || route.method === 'PUT' || route.method === 'PATCH');
+const WRITE_ROUTES = ALL
+    .filter((route) => route.method === 'POST' || route.method === 'PUT' || route.method === 'PATCH')
+    .filter((route) => !BODYLESS.has(`${route.method} ${route.path}`));
 
 const BAD_BODIES: Array<[string, string]> = [
     ['malformed JSON', '{"title": '],
@@ -135,6 +149,11 @@ describe('path parameters', () => {
 describe('request bodies', () => {
     it('finds the write routes', () => {
         expect(WRITE_ROUTES.length).toBeGreaterThan(35);
+    });
+
+    it('lists as bodyless only routes that exist', () => {
+        const names = new Set(ALL.map((route) => `${route.method} ${route.path}`));
+        expect([...BODYLESS].filter((name) => !names.has(name))).toEqual([]);
     });
 
     describe.each(WRITE_ROUTES.map((route) => [route.method, route.path] as const))('%s %s', (method, path) => {

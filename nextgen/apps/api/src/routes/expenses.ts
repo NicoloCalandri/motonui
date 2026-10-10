@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, requireParam } from '../lib/http';
+import { withErrorHandler, ok, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireDayInTrip, requireTripPayer } from '../lib/authz';
 import { convertCurrency } from '../lib/expenses';
@@ -37,7 +37,7 @@ expensesRouter.put(
         await getAuthUser(supabase);
         const id = requireParam(c, 'id');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdateExpenseSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

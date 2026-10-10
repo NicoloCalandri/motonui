@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject, readFormData } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { convertCurrency } from '../lib/expenses';
@@ -77,7 +77,7 @@ tripsLegsRouter.post(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = TopLevelCreateLegSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -207,7 +207,7 @@ tripsLegsRouter.put(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = TopLevelUpdateLegSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -308,7 +308,7 @@ tripsDayLegsRouter.post(
         const id = requireParam(c, 'id');
         const dayId = requireParam(c, 'dayId');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateDayLegSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -453,7 +453,7 @@ tripsDayLegsRouter.put(
         const dayId = requireParam(c, 'dayId');
         const legId = requireParam(c, 'legId');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdateDayLegSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -582,7 +582,7 @@ tripsDayLegsRouter.post(
             .single();
         if (!leg) throw Errors.notFound('Spostamento');
 
-        const formData = await c.req.formData();
+        const formData = await readFormData(c);
         const file = formData.get('file') as File | null;
         if (!file) throw Errors.validation('Campo "file" mancante.');
 

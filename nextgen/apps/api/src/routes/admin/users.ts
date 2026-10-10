@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { setCookie } from 'hono/cookie';
 import { SignJWT } from 'jose';
 import { createAdminClient } from '../../lib/supabase/server';
-import { requireParam } from '../../lib/http';
+import { requireParam, readJsonObject } from '../../lib/http';
 import { requireUser } from '../../middleware/auth';
 import { loadProfile } from '../../middleware/profile';
 import { requireAdmin } from '../../middleware/admin';
@@ -160,7 +160,7 @@ usersRouter.get('/', async (c) => {
 /** POST /api/admin/users — create a new user */
 usersRouter.post('/', async (c) => {
     const adminId = c.get('adminId');
-    const body: unknown = await c.req.json();
+    const body: unknown = await readJsonObject(c);
     const parsed = CreateUserSchema.safeParse(body);
     if (!parsed.success) {
         return c.json({ error: 'Dati non validi.', code: 'VALIDATION_ERROR', status: 400 }, 400);
@@ -268,7 +268,7 @@ usersRouter.put('/:id', async (c) => {
         return c.json({ error: 'Non puoi modificare il tuo stesso ruolo qui.', code: 'FORBIDDEN', status: 403 }, 403);
     }
 
-    const body: unknown = await c.req.json();
+    const body: unknown = await readJsonObject(c);
     const parsed = UpdateSchema.safeParse(body);
     if (!parsed.success) {
         return c.json({ error: 'Dati non validi.', code: 'VALIDATION_ERROR', status: 400 }, 400);
@@ -338,7 +338,7 @@ usersRouter.delete('/:id', async (c) => {
         return c.json({ error: 'Non puoi eliminare il tuo stesso account.', code: 'FORBIDDEN', status: 403 }, 403);
     }
 
-    const body: unknown = await c.req.json();
+    const body: unknown = await readJsonObject(c);
     const parsed = DeleteSchema.safeParse(body);
     if (!parsed.success) {
         return c.json({ error: 'Email di conferma mancante.', code: 'VALIDATION_ERROR', status: 400 }, 400);
@@ -380,7 +380,7 @@ usersRouter.post('/:id/suspend', async (c) => {
         return c.json({ error: 'Non puoi sospendere il tuo stesso account.', code: 'FORBIDDEN', status: 403 }, 403);
     }
 
-    const body: unknown = await c.req.json();
+    const body: unknown = await readJsonObject(c);
     const parsed = SuspendSchema.safeParse(body);
     if (!parsed.success) {
         return c.json({ error: 'Motivo di sospensione mancante.', code: 'VALIDATION_ERROR', status: 400 }, 400);

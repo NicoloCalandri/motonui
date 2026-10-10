@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { convertCurrency } from '../lib/expenses';
@@ -78,7 +78,7 @@ tripsRestaurantsRouter.post(
         const id = requireParam(c, 'id');
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateRestaurantSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -133,7 +133,7 @@ tripsRestaurantsRouter.put(
         const restaurantId = requireParam(c, 'restaurantId');
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdateRestaurantSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
