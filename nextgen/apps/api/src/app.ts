@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { cors } from 'hono/cors';
 import { handleImpersonation } from './middleware/impersonation';
+import { handleAppError, handleNotFound, requestContext } from './middleware/request-context';
 import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
 import { tripsDaysRouter } from './routes/trips-days';
@@ -33,6 +34,11 @@ import type { AppEnv } from './types';
 
 export function createApp() {
     const app = new Hono<AppEnv>();
+
+    // First, so every log line and every response (errors included) carries the request id.
+    app.use('*', requestContext);
+    app.onError(handleAppError);
+    app.notFound(handleNotFound);
 
     // Direct port of the securityHeaders list in next.config.ts.
     app.use(

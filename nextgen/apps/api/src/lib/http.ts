@@ -1,11 +1,12 @@
 import type { Context } from 'hono';
-import { AppError, Errors, type ApiErrorResponse } from './errors';
+import { errorResponse } from '../middleware/request-context';
 
 type Handler = (c: Context) => Promise<Response>;
 
 /**
  * Wraps a route handler with try/catch error handling.
- * Logs errors with structured format and returns consistent JSON error responses.
+ * Logs through lib/log (one JSON line with the request id, redacted) and
+ * returns the standard JSON error response.
  * Direct port of the Next.js withErrorHandler in src/lib/errors.ts — only the
  * (request, context) -> Response signature became (c: Context) -> Response.
  */
@@ -14,24 +15,7 @@ export function withErrorHandler(handler: Handler, routeInfo: string): Handler {
         try {
             return await handler(c);
         } catch (error) {
-            if (error instanceof AppError) {
-                console.error(`[motonui][${routeInfo}] AppError:`, {
-                    code: error.code,
-                    status: error.status,
-                    message: error.message,
-                });
-                return c.json(
-                    { error: error.message, code: error.code, status: error.status } satisfies ApiErrorResponse,
-                    error.status as any
-                );
-            }
-
-            console.error(`[motonui][${routeInfo}] Unexpected error:`, error);
-            const internal = Errors.internal();
-            return c.json(
-                { error: internal.message, code: internal.code, status: internal.status } satisfies ApiErrorResponse,
-                500
-            );
+            return errorResponse(c, error, routeInfo);
         }
     };
 }
