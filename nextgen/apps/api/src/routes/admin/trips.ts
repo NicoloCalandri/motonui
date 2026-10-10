@@ -32,7 +32,8 @@ adminTripsRouter.patch('/:id', requireUser, loadProfile, requireAdmin, async (c)
         .single();
 
     if (error) {
-        return c.json({ error: error.message, code: 'DB_ERROR', status: 500 }, 500);
+        // The database message goes to the log (app error handler), never to the client.
+        throw new Error(`[motonui][admin/trips][PATCH] ${error.message}`);
     }
 
     return c.json(data);

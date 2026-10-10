@@ -19,26 +19,38 @@ const state = vi.hoisted(() => ({ writes: [] as string[], failHandlers: false })
 /** The caller is signed in, admin, and a member and owner of every trip. */
 function stubClient() {
     const row = { id: UUID, trip_id: UUID, user_id: USER.id, owner_id: USER.id, paid_by: USER.id, author_id: USER.id, role: 'admin', suspended_at: null };
+    const failure = { data: null, error: { message: DB_ERROR } };
     const builder = (table: string) => {
-        const failing = state.failHandlers && !GUARD_TABLES.has(table);
-        const one = failing ? { data: null, error: { message: DB_ERROR } } : { data: row, error: null };
-        const many = failing ? { data: null, error: { message: DB_ERROR } } : { data: [row], error: null, count: 1 };
+        let wrote = false;
+        // In failure mode the guards' reads keep working, so the handler is
+        // reached; everything the handler does (other tables, any write) fails.
+        const failing = () => state.failHandlers && (wrote || !GUARD_TABLES.has(table));
         const chain: Record<string, unknown> = {};
         for (const method of ['select', 'eq', 'neq', 'in', 'is', 'not', 'or', 'ilike', 'order', 'limit', 'range', 'gte', 'lte', 'gt', 'lt', ...WRITES]) {
             chain[method] = () => {
-                if (WRITES.includes(method)) state.writes.push(`${table}.${method}`);
+                if (WRITES.includes(method)) {
+                    wrote = true;
+                    state.writes.push(`${table}.${method}`);
+                }
                 return chain;
             };
         }
-        chain.single = async () => one;
-        chain.maybeSingle = async () => one;
-        chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(many).then(resolve);
+        const one = async () => (failing() ? failure : { data: row, error: null });
+        chain.single = one;
+        chain.maybeSingle = one;
+        chain.then = (resolve: (value: unknown) => unknown) =>
+            Promise.resolve(failing() ? failure : { data: [row], error: null, count: 1 }).then(resolve);
         return chain;
     };
     return {
         auth: {
             getUser: async () => ({ data: { user: USER } }),
-            admin: new Proxy({}, { get: () => async () => { state.writes.push('auth.admin'); return { data: { user: USER, users: [] }, error: null }; } }),
+            admin: new Proxy({}, {
+                get: () => async () => {
+                    state.writes.push('auth.admin');
+                    return state.failHandlers ? failure : { data: { user: USER, users: [] }, error: null };
+                },
+            }),
         },
         from: builder,
         rpc: async (fn: string) => {
@@ -166,12 +178,25 @@ describe('request bodies', () => {
     });
 });
 
+/**
+ * Bodies that pass validation, for routes whose database call is reached only
+ * with valid input. Without an entry the route gets `{}` (enough when every
+ * field is optional, or when the failure comes before the body is used).
+ */
+const VALID_BODIES: Record<string, unknown> = {
+    'PATCH /api/admin/trips/:id': { status: 'archived' },
+    'POST /api/admin/users': { email: 'new@example.com', password: 'a-long-password-1' },
+    'PUT /api/admin/users/:id': { displayName: 'Nome' },
+    'POST /api/admin/users/:id/suspend': { reason: 'motivo' },
+};
+
 describe('error bodies', () => {
     it.each(ALL.map((route) => [route.method, route.path] as const))('%s %s never returns a database message', async (method, path) => {
         state.failHandlers = true;
         const hasBody = method !== 'GET' && method !== 'DELETE';
+        const validBody = JSON.stringify(VALID_BODIES[`${method} ${path}`] ?? {});
 
-        const res = await send({ method, path }, url(path), hasBody ? '{}' : undefined);
+        const res = await send({ method, path }, url(path), hasBody ? validBody : undefined);
         const text = await res.text();
 
         expect(text).not.toContain('secret_table');

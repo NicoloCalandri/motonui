@@ -178,8 +178,8 @@ usersRouter.post('/', async (c) => {
     });
 
     if (error) {
-        console.error('[admin/users POST]', error.message);
-        return c.json({ error: 'Errore nella creazione utente: ' + error.message, code: 'INTERNAL_ERROR', status: 500 }, 500);
+        // The provider message goes to the log (app error handler), never to the client.
+        throw new Error(`[motonui][admin/users][POST] ${error.message}`);
     }
 
     if (data.user) {
