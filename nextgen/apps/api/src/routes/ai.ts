@@ -25,13 +25,9 @@ const BlogSchema = z.object({
  * POST /api/ai/blog — Streams Claude blog writing suggestions.
  * Returns Server-Sent Events (text/event-stream).
  *
- * NOTE: ported faithfully from the original, which does NOT wrap this
- * handler in withErrorHandler (unlike the other two AI routes below) — a
- * thrown AppError (e.g. PREMIUM_REQUIRED from requireFeatureAccess) falls
- * through to a generic error response rather than its real status/message.
- * Hono's default onError reproduces the same "falls through to a generic
- * 500" behavior, so this is a faithful port of a pre-existing bug, not a
- * regression — flagged here rather than silently fixed.
+ * Not wrapped in withErrorHandler (the success path is a stream, not JSON):
+ * errors thrown before the stream starts reach the app error handler, which
+ * answers with their real status and the standard body.
  */
 aiRouter.post('/blog', requireUser, loadProfile, async (c) => {
     const supabase = c.get('supabase');

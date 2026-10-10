@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -191,6 +193,29 @@ const VALID_BODIES: Record<string, unknown> = {
 };
 
 describe('error bodies', () => {
+    /**
+     * The request-based check below reaches a handler's database call only
+     * where `{}` or an entry of VALID_BODIES passes validation: most write
+     * routes stop at 400 first. This source check covers the rest: no route
+     * file may build a response from an error's message.
+     */
+    it('no route builds a response from an error message', () => {
+        const dir = join(process.cwd(), 'src', 'routes');
+        const files = (current: string): string[] => readdirSync(current, { withFileTypes: true }).flatMap((entry) => {
+            const path = join(current, entry.name);
+            if (entry.isDirectory()) return files(path);
+            return entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts') ? [path] : [];
+        });
+        const offenders = files(dir).flatMap((file) =>
+            readFileSync(file, 'utf8').split('\n')
+                .map((line, index) => ({ line, where: `${relative(dir, file).split(sep).join('/')}:${index + 1}` }))
+                .filter(({ line }) => /c\.json\(.*\.message|['"`]\s*\+\s*\w*[eE]rr(or)?\.message/.test(line))
+                .map(({ where }) => where),
+        );
+
+        expect(offenders).toEqual([]);
+    });
+
     it.each(ALL.map((route) => [route.method, route.path] as const))('%s %s never returns a database message', async (method, path) => {
         state.failHandlers = true;
         const hasBody = method !== 'GET' && method !== 'DELETE';
