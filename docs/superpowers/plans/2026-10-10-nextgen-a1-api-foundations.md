@@ -1,5 +1,7 @@
 # Nextgen A1 — API Foundations Implementation Plan
 
+> **Status (2026-10-10): tasks 1–9 done** on `worktree-nextgen-migration`. Findings fixed along the way: production CORS reflected any origin with credentials; 14 of the 54 routes under `/api/trips/:id` did not refuse a signed-in non-member; cron routes compared their secret with `!==`; the Instagram export downloaded any URL stored in `media.url`.
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Give the Hono API in `nextgen/apps/api` the cross-cutting protections the Next.js API has today, applied centrally, plus a test that keeps the two route tables from drifting.
@@ -36,9 +38,9 @@
 
 **Files:** Modify `nextgen/packages/shared-types/src/database.types.ts` (copy of `src/lib/supabase/database.types.ts`); fix any type error the newer types surface in `apps/api` or `apps/web`.
 
-- [ ] Copy the file. Run `npm run type-check` in `nextgen/`. Expected: clean, or errors that are real schema drift to fix one by one (a renamed or newly nullable column), never silenced with casts.
-- [ ] Run `npm test` in `nextgen/`. Expected: api 25, web 74 passing.
-- [ ] Commit.
+- [x] Copy the file. Run `npm run type-check` in `nextgen/`. Expected: clean, or errors that are real schema drift to fix one by one (a renamed or newly nullable column), never silenced with casts.
+- [x] Run `npm test` in `nextgen/`. Expected: api 25, web 74 passing.
+- [x] Commit.
 
 ### Task 2: Request id, structured logs, error boundary
 

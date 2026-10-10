@@ -60,6 +60,8 @@ Each one ends with working, tested software on the branch. None touches `src/`, 
 
 ### A. API foundations (cross-cutting parity)
 
+> **A1 done (2026-10-10)**, plan `2026-10-10-nextgen-a1-api-foundations.md`: request id and structured logs, CORS allowlist and cross-site write rejection, central trip guard, rate limits, cron secret, outbound host allowlist, route-parity test (13 known gaps, 5 known extras). **A2 is next:** per-route Zod schemas and the contract test.
+
 Port the route wrapper and the security plumbing to Hono, then put every existing Hono route behind them.
 
 - Hono equivalents of `withRoute` (auth, `tripMember`, Zod, `no-store`), request id + structured log + redaction, error capture, rate limiting, `safeFetch`, cron secret, cross-site write rejection, admin bypass guard.
