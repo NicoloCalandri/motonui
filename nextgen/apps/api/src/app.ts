@@ -3,6 +3,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { handleImpersonation } from './middleware/impersonation';
 import { corsPolicy, noStore, rejectCrossSiteWrites } from './middleware/origin';
 import { handleAppError, handleNotFound, requestContext } from './middleware/request-context';
+import { tripGuard } from './middleware/trip-guard';
 import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
 import { tripsDaysRouter } from './routes/trips-days';
@@ -60,6 +61,10 @@ export function createApp() {
     app.get('/api/health', (c) => c.json({ ok: true }));
 
     // ── Trips + nested resources ────────────────────────────────────────────
+    // Membership is checked here for everything under a trip, before any router.
+    app.use('/api/trips/:id', ...tripGuard);
+    app.use('/api/trips/:id/*', ...tripGuard);
+
     app.route('/api/trips', tripsRouter);
     app.route('/api/trips/:id/days', tripsDaysRouter);
     app.route('/api/trips/:id/legs', tripsLegsRouter);

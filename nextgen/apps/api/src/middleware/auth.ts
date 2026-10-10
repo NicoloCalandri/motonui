@@ -11,6 +11,12 @@ import type { AppEnv } from '../types';
  * server-rendered redirect anymore, only 401 JSON.
  */
 export const requireUser = createMiddleware<AppEnv>(async (c, next) => {
+    // Already authenticated earlier in the chain (tripGuard): one token check per request.
+    if (c.get('user')) {
+        await next();
+        return;
+    }
+
     const authHeader = c.req.header('authorization') ?? c.req.header('Authorization');
     const token = authHeader?.replace(/^Bearer\s+/i, '');
 
