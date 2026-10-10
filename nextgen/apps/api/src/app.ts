@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
-import { cors } from 'hono/cors';
 import { handleImpersonation } from './middleware/impersonation';
+import { corsPolicy, noStore, rejectCrossSiteWrites } from './middleware/origin';
 import { handleAppError, handleNotFound, requestContext } from './middleware/request-context';
 import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
@@ -29,7 +29,6 @@ import { featuresRouter } from './routes/admin/features';
 import { usersRouter as adminUsersRouter } from './routes/admin/users';
 import { adminTripsRouter } from './routes/admin/trips';
 import { impersonateExitRouter } from './routes/admin/impersonate';
-import { env } from './lib/env';
 import type { AppEnv } from './types';
 
 export function createApp() {
@@ -51,15 +50,10 @@ export function createApp() {
         })
     );
 
-    // Same-origin deploy is the target (see plan §Hosting); CORS is only
-    // relevant for local dev where apps/web runs on a different Vite port.
-    app.use(
-        '/api/*',
-        cors({
-            origin: env.NODE_ENV === 'development' ? 'http://localhost:5173' : (origin) => origin,
-            credentials: true,
-        })
-    );
+    // Only the web app's origins (WEB_ORIGIN) may read responses or send writes.
+    app.use('/api/*', corsPolicy);
+    app.use('/api/*', rejectCrossSiteWrites);
+    app.use('/api/*', noStore);
 
     app.use('/api/*', handleImpersonation);
 
