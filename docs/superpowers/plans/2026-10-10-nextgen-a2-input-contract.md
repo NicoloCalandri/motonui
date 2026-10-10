@@ -1,5 +1,7 @@
 # Nextgen A2 — Input Contract Implementation Plan
 
+> **Status (2026-10-10): tasks 1–5 done** on `worktree-nextgen-migration`. Found and fixed: 35 routes passed non-UUID ids to the database; malformed JSON gave 500 on all 42 write routes and 11 accepted non-object JSON; two admin routes returned raw database messages; `/api/expenses/:id` and `/api/ai/generate-post` did not check trip membership.
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Every route of the Hono API rejects bad input with a standard 400 before touching the database, and a contract test read from the app's own route table proves it.

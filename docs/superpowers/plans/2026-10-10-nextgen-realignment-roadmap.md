@@ -60,7 +60,9 @@ Each one ends with working, tested software on the branch. None touches `src/`, 
 
 ### A. API foundations (cross-cutting parity)
 
-> **A1 done (2026-10-10)**, plan `2026-10-10-nextgen-a1-api-foundations.md`: request id and structured logs, CORS allowlist and cross-site write rejection, central trip guard, rate limits, cron secret, outbound host allowlist, route-parity test (13 known gaps, 5 known extras). **A2 is next:** per-route Zod schemas and the contract test.
+> **A1 done (2026-10-10)**, plan `2026-10-10-nextgen-a1-api-foundations.md`: request id and structured logs, CORS allowlist and cross-site write rejection, central trip guard, rate limits, cron secret, outbound host allowlist, route-parity test (13 known gaps, 5 known extras). 
+>
+> **A2 done (2026-10-10)**, plan `2026-10-10-nextgen-a2-input-contract.md`: UUID check on every path id, standard 400 for malformed and non-object bodies, no database message in error responses, membership checks on the trip routes outside `/api/trips/:id`, and a contract test read from the route table. Measured scope was much smaller than estimated here: 40 of 42 write routes already validated with Zod. **Sub-plan B is next.**
 
 Port the route wrapper and the security plumbing to Hono, then put every existing Hono route behind them.
 
