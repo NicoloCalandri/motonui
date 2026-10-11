@@ -123,7 +123,7 @@ tripsMediaRouter.delete(
 
         try {
             const prefix = `${env.SUPABASE_URL}/storage/v1/object/public/${Buckets.tripMedia}/`;
-            if (media.url.startsWith(prefix)) {
+            if (media.url?.startsWith(prefix)) {
                 const storagePath = media.url.slice(prefix.length);
                 await supabase.storage.from(Buckets.tripMedia).remove([storagePath]);
             }

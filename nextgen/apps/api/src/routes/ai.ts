@@ -1,17 +1,23 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { streamBlogAssistant, checkRateLimit } from '../lib/ai/blog-assistant';
+import { streamBlogAssistant } from '../lib/ai/blog-assistant';
 import { getDestinationBriefing } from '../lib/ai/destination';
 import { generateTripSummary } from '../lib/ai/trip-summary';
+import { requireTripMember } from '../lib/authz';
+import { fromCents } from '../lib/currency';
+import { eurCents } from '../lib/expenses';
+import { toJson } from '../lib/json';
 import { requireFeatureAccess } from '../lib/premium/access';
 import { withErrorHandler, ok, readJsonObject, issueSummary } from '../lib/http';
-import { requireTripMember } from '../lib/authz';
 import { Errors } from '../lib/errors';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
 
+// Mounted at /api/ai. Ports of src/app/api/ai/*/route.ts: the burst limit
+// ('ai' bucket) is declared in app.ts, the daily quota is consumed by
+// requireFeatureAccess (RPC consume_feature_quota) and by nothing else.
 export const aiRouter = new Hono<AppEnv>();
 
 const BlogSchema = z.object({
@@ -30,18 +36,13 @@ const BlogSchema = z.object({
  * answers with their real status and the standard body.
  */
 aiRouter.post('/blog', requireUser, loadProfile, async (c) => {
-    const supabase = c.get('supabase');
-    const user = await getAuthUser(supabase);
+    const user = await getAuthUser(c.get('supabase'));
 
     // Input first: a bad request must not consume the daily quota.
     const parsed = BlogSchema.safeParse(await readJsonObject(c));
     if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
 
     await requireFeatureAccess({ userId: user.id, feature: 'ai_blog', allowAdminBypass: true });
-
-    // Rate limit check (Sonnet: 50/day per user)
-    const allowed = await checkRateLimit(user.id, 'sonnet', supabase);
-    if (!allowed) throw Errors.rateLimited();
 
     const stream = streamBlogAssistant(parsed.data);
 
@@ -67,6 +68,7 @@ aiRouter.post(
     withErrorHandler(async (c) => {
         const supabase = c.get('supabase');
         const user = await getAuthUser(supabase);
+
         // Input first: a bad request must not consume the daily quota.
         const parsed = DestinationSchema.safeParse(await readJsonObject(c));
         if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
@@ -94,43 +96,40 @@ aiRouter.post(
     withErrorHandler(async (c) => {
         const supabase = c.get('supabase');
         const user = await getAuthUser(supabase);
+
         // Input first: a bad request must not consume the daily quota.
         const parsed = GeneratePostSchema.safeParse(await readJsonObject(c));
         if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
 
         const { tripId, language, save, title, slug } = parsed.data;
 
-        // The trip id comes from the body, so the central guard on /api/trips/:id does not cover it.
+        // The trip comes from the body, so membership is checked here rather than by the trip guard.
         await requireTripMember(supabase, tripId, user.id);
         await requireFeatureAccess({ userId: user.id, feature: 'ai_generate_post', allowAdminBypass: true });
 
-        // Rate limit check (Sonnet: 50/day)
-        const allowed = await checkRateLimit(user.id, 'sonnet', supabase);
-        if (!allowed) throw Errors.rateLimited();
-
         // Fetch trip context
-        const { data: trip } = await (supabase.from('trips') as any)
-            .select(`*, days(*, legs(*)), expenses(amount_eur, amount, category)`)
+        const { data: trip } = await supabase
+            .from('trips')
+            .select(`*, days(*, legs(*)), expenses(amount_eur, amount, currency)`)
             .eq('id', tripId)
             .single();
 
         if (!trip) throw Errors.notFound('Viaggio');
 
         // Build context for the AI
-        const totalEur = (trip.expenses ?? []).reduce(
-            (sum: number, e: { amount_eur?: number; amount: number }) => sum + (e.amount_eur ?? e.amount), 0
-        );
+        // Same rules as the expense summary: cents, expenses without a rate left out (T-3.2).
+        const totalEur = fromCents((trip.expenses ?? []).reduce((sum, e) => sum + (eurCents(e) ?? 0), 0));
 
         const content = await generateTripSummary(
             {
                 title: trip.title,
                 destination: trip.destination,
-                startDate: trip.start_date,
-                endDate: trip.end_date,
-                description: trip.description,
-                days: (trip.days ?? []).map((d: { date: string; title?: string; legs?: Array<{ from_name: string; to_name: string; type: string }> }) => ({
+                startDate: trip.start_date ?? undefined,
+                endDate: trip.end_date ?? undefined,
+                description: trip.description ?? undefined,
+                days: (trip.days ?? []).map((d) => ({
                     date: d.date,
-                    title: d.title,
+                    title: d.title ?? undefined,
                     legs: (d.legs ?? []).map((l) => ({ from: l.from_name, to: l.to_name, type: l.type })),
                 })),
                 expenses: { total_eur: totalEur, top_categories: [], countries_visited: [] },
@@ -143,13 +142,14 @@ aiRouter.post(
             const postSlug = slug ?? `${trip.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}-${Date.now()}`;
             const postTitle = title ?? `${trip.title} — Diario di viaggio`;
 
-            const { data: post } = await (supabase.from('posts') as any)
+            const { data: post } = await supabase
+                .from('posts')
                 .insert({
                     trip_id: tripId,
                     author_id: user.id,
                     title: postTitle,
                     slug: postSlug,
-                    content_json: content,
+                    content_json: toJson(content),
                     status: 'draft',
                 })
                 .select()

@@ -1,8 +1,10 @@
 import type { Context } from 'hono';
 import { errorResponse } from '../middleware/request-context';
 import { Errors } from './errors';
+import type { AppEnv } from '../types';
 
-type Handler = (c: Context) => Promise<Response>;
+// Typed with the app environment, so c.get('supabase') is the typed client and queries are checked.
+type Handler = (c: Context<AppEnv>) => Promise<Response>;
 
 /**
  * Wraps a route handler with try/catch error handling.

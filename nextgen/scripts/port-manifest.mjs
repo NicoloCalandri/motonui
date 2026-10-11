@@ -7,8 +7,13 @@
 
 /** Copied by `node scripts/port-lib.mjs`. Never edit the copy: edit src/lib and re-run. */
 export const PORTED = [
+    'ai/blog-assistant.ts',
+    'ai/destination.ts',
     'ai/models.ts',
+    'ai/packing.ts',
+    'ai/seo.ts',
     'ai/sse.ts',
+    'ai/trip-summary.ts',
     'ai/untrusted.ts',
     'airports.ts',
     'auth/admin-bypass.ts',
@@ -28,6 +33,7 @@ export const PORTED = [
     'log.ts',
     'media/captions.ts',
     'media/process.ts',
+    'premium/access.ts',
     'rate-limit.ts',
     'redact.ts',
     'redirect.ts',
@@ -60,12 +66,6 @@ export const WITHOUT_TEST = {
 /** Not ported yet: the plan that will do it. The list only shrinks. */
 export const PENDING = {
     // B1, later tasks of the same plan
-    'ai/blog-assistant.ts': 'B1',
-    'ai/destination.ts': 'B1',
-    'ai/packing.ts': 'B1',
-    'ai/seo.ts': 'B1',
-    'ai/trip-summary.ts': 'B1',
-    'premium/access.ts': 'B1',
     'reminders.ts': 'B1',
     // B2: private storage, upload pipeline, document and boarding-pass downloads
     'boarding-pass.ts': 'B2',
