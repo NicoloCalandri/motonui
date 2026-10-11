@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
     updates: [] as Array<{ id: unknown; payload: Record<string, unknown> }>,
     emails: {} as Record<string, string | null>,
     selects: [] as Array<{ table: string; columns: string }>,
+    updateError: null as null | { message: string },
 }));
 
 vi.mock('../email', async (importOriginal) => ({
@@ -34,7 +35,8 @@ vi.mock('../supabase/server', () => ({
                 if (payload) mocks.updates.push({ id, payload });
                 return chain;
             };
-            chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(resolve);
+            chain.then = (resolve: (value: unknown) => unknown) =>
+                Promise.resolve(payload ? { data: null, error: mocks.updateError } : { data: rows, error: null }).then(resolve);
             return chain;
         },
     }),
@@ -59,6 +61,9 @@ describe('runSendReminders', () => {
         mocks.updates = [];
         mocks.selects = [];
         mocks.emails = { 'u-1': 'giorgia@example.com' };
+        mocks.updateError = null;
+        vi.unstubAllEnvs();
+        vi.stubEnv('RESEND_API_KEY', 'test-key');
         vi.spyOn(console, 'info').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
@@ -104,6 +109,27 @@ describe('runSendReminders', () => {
 
         expect(result).toMatchObject({ sent: 1, failed: 1 });
         expect(mocks.updates.map((update) => update.id)).toEqual(['r-4']);
+    });
+
+    it('sends nothing and marks nothing when email is not configured', async () => {
+        vi.stubEnv('RESEND_API_KEY', '');
+        mocks.reminders = [reminder()];
+
+        const result = await runSendReminders();
+
+        // Without a provider sendEmail is a no-op: marking the reminder would lose it for good.
+        expect(result).toMatchObject({ sent: 0, failed: 0 });
+        expect(mocks.sendEmail).not.toHaveBeenCalled();
+        expect(mocks.updates).toEqual([]);
+    });
+
+    it('counts a reminder as failed when it cannot be marked as sent', async () => {
+        mocks.reminders = [reminder()];
+        mocks.updateError = { message: 'connection lost' };
+
+        const result = await runSendReminders();
+
+        expect(result).toMatchObject({ sent: 0, failed: 1 });
     });
 
     it('does not embed the polymorphic entity in the reminders query', async () => {

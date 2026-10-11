@@ -10,11 +10,22 @@ import { createAdminClient } from '../supabase/server';
  * both the HTTP route (routes/admin/send-reminders.ts) and the in-process
  * scheduler (src/scheduler.ts) can call it.
  *
+ * Two differences from that handler, both on purpose: the job does nothing
+ * when no email provider is configured, and a reminder that cannot be marked
+ * as sent counts as failed.
+ *
  * The entities a reminder points to are loaded per type by
  * loadReminderEntities: `reminders.entity_id` has no foreign key and cannot
  * be embedded in the query.
  */
 export async function runSendReminders(): Promise<{ success: true; sent: number; failed: number }> {
+    // Without a provider sendEmail() only logs and returns: marking reminders
+    // as sent here would consume them with no email ever leaving.
+    if (!process.env.RESEND_API_KEY) {
+        log.warn('[motonui][send-reminders] RESEND_API_KEY not set: nothing sent, nothing marked');
+        return { success: true, sent: 0, failed: 0 };
+    }
+
     const supabase = createAdminClient();
     const now = new Date().toISOString();
 
@@ -45,11 +56,14 @@ export async function runSendReminders(): Promise<{ success: true; sent: number;
 
             await sendEmail({ to: email, subject, html });
 
-            // Mark as sent
-            await supabase
+            // Mark as sent. Supabase returns the error instead of throwing: an
+            // unmarked reminder would be emailed again at every run, so it has
+            // to be visible as a failure.
+            const { error: markError } = await supabase
                 .from('reminders')
                 .update({ sent_at: now })
                 .eq('id', reminder.id);
+            if (markError) throw new Error(`could not mark reminder as sent: ${markError.message}`);
 
             sent++;
         } catch (err) {
