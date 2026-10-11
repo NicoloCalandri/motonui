@@ -1,5 +1,7 @@
 # Nextgen B1 — Shared Code Parity Implementation Plan
 
+> **Status (2026-10-11): tasks 1–7 done** on `worktree-nextgen-migration`.
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the domain code of the Hono API (`nextgen/apps/api/src/lib`) and the shared types a mechanical, checked copy of `src/lib`, so the two apps cannot drift again and the remaining route work (B2–B4) builds on current behaviour.
@@ -44,7 +46,7 @@ Measured before writing: of the 61 non-test modules in `src/lib`, only four depe
 
 `@anthropic-ai/sdk` is at `^0.27.0` (root `^0.131.0`), `@supabase/supabase-js` at `^2.45.0` (root `^2.117.2`), Tiptap is absent or at 2.x, Vitest is 4 (root 5). Align every package both apps use to the root's range; add `@tiptap/core`, `@tiptap/pm`, `@tiptap/html`, `@tiptap/starter-kit`, `@tiptap/extension-image`, `@tiptap/extension-link`, `happy-dom`.
 
-- [ ] Update, `npm install` in `nextgen/`, type-check, both suites. Fix what the newer versions break.
+- [x] Update, `npm install` in `nextgen/`, type-check, both suites. Fix what the newer versions break.
 
 ### Task 2: Port tool and parity test
 
@@ -72,7 +74,7 @@ The manifest gets a second target for `types/*`. Type errors surfaced in `apps/w
 
 Add to `PORTED` and run the tool: `wall-clock`, `json`, `url`, `redirect`, `airports`, `validation`, `auth/password`, `auth/admin-bypass`, `ai/models`, `ai/untrusted`, `ai/sse`, `sanitize`, `blog/content-schema`, `blog/render`, `blog/render-fixture`, `blog/public-posts`, `admin/impersonation-token`, `weather`, `media/process`, `media/captions`, `authz`, `currency`, `reminder-emails`.
 
-- [ ] One commit per group that type-checks; a module that turns out to need caller changes moves to Task 5 or 6.
+- [x] One commit per group that type-checks; a module that turns out to need caller changes moves to Task 5 or 6.
 
 ### Task 5: Expenses, quota and AI
 
