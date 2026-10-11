@@ -38,6 +38,7 @@ export const PORTED = [
     'redact.ts',
     'redirect.ts',
     'reminder-emails.ts',
+    'reminders.ts',
     'request-context.ts',
     'safe-fetch.ts',
     'sanitize.ts',
@@ -66,7 +67,6 @@ export const WITHOUT_TEST = {
 /** Not ported yet: the plan that will do it. The list only shrinks. */
 export const PENDING = {
     // B1, later tasks of the same plan
-    'reminders.ts': 'B1',
     // B2: private storage, upload pipeline, document and boarding-pass downloads
     'boarding-pass.ts': 'B2',
     'media/pipeline.ts': 'B2',
