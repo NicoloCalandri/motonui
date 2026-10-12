@@ -2,6 +2,7 @@ import { createMiddleware } from 'hono/factory';
 import type { Context } from 'hono';
 import { AppError, Errors, type ApiErrorResponse } from '../lib/errors';
 import { log } from '../lib/log';
+import { captureError } from '../lib/monitoring';
 import { requestIdFrom, runWithRequestId } from '../lib/request-context';
 import type { AppEnv } from '../types';
 
@@ -28,15 +29,16 @@ function json(c: Context, error: AppError): Response {
 
 /**
  * Turns a thrown value into the standard error response. Expected errors
- * (AppError) keep their message; anything else is logged in full (redacted)
- * and answered with the generic message.
+ * (AppError) keep their message; anything else is logged in full (redacted),
+ * reported to Sentry with the route and the request id, and answered with
+ * the generic message.
  */
 export function errorResponse(c: Context, error: unknown, routeInfo: string): Response {
     if (error instanceof AppError) {
         log.warn(`[motonui][${routeInfo}] ${error.code}`, { status: error.status, message: error.message });
         return json(c, error);
     }
-    log.error(`[motonui][${routeInfo}] unexpected error`, error);
+    captureError(error, { route: routeInfo, requestId: c.get('requestId') as string | undefined });
     return json(c, Errors.internal());
 }
 

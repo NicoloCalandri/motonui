@@ -89,6 +89,11 @@ describe('transform', () => {
         ].join('\n'));
     });
 
+    it('swaps the Next.js Sentry SDK for the Node one', () => {
+        expect(transform("import * as Sentry from '@sentry/nextjs';", 'monitoring.ts')).toBe("import * as Sentry from '@sentry/node';");
+        expect(transform("import type { ErrorEvent } from '@sentry/nextjs';", 'sentry.test.ts')).toBe("import type { ErrorEvent } from '@sentry/node';");
+    });
+
     it('leaves packages and unrelated strings alone', () => {
         const source = "import { z } from 'zod';\nconst label = 'a ./relative looking string';\nconst alias = 'see @/lib docs';";
         expect(transform(source, 'validation.ts')).toBe(source);

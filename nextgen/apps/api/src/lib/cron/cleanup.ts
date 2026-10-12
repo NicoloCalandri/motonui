@@ -1,3 +1,4 @@
+import { removeExpiredExportObjects } from '../instagram-cleanup';
 import { log } from '../log';
 import { removeStaleIncomingUploads } from '../media/pipeline';
 import { drainStorageDeletionQueue } from '../storage-deletion';
@@ -8,15 +9,14 @@ import { createAdminClient } from '../supabase/server';
  * src/app/api/admin/cleanup/route.ts, as a plain function so that both the
  * HTTP route (routes/admin/cleanup.ts) and the in-process scheduler
  * (src/scheduler.ts) can call it.
- *
- * Not ported yet: the ZIP objects of expired Instagram exports
- * (removeExpiredExportObjects), which come with the asynchronous export.
  */
 export async function runCleanup(): Promise<{ success: true; results: Record<string, number> }> {
     const supabase = createAdminClient();
     const results: Record<string, number> = {};
 
-    // Expired Instagram export rows (any status)
+    // Expired Instagram exports: objects first, then rows (any status)
+    results.removedExportObjects = await removeExpiredExportObjects(supabase);
+
     const { count: exportCount } = await supabase
         .from('instagram_exports')
         .delete({ count: 'exact' })

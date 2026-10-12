@@ -9,6 +9,7 @@
  *   '@/lib/types', '…/supabase/database.types'  →  '@motonui/shared-types'
  *   '@/lib/<module>'                              →  a relative path
  *   '@/test/<helper>'                             →  the relative path of apps/api/src/test/<helper>
+ *   '@sentry/nextjs'                              →  '@sentry/node' (same API for what src/lib uses)
  * Domain types (src/lib/types) and the database types go to
  * packages/shared-types; everything else to apps/api/src/lib.
  */
@@ -71,6 +72,7 @@ function rewrite(specifier, module) {
 export function transform(source, module) {
     const normalized = source.replace(/\r\n/g, '\n');
     return normalized
+        .replace(/(['"])@sentry\/nextjs\1/g, (_match, quote) => `${quote}@sentry/node${quote}`)
         .replace(/(['"])(@\/(?:lib|test)\/[^'"\n]+)\1/g, (_match, quote, specifier) => `${quote}${rewrite(specifier, module)}${quote}`)
         .replace(
             /(\bfrom\s+|\bimport\s*\(\s*|\bimport\s+|\bvi\.(?:mock|doMock|importActual|importMock)\(\s*)(['"])(\.{1,2}\/[^'"\n]+)\2/g,

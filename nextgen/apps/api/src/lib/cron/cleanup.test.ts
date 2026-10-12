@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     removeStaleIncomingUploads: vi.fn(),
     drainStorageDeletionQueue: vi.fn(),
+    removeExpiredExportObjects: vi.fn(),
+    order: [] as string[],
     calls: [] as Array<{ table: string; filters: string[] }>,
     rpcs: [] as string[],
 }));
@@ -12,11 +14,13 @@ vi.mock('../media/pipeline', async (importOriginal) => ({
     removeStaleIncomingUploads: mocks.removeStaleIncomingUploads,
 }));
 vi.mock('../storage-deletion', () => ({ drainStorageDeletionQueue: mocks.drainStorageDeletionQueue }));
+vi.mock('../instagram-cleanup', () => ({ removeExpiredExportObjects: mocks.removeExpiredExportObjects }));
 
 const client = {
     from: (table: string) => {
         const call = { table, filters: [] as string[] };
         mocks.calls.push(call);
+        mocks.order.push(`rows:${table}`);
         const chain: Record<string, unknown> = {};
         chain.delete = () => chain;
         for (const method of ['lt', 'eq']) {
@@ -45,6 +49,11 @@ describe('runCleanup', () => {
         mocks.rpcs = [];
         mocks.removeStaleIncomingUploads.mockResolvedValue(3);
         mocks.drainStorageDeletionQueue.mockResolvedValue(4);
+        mocks.order = [];
+        mocks.removeExpiredExportObjects.mockImplementation(async () => {
+            mocks.order.push('objects');
+            return 6;
+        });
         vi.spyOn(console, 'info').mockImplementation(() => {});
     });
 
@@ -60,6 +69,14 @@ describe('runCleanup', () => {
 
         expect(mocks.drainStorageDeletionQueue).toHaveBeenCalledWith(client);
         expect(results.deletedAccountFiles).toBe(4);
+    });
+
+    it('removes the ZIP of an expired export before its row', async () => {
+        const { results } = await runCleanup();
+
+        expect(mocks.removeExpiredExportObjects).toHaveBeenCalledWith(client);
+        expect(results.removedExportObjects).toBe(6);
+        expect(mocks.order.indexOf('objects')).toBeLessThan(mocks.order.indexOf('rows:instagram_exports'));
     });
 
     it('deletes expired export rows whatever their status', async () => {

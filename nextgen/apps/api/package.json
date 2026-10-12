@@ -16,6 +16,7 @@
     "@anthropic-ai/sdk": "^0.131.0",
     "@hono/node-server": "^1.13.7",
     "@motonui/shared-types": "*",
+    "@sentry/node": "^11.7.0",
     "@supabase/supabase-js": "^2.117.2",
     "@tiptap/core": "^3.31.4",
     "@tiptap/extension-image": "^3.31.4",

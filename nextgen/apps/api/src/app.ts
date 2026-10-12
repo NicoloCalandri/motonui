@@ -26,7 +26,8 @@ import { tripsBaggageRouter } from './routes/trips-baggage';
 import { tripsPackingRouter } from './routes/trips-packing';
 import { tripsStatsRouter } from './routes/trips-stats';
 import { aiRouter } from './routes/ai';
-import { instagramRouter } from './routes/instagram';
+import { tripsInstagramRouter } from './routes/trips-instagram';
+import { sentryTestRouter } from './routes/admin/sentry-test';
 import { postsRouter } from './routes/posts';
 import { cleanupRouter } from './routes/admin/cleanup';
 import { sendRemindersRouter } from './routes/admin/send-reminders';
@@ -78,9 +79,9 @@ export function createApp() {
     app.use('/api/trips/:id/documents', rateLimit('fileUpload'));
     app.use('/api/trips/:id/days/:dayId/legs/:legId/boarding-pass', rateLimit('fileUpload'));
     app.use('/api/trips/:id/packing', rateLimit('ai'));
+    app.use('/api/trips/:id/instagram/exports', rateLimit('instagramExport'));
     app.use('/api/profile/avatar', requireUser, rateLimit('fileUpload'));
     app.use('/api/ai/*', requireUser, rateLimit('ai'));
-    app.use('/api/instagram/*', requireUser, rateLimit('instagramExport'));
     app.use('/api/posts/:slug', rateLimitByIp('publicPost'));
 
     app.route('/api/trips', tripsRouter);
@@ -94,6 +95,7 @@ export function createApp() {
     app.route('/api/trips/:id/activities', tripsActivitiesRouter);
     app.route('/api/trips/:id/documents', tripsDocumentsRouter);
     app.route('/api/trips/:id/invites', tripsInvitesRouter);
+    app.route('/api/trips/:id/instagram', tripsInstagramRouter);
     app.route('/api/trips/:id/expenses', tripsExpensesRouter);
     app.route('/api/trips/:id/media', tripsMediaRouter);
     app.route('/api/trips/:id/posts', tripsPostsRouter);
@@ -108,12 +110,12 @@ export function createApp() {
     app.route('/api/invites', invitesRouter);
     app.route('/api/posts', postsRouter);
     app.route('/api/ai', aiRouter);
-    app.route('/api/instagram', instagramRouter);
 
     // ── Admin ────────────────────────────────────────────────────────────────
     app.route('/api/admin/cleanup', cleanupRouter);
     app.route('/api/admin/send-reminders', sendRemindersRouter);
     app.route('/api/admin/stats', adminStatsRouter);
+    app.route('/api/admin/sentry-test', sentryTestRouter);
     app.route('/api/admin/audit-log', auditLogRouter);
     app.route('/api/admin/features', featuresRouter);
     app.route('/api/admin/users', adminUsersRouter);

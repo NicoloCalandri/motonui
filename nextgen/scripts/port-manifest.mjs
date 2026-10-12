@@ -7,6 +7,7 @@
 
 /** Copied by `node scripts/port-lib.mjs`. Never edit the copy: edit src/lib and re-run. */
 export const PORTED = [
+    'admin/impersonation-token.ts',
     'ai/blog-assistant.ts',
     'ai/destination.ts',
     'ai/models.ts',
@@ -15,7 +16,6 @@ export const PORTED = [
     'ai/sse.ts',
     'ai/trip-summary.ts',
     'ai/untrusted.ts',
-    'admin/impersonation-token.ts',
     'airports.ts',
     'auth/admin-bypass.ts',
     'auth/cron.ts',
@@ -31,12 +31,16 @@ export const PORTED = [
     'email.ts',
     'expenses.ts',
     'html.ts',
+    'instagram-cleanup.ts',
     'invites.ts',
     'json.ts',
     'log.ts',
     'media/captions.ts',
+    'media/instagram-export.ts',
+    'media/instagram-slides.ts',
     'media/pipeline.ts',
     'media/process.ts',
+    'monitoring.ts',
     'premium/access.ts',
     'rate-limit.ts',
     'redact.ts',
@@ -46,6 +50,7 @@ export const PORTED = [
     'request-context.ts',
     'safe-fetch.ts',
     'sanitize.ts',
+    'sentry.ts',
     'storage-deletion.ts',
     'storage.ts',
     'supabase/database.types.ts',
@@ -74,10 +79,6 @@ export const WITHOUT_TEST = {
 
 /** Not ported yet: the plan that will do it. The list only shrinks. */
 export const PENDING = {
-    // B4: asynchronous Instagram export, monitoring
-    'instagram-cleanup.ts': 'B4',
-    'media/instagram-export.ts': 'B4',
-    'media/instagram-slides.ts': 'B4',
 };
 
 /** Not ported on purpose: where the Hono app has its own counterpart, or why it needs none. */
@@ -92,8 +93,6 @@ export const EXCLUDED = {
     'fetcher.ts': 'browser only: apps/web uses its own api-client',
     'hooks/use-profile.ts': 'React hook: belongs to apps/web',
     'media/upload-client.ts': 'browser only: belongs to apps/web',
-    'monitoring.ts': 'imports @sentry/nextjs: error capture for Hono comes with B4',
-    'sentry.ts': 'imports @sentry/nextjs: comes with B4',
     'supabase/client.ts': 'browser client: belongs to apps/web',
     'supabase/middleware.ts': 'Next.js middleware session refresh: no counterpart with bearer tokens',
     'supabase/public.ts': 'anon client: Hono has createAnonClient in lib/supabase/server.ts',

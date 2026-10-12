@@ -42,7 +42,7 @@ const LIMITED: Array<[string, string, keyof typeof RATE_LIMITS, 'user' | 'ip']> 
     ['POST', '/api/ai/blog', 'ai', 'user'],
     ['POST', '/api/ai/destination', 'ai', 'user'],
     ['POST', '/api/ai/generate-post', 'ai', 'user'],
-    ['POST', '/api/instagram/generate', 'instagramExport', 'user'],
+    ['POST', `/api/trips/${TRIP}/instagram/exports`, 'instagramExport', 'user'],
     ['POST', `/api/trips/${TRIP}/media/uploads`, 'mediaUpload', 'user'],
     ['POST', `/api/trips/${TRIP}/media/confirm`, 'mediaUpload', 'user'],
     ['POST', `/api/trips/${TRIP}/documents`, 'fileUpload', 'user'],

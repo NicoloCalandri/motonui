@@ -21,6 +21,7 @@ export const env = {
 };
 
 // Modules copied from src/lib (scripts/port-lib.mjs) read the Supabase URL
-// under the name the Next.js app gives it. One alias here keeps the copies
-// identical to their source.
+// and the Sentry DSN under the names the Next.js app gives them. The aliases
+// here keep the copies identical to their source.
 process.env.NEXT_PUBLIC_SUPABASE_URL ??= env.SUPABASE_URL;
+if (process.env.SENTRY_DSN) process.env.NEXT_PUBLIC_SENTRY_DSN ??= process.env.SENTRY_DSN;

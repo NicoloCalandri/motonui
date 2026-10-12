@@ -13,14 +13,8 @@ import { createApp } from '../app';
 const NEXT_API = join(process.cwd(), '..', '..', '..', 'src', 'app', 'api');
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 
-/** Routes of the Next.js API not ported yet: the to-do list of sub-plan B. */
+/** Routes of the Next.js API not ported yet. Empty since sub-plan B: a new Next.js route must be ported or listed here. */
 const KNOWN_GAPS: string[] = [
-    // Asynchronous Instagram export (202 + polling)
-    'GET /api/trips/:param/instagram/exports',
-    'POST /api/trips/:param/instagram/exports',
-    'GET /api/trips/:param/instagram/exports/:param',
-    // Monitoring
-    'GET /api/admin/sentry-test',
 ];
 
 /** Routes only Hono serves: leftovers of the old API, or Hono-only utilities. Same rule: the list only shrinks. */
@@ -29,9 +23,6 @@ const KNOWN_EXTRAS: string[] = [
     'GET /api/health',
     'POST /api/admin/cleanup',
     'POST /api/admin/send-reminders',
-    // Old behaviour, removed when sub-plan B ports its replacement:
-    // synchronous export (now POST …/instagram/exports).
-    'POST /api/instagram/generate',
 ];
 
 function routeFiles(dir: string): string[] {
