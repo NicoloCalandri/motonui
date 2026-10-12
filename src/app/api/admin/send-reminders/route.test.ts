@@ -51,7 +51,8 @@ function reminder(overrides: Record<string, unknown> = {}) {
 }
 
 async function run(authorization = `Bearer ${CRON_SECRET}`) {
-    const response = await GET(new Request('http://localhost/api/admin/send-reminders', { headers: { authorization } }));
+    const request = new Request('https://motonui.app/api/admin/send-reminders', { headers: { authorization } });
+    const response = await GET(request, { params: Promise.resolve({}) });
     return { status: response.status, body: await response.json() };
 }
 
