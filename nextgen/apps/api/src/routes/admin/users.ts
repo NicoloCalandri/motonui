@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { setCookie } from 'hono/cookie';
 import { createImpersonationToken, IMPERSONATION_DURATION_SECONDS } from '../../lib/admin/impersonation-token';
+import { passwordSchema } from '../../lib/auth/password';
 import { log } from '../../lib/log';
 import { drainStorageDeletionQueue } from '../../lib/storage-deletion';
 import { createAdminClient } from '../../lib/supabase/server';
@@ -29,7 +30,7 @@ const QuerySchema = z.object({
 
 const CreateUserSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: passwordSchema,
     displayName: z.string().min(1).optional(),
     role: z.enum(['user', 'admin']).default('user'),
     plan: z.enum(['free', 'premium']).default('free'),

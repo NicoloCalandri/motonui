@@ -6,12 +6,13 @@ const mockUser = { id: 'user-1', email: 'user@example.com' };
 
 const mockGetUser = vi.fn().mockResolvedValue({ data: { user: mockUser } });
 const mockTripMembersSelect = vi.fn();
-const mockTripsInsert = vi.fn();
-const mockTripMembersInsert = vi.fn();
+const mockRpc = vi.fn();
+const adminCalls: string[] = [];
 
 function makeUserSupabaseStub() {
     return {
         auth: { getUser: mockGetUser },
+        rpc: mockRpc,
         from: (table: string) => {
             if (table === 'trip_members') {
                 return { select: mockTripMembersSelect };
@@ -31,12 +32,12 @@ function makeUserSupabaseStub() {
     };
 }
 
+/** Creating a trip must not need the service role: any use of it is recorded. */
 function makeAdminSupabaseStub() {
     return {
         from: (table: string) => {
-            if (table === 'trips') return { insert: mockTripsInsert };
-            if (table === 'trip_members') return { insert: mockTripMembersInsert };
-            throw new Error(`unexpected table: ${table}`);
+            adminCalls.push(table);
+            throw new Error(`service role used on ${table}`);
         },
     };
 }
@@ -58,8 +59,11 @@ beforeEach(() => {
     mockGetUser.mockClear();
     mockGetUser.mockResolvedValue({ data: { user: mockUser } });
     mockTripMembersSelect.mockReset();
-    mockTripsInsert.mockReset();
-    mockTripMembersInsert.mockReset();
+    mockRpc.mockReset();
+    mockRpc.mockResolvedValue({ data: { id: 't1', title: 'Giappone', destination: 'Tokyo' }, error: null });
+    adminCalls.length = 0;
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 describe('GET /api/trips', () => {
@@ -108,27 +112,48 @@ describe('POST /api/trips', () => {
         expect(body.code).toBe('VALIDATION_ERROR');
     });
 
-    it('creates a trip and adds the caller as owner member', async () => {
-        mockTripsInsert.mockReturnValue({
-            select: () => ({
-                single: () =>
-                    Promise.resolve({ data: { id: 't1', title: 'Giappone', destination: 'Tokyo' }, error: null }),
-            }),
-        });
-        mockTripMembersInsert.mockResolvedValue({ error: null });
-
-        const app = buildApp();
-        const res = await app.request('/api/trips', {
+    const create = (body: Record<string, unknown>) =>
+        buildApp().request('/api/trips', {
             method: 'POST',
             headers: { Authorization: 'Bearer valid-token', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: 'Giappone', destination: 'Tokyo' }),
+            body: JSON.stringify(body),
         });
 
+    it('creates the trip and its owner in one database call, with the caller\'s session', async () => {
+        const res = await create({ title: 'Giappone', destination: 'Tokyo', start_date: '2026-11-01', description: 'Autunno' });
+
         expect(res.status).toBe(201);
-        expect(mockTripMembersInsert).toHaveBeenCalledWith({
-            trip_id: 't1',
-            user_id: mockUser.id,
-            role: 'owner',
+        expect(await res.json()).toMatchObject({ id: 't1' });
+        expect(mockRpc).toHaveBeenCalledWith('create_trip', {
+            p_title: 'Giappone',
+            p_destination: 'Tokyo',
+            p_start_date: '2026-11-01',
+            p_end_date: undefined,
+            p_description: 'Autunno',
+            p_cover_image: undefined,
         });
+        expect(adminCalls).toEqual([]);
+    });
+
+    it('treats an empty date as no date', async () => {
+        await create({ title: 'Giappone', destination: 'Tokyo', start_date: '', end_date: '' });
+
+        expect(mockRpc.mock.calls[0][1]).toMatchObject({ p_start_date: undefined, p_end_date: undefined });
+    });
+
+    it.each(['domani', '2026-13-40', '01/11/2026'])('refuses the date %s', async (start_date) => {
+        const res = await create({ title: 'Giappone', destination: 'Tokyo', start_date });
+
+        expect(res.status).toBe(400);
+        expect(mockRpc).not.toHaveBeenCalled();
+    });
+
+    it('answers 500 without the database message when the trip cannot be created', async () => {
+        mockRpc.mockResolvedValue({ data: null, error: { message: 'relation "secret_table" does not exist' } });
+
+        const res = await create({ title: 'Giappone', destination: 'Tokyo' });
+
+        expect(res.status).toBe(500);
+        expect(await res.text()).not.toContain('secret_table');
     });
 });

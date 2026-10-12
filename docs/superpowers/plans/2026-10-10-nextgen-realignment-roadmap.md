@@ -77,6 +77,16 @@ Port the route wrapper and the security plumbing to Hono, then put every existin
 > **Split into B1–B4 (2026-10-10).** **B1 done**, plan `2026-10-10-nextgen-b1-shared-code-parity.md`: library modules are now copied from `src/lib` by `nextgen/scripts/port-lib.mjs` and compared with their source on every test run (`lib-parity.test.ts`); 50 modules and the shared types are ported, 11 are pending with their plan in `nextgen/scripts/port-manifest.mjs` (B2 storage and uploads: 6, B3 invites and impersonation tokens: 2, B4 Instagram export: 3), 16 are excluded with a reason. After a change in `src/lib`: `npm run port:lib` in `nextgen/`.
 >
 > **Finding to plan for:** the route handlers themselves are hand copies of the September handlers, and library parity does not cover them. The three AI handlers were re-ported in B1 (one summed unconverted expense amounts); the others still need a route-by-route comparison with `src/app/api`. This is a fifth piece of B, to size before B2.
+>
+> **Handler comparison done (2026-10-13).** `nextgen/scripts/handler-drift.mjs` compares, resource by resource, what the Next.js and the Hono handlers mention (tables, RPCs, schema fields with their rules, library functions, user-facing messages); `routes/handler-drift.test.ts` runs it on every test run and fails on a difference that is not listed with its reason. It found and fixed: trips created with the service role instead of `create_trip()`, post content not sanitized on update (the defect fixed in the Next.js app by PR #152), admin-created users accepted with a 6-character password, AI calls counted from the retired `ai_usage` table. It is evidence, not proof: two handlers can mention the same things and use them differently.
+>
+> **B2 done (2026-10-12)**, plan `2026-10-12-nextgen-b2-private-storage.md`: private buckets, signed upload and confirm, signed URLs, authenticated proxy for documents and boarding passes, files removed with their row, storage deletion queue.
+>
+> **B3 done (2026-10-12)**, plan `2026-10-12-nextgen-b3-invites-account.md`: partner invites, account deletion, impersonation tokens stored hashed and revocable, admin deletion through `purge_user_data`. Found on the way: the Hono API stored the impersonation JWT itself and honoured `ADMIN_AUTH_BYPASS` in production.
+>
+> **B4 done (2026-10-13)**, plan `2026-10-12-nextgen-b4-async-export-monitoring.md`: Instagram export as a job (202 + polling), Sentry through `@sentry/node`. It assumes a long-running Node process, like the in-process scheduler; `lib/background.ts` is the one file to change otherwise.
+>
+> **Sub-plan B is complete:** every route of the Next.js API has a Hono counterpart (`KNOWN_GAPS` is empty), every module of `src/lib` is ported or excluded with a reason (`PENDING` is empty). `apps/web` still calls the routes that were replaced (upload in the request body, synchronous export, `boarding_pass_url`): that is sub-plan C.
 
 Port what section 1.1–1.3 lists, in dependency order: storage (private buckets, paths, signed URLs, deletion queue) → upload pipeline → documents proxy → invites → account deletion → Instagram async export → AI (untrusted blocks, quota RPC, models) → expenses and currency → reminders cron (`reminder-emails.ts`, real deadlines) → post sanitizing.
 

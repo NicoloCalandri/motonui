@@ -13,6 +13,7 @@
     "lint": "npm run lint -w apps/web && npm run lint -w apps/api",
     "type-check": "npm run type-check -w apps/web && npm run type-check -w apps/api",
     "port:lib": "node scripts/port-lib.mjs",
-    "port:check": "node scripts/port-lib.mjs --check"
+    "port:check": "node scripts/port-lib.mjs --check",
+    "handlers:check": "node scripts/handler-drift.mjs"
   }
 }

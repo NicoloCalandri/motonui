@@ -103,7 +103,8 @@ expensesRouter.delete(
         const { error } = await supabase
             .from('expenses')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('trip_id', currentExpense.trip_id);
 
         if (error) throw Errors.notFound('Spesa');
 

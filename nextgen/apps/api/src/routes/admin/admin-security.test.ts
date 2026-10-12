@@ -19,11 +19,14 @@ const state = vi.hoisted(() => ({
     writes: [] as Array<{ table: string; op: string; payload?: Record<string, unknown>; filters: Array<[string, unknown]> }>,
     events: [] as string[],
     purgeError: null as null | { message: string },
+    lists: {} as Record<string, Array<Record<string, unknown>>>,
+    tables: [] as string[],
 }));
 const mocks = vi.hoisted(() => ({ drain: vi.fn() }));
 
 function stubClient() {
     const builder = (table: string) => {
+        state.tables.push(table);
         let write: Write | null = null;
         const chain: Record<string, unknown> = {};
         for (const method of ['select', 'order', 'limit']) chain[method] = () => chain;
@@ -41,13 +44,19 @@ function stubClient() {
         const row = { id: TARGET, display_name: 'Giorgia', email: 'giorgia@example.com', role: state.role, suspended_at: null };
         chain.single = async () => ({ data: row, error: null });
         chain.maybeSingle = async () => ({ data: row, error: null });
-        chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ data: [row], error: null }).then(resolve);
+        chain.then = (resolve: (value: unknown) => unknown) =>
+            Promise.resolve({ data: state.lists[table] ?? [row], count: 7, error: null }).then(resolve);
         return chain;
     };
     return {
         auth: {
             getUser: async () => ({ data: { user: ADMIN } }),
             admin: {
+                listUsers: async () => ({ data: { users: [] }, error: null }),
+                createUser: async () => {
+                    state.events.push('createUser');
+                    return { data: { user: { id: TARGET } }, error: null };
+                },
                 deleteUser: async () => {
                     state.events.push('deleteUser');
                     return { error: null };
@@ -100,6 +109,8 @@ beforeEach(() => {
     state.writes = [];
     state.events = [];
     state.purgeError = null;
+    state.lists = {};
+    state.tables = [];
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -182,5 +193,40 @@ describe('ADMIN_AUTH_BYPASS', () => {
         const res = await call('GET', '/api/admin/stats');
 
         expect(res.status).not.toBe(403);
+    });
+});
+
+describe('POST /api/admin/users', () => {
+    const createUser = (password: string) => call('POST', '/api/admin/users', { body: { email: 'new@example.com', password } });
+
+    it.each([
+        ['shorter than 10 characters', 'abc12345'],
+        ['without a number', 'abcdefghijkl'],
+        ['without a letter', '1234567890123'],
+    ])('refuses a password %s', async (_label, password) => {
+        const res = await createUser(password);
+
+        expect(res.status).toBe(400);
+        expect(state.events).toEqual([]);
+    });
+
+    it('accepts a password that meets the policy of the app', async () => {
+        const res = await createUser('una-password-lunga-1');
+
+        expect(res.status).toBeLessThan(300);
+        expect(state.events).toEqual(['createUser']);
+    });
+});
+
+describe('GET /api/admin/stats', () => {
+    it('counts AI calls from the daily usage counters', async () => {
+        state.lists.usage_counters = [{ usage_count: 3 }, { usage_count: 4 }];
+
+        const res = await call('GET', '/api/admin/stats');
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({ totalAiCalls: 7, totalUsers: 7 });
+        expect(state.tables).toContain('usage_counters');
+        expect(state.tables).not.toContain('ai_usage');
     });
 });
