@@ -16,6 +16,13 @@ import { log } from '@/lib/log';
 export const GET = withErrorHandler(async (request) => {
     if (!isAuthorizedCronRequest(request)) throw Errors.unauthorized();
 
+    // Without a provider sendEmail() only logs and returns: marking reminders
+    // as sent here would consume them with no email ever leaving.
+    if (!process.env.RESEND_API_KEY) {
+        log.warn('[motonui][send-reminders] RESEND_API_KEY not set: nothing sent, nothing marked');
+        return ok({ success: true, sent: 0, failed: 0 });
+    }
+
     const supabase = await createAdminClient();
     const now = new Date().toISOString();
 
@@ -47,11 +54,14 @@ export const GET = withErrorHandler(async (request) => {
 
             await sendEmail({ to: email, subject, html });
 
-            // Mark as sent
-            await supabase
+            // Mark as sent. Supabase returns the error instead of throwing: an
+            // unmarked reminder would be emailed again at every run, so it has
+            // to be visible as a failure.
+            const { error: markError } = await supabase
                 .from('reminders')
                 .update({ sent_at: now })
                 .eq('id', reminder.id);
+            if (markError) throw new Error(`could not mark reminder as sent: ${markError.message}`);
 
             sent++;
         } catch (err) {
