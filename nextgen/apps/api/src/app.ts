@@ -8,6 +8,9 @@ import { requireUser } from './middleware/auth';
 import { tripGuard } from './middleware/trip-guard';
 import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
+import { accountRouter } from './routes/account';
+import { invitesRouter } from './routes/invites';
+import { tripsInvitesRouter } from './routes/trips-invites';
 import { tripsDaysRouter } from './routes/trips-days';
 import { tripsLegsRouter, tripsDayLegsRouter } from './routes/trips-legs';
 import { tripsBoardingPassRouter } from './routes/trips-boarding-pass';
@@ -90,6 +93,7 @@ export function createApp() {
     app.route('/api/trips/:id/restaurants', tripsRestaurantsRouter);
     app.route('/api/trips/:id/activities', tripsActivitiesRouter);
     app.route('/api/trips/:id/documents', tripsDocumentsRouter);
+    app.route('/api/trips/:id/invites', tripsInvitesRouter);
     app.route('/api/trips/:id/expenses', tripsExpensesRouter);
     app.route('/api/trips/:id/media', tripsMediaRouter);
     app.route('/api/trips/:id/posts', tripsPostsRouter);
@@ -100,6 +104,8 @@ export function createApp() {
     // ── Top-level resources ─────────────────────────────────────────────────
     app.route('/api/expenses', expensesRouter);
     app.route('/api/profile', profileRouter);
+    app.route('/api/account', accountRouter);
+    app.route('/api/invites', invitesRouter);
     app.route('/api/posts', postsRouter);
     app.route('/api/ai', aiRouter);
     app.route('/api/instagram', instagramRouter);

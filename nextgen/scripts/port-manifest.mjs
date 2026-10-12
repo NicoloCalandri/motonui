@@ -15,6 +15,7 @@ export const PORTED = [
     'ai/sse.ts',
     'ai/trip-summary.ts',
     'ai/untrusted.ts',
+    'admin/impersonation-token.ts',
     'airports.ts',
     'auth/admin-bypass.ts',
     'auth/cron.ts',
@@ -30,6 +31,7 @@ export const PORTED = [
     'email.ts',
     'expenses.ts',
     'html.ts',
+    'invites.ts',
     'json.ts',
     'log.ts',
     'media/captions.ts',
@@ -72,11 +74,6 @@ export const WITHOUT_TEST = {
 
 /** Not ported yet: the plan that will do it. The list only shrinks. */
 export const PENDING = {
-    // B3: partner invites; impersonation tokens with revocation (the module reads
-    // NEXT_PUBLIC_SUPABASE_URL and calls the REST API directly, and middleware/impersonation.ts
-    // does not use it yet)
-    'admin/impersonation-token.ts': 'B3',
-    'invites.ts': 'B3',
     // B4: asynchronous Instagram export, monitoring
     'instagram-cleanup.ts': 'B4',
     'media/instagram-export.ts': 'B4',

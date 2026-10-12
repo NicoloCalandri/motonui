@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { setCookie } from 'hono/cookie';
-import { SignJWT } from 'jose';
+import { createImpersonationToken, IMPERSONATION_DURATION_SECONDS } from '../../lib/admin/impersonation-token';
+import { log } from '../../lib/log';
+import { drainStorageDeletionQueue } from '../../lib/storage-deletion';
 import { createAdminClient } from '../../lib/supabase/server';
 import { requireParam, readJsonObject } from '../../lib/http';
 import { requireUser } from '../../middleware/auth';
@@ -362,10 +364,19 @@ usersRouter.delete('/:id', async (c) => {
 
     await writeAuditLog(supabase, adminId, 'delete', id, { email: userRow.email });
 
-    const { error } = await supabase.auth.admin.deleteUser(id);
+    // Same purge as self-service deletion (migration 0022): shared trips pass
+    // to the partner instead of cascading away, files are queued.
+    const { error: purgeError } = await supabase.rpc('purge_user_data', { p_user: id });
+    const { error } = purgeError ? { error: purgeError } : await supabase.auth.admin.deleteUser(id);
     if (error) {
-        console.error('[admin/users DELETE]', error.message);
+        log.error('[admin/users DELETE]', error.message);
         return c.json({ error: "Impossibile eliminare l'utente.", code: 'INTERNAL_ERROR', status: 500 }, 500);
+    }
+
+    try {
+        await drainStorageDeletionQueue(supabase);
+    } catch (err) {
+        log.error('[admin/users DELETE] storage cleanup deferred', err);
     }
 
     return c.json({ deleted: true });
@@ -427,8 +438,6 @@ usersRouter.post('/:id/unsuspend', async (c) => {
     return c.json({ unsuspended: true });
 });
 
-const IMPERSONATION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
-const IMPERSONATION_DURATION_SECONDS = IMPERSONATION_DURATION_MS / 1000;
 
 /** POST /api/admin/users/:id/impersonate */
 usersRouter.post('/:id/impersonate', async (c) => {
@@ -437,7 +446,7 @@ usersRouter.post('/:id/impersonate', async (c) => {
 
     const secret = env.ADMIN_IMPERSONATION_SECRET;
     if (!secret || secret.length < 32) {
-        console.error('[admin/impersonate] ADMIN_IMPERSONATION_SECRET is missing or too short');
+        log.error('[admin/impersonate] ADMIN_IMPERSONATION_SECRET is missing or too short');
         return c.json({ error: 'Configurazione server non corretta.', code: 'INTERNAL_ERROR', status: 500 }, 500);
     }
 
@@ -453,25 +462,15 @@ usersRouter.post('/:id/impersonate', async (c) => {
         return c.json({ error: 'Utente non trovato.', code: 'NOT_FOUND', status: 404 }, 404);
     }
 
-    const expiresAt = Date.now() + IMPERSONATION_DURATION_MS;
+    // Signed with a random jti; only SHA-256(jti) is stored, so a database
+    // leak does not leak usable tokens and exit can revoke by jti.
+    const { token, jtiHash, expiresAt } = await createImpersonationToken({ adminId, targetId }, secret);
 
-    const secretKey = new TextEncoder().encode(secret);
-    const token = await new SignJWT({
-        adminId,
-        targetId,
-        expiresAt,
-        type: 'impersonation',
-    })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setExpirationTime('30m')
-        .sign(secretKey);
-
-    const expiresAtDate = new Date(expiresAt).toISOString();
-    await (supabase as any).from('impersonation_tokens').insert({
+    await supabase.from('impersonation_tokens').insert({
         admin_id: adminId,
         target_id: targetId,
-        token,
-        expires_at: expiresAtDate,
+        token: jtiHash,
+        expires_at: expiresAt.toISOString(),
     });
 
     await writeAuditLog(supabase, adminId, 'impersonate', targetId, { display_name: targetProfile.display_name });

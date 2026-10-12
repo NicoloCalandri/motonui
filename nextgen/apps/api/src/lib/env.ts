@@ -1,3 +1,9 @@
+import { assertNoAdminBypassInProduction } from './auth/admin-bypass';
+
+// The development bypass of the admin checks must never reach production:
+// the process refuses to start, like `next build` does for the Next.js app.
+assertNoAdminBypassInProduction();
+
 function required(name: string): string {
     const value = process.env[name];
     if (!value) throw new Error(`Missing required environment variable: ${name}`);
@@ -9,7 +15,6 @@ export const env = {
     SUPABASE_ANON_KEY: required('SUPABASE_ANON_KEY'),
     SUPABASE_SERVICE_ROLE_KEY: required('SUPABASE_SERVICE_ROLE_KEY'),
     ADMIN_IMPERSONATION_SECRET: process.env.ADMIN_IMPERSONATION_SECRET ?? '',
-    ADMIN_AUTH_BYPASS: process.env.ADMIN_AUTH_BYPASS === 'true',
     ENABLE_CRON: process.env.ENABLE_CRON === 'true',
     NODE_ENV: process.env.NODE_ENV ?? 'development',
     PORT: Number(process.env.PORT ?? 3001),

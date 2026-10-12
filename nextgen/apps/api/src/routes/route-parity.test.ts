@@ -15,17 +15,11 @@ const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 
 /** Routes of the Next.js API not ported yet: the to-do list of sub-plan B. */
 const KNOWN_GAPS: string[] = [
-    // Partner invites (migration 0021, src/lib/invites.ts)
-    'GET /api/trips/:param/invites',
-    'POST /api/trips/:param/invites',
-    'DELETE /api/trips/:param/invites/:param',
-    'POST /api/invites/accept',
     // Asynchronous Instagram export (202 + polling)
     'GET /api/trips/:param/instagram/exports',
     'POST /api/trips/:param/instagram/exports',
     'GET /api/trips/:param/instagram/exports/:param',
-    // Account and monitoring
-    'POST /api/account/delete',
+    // Monitoring
     'GET /api/admin/sentry-test',
 ];
 

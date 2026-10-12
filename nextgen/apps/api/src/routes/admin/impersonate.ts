@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { getCookie, deleteCookie } from 'hono/cookie';
+import { hashJti, readJti } from '../../lib/admin/impersonation-token';
 import { createAdminClient } from '../../lib/supabase/server';
 import { requireUser } from '../../middleware/auth';
 import { loadProfile } from '../../middleware/profile';
@@ -16,10 +17,11 @@ export const impersonateExitRouter = new Hono<AppEnv>();
  */
 impersonateExitRouter.post('/exit', requireUser, loadProfile, requireAdmin, async (c) => {
     const token = getCookie(c, 'impersonation_token');
+    const jti = token ? readJti(token) : null;
 
-    if (token) {
-        const supabase = createAdminClient();
-        await (supabase as any).from('impersonation_tokens').delete().eq('token', token);
+    if (jti) {
+        // Revoke: the middleware refuses tokens whose jti hash is no longer stored.
+        await createAdminClient().from('impersonation_tokens').delete().eq('token', await hashJti(jti));
     }
 
     deleteCookie(c, 'impersonation_token', { path: '/' });

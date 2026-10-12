@@ -15,9 +15,11 @@ function sourceFiles(dir: string): string[] {
 
 describe('outbound requests', () => {
     it('go through safeFetch: no other file calls fetch() directly', () => {
-        // The only exceptions: safeFetch itself, and the download of our own
-        // storage objects, which is checked by isOwnStorageUrl.
-        const allowed = new Set(['lib/safe-fetch.ts', 'lib/media/instagram-export.ts']);
+        // The only exceptions: safeFetch itself, the download of our own
+        // storage objects, which is checked by isOwnStorageUrl, and the
+        // revocation check of impersonation tokens, which queries a fixed path
+        // of our own Supabase project (the URL comes from the environment).
+        const allowed = new Set(['lib/safe-fetch.ts', 'lib/media/instagram-export.ts', 'lib/admin/impersonation-token.ts']);
         const offenders = sourceFiles(SRC)
             .filter((path) => /(^|[^.\w])fetch\(/.test(readFileSync(path, 'utf8')))
             .map((path) => relative(SRC, path).split(sep).join('/'))

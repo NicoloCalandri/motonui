@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { Hono } from 'hono';
 import { SignJWT } from 'jose';
+
+const tokens = vi.hoisted(() => ({ active: vi.fn() }));
+
+vi.mock('../lib/admin/impersonation-token', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('../lib/admin/impersonation-token')>()),
+    isImpersonationTokenActive: tokens.active,
+}));
+
 import { handleImpersonation } from './impersonation';
 import type { AppEnv } from '../types';
 
@@ -10,6 +18,7 @@ async function signToken(payload: Record<string, unknown>) {
     const secretKey = new TextEncoder().encode(SECRET);
     return new SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256' })
+        .setJti('jti-1')
         .setExpirationTime('30m')
         .sign(secretKey);
 }
@@ -24,6 +33,39 @@ function buildApp() {
 }
 
 describe('handleImpersonation middleware', () => {
+    beforeEach(() => {
+        tokens.active.mockReset();
+        tokens.active.mockResolvedValue(true);
+    });
+
+    it('ignores a token that was revoked and clears the cookie', async () => {
+        tokens.active.mockResolvedValue(false);
+        const app = buildApp();
+        const token = await signToken({ adminId: 'admin-1', targetId: 'user-1', type: 'impersonation' });
+
+        const res = await app.request('/api/trips', {
+            method: 'POST',
+            headers: { Cookie: `impersonation_token=${token}` },
+        });
+
+        expect(tokens.active).toHaveBeenCalledWith('jti-1');
+        expect(res.status).toBe(200);
+        expect(res.headers.get('set-cookie') ?? '').toContain('impersonation_token=;');
+    });
+
+    it('ignores a token that is not an impersonation token', async () => {
+        const app = buildApp();
+        const token = await signToken({ adminId: 'admin-1', targetId: 'user-1', type: 'session' });
+
+        const res = await app.request('/api/trips', {
+            method: 'POST',
+            headers: { Cookie: `impersonation_token=${token}` },
+        });
+
+        expect(res.status).toBe(200);
+        expect(res.headers.get('set-cookie') ?? '').toContain('impersonation_token=;');
+    });
+
     it('passes through with no impersonation cookie', async () => {
         const app = buildApp();
         const res = await app.request('/api/trips');
