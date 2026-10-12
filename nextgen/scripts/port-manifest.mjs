@@ -25,6 +25,7 @@ export const PORTED = [
     'blog/public-posts.ts',
     'blog/render-fixture.ts',
     'blog/render.ts',
+    'boarding-pass.ts',
     'currency.ts',
     'email.ts',
     'expenses.ts',
@@ -32,6 +33,7 @@ export const PORTED = [
     'json.ts',
     'log.ts',
     'media/captions.ts',
+    'media/pipeline.ts',
     'media/process.ts',
     'premium/access.ts',
     'rate-limit.ts',
@@ -42,7 +44,11 @@ export const PORTED = [
     'request-context.ts',
     'safe-fetch.ts',
     'sanitize.ts',
+    'storage-deletion.ts',
+    'storage.ts',
     'supabase/database.types.ts',
+    'trip-files.ts',
+    'trip-storage.ts',
     'trips.ts',
     'types/admin.ts',
     'types/api.ts',
@@ -66,14 +72,6 @@ export const WITHOUT_TEST = {
 
 /** Not ported yet: the plan that will do it. The list only shrinks. */
 export const PENDING = {
-    // B1, later tasks of the same plan
-    // B2: private storage, upload pipeline, document and boarding-pass downloads
-    'boarding-pass.ts': 'B2',
-    'media/pipeline.ts': 'B2',
-    'storage-deletion.ts': 'B2',
-    'storage.ts': 'B2',
-    'trip-files.ts': 'B2',
-    'trip-storage.ts': 'B2',
     // B3: partner invites; impersonation tokens with revocation (the module reads
     // NEXT_PUBLIC_SUPABASE_URL and calls the REST API directly, and middleware/impersonation.ts
     // does not use it yet)

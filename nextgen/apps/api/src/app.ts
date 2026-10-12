@@ -10,6 +10,7 @@ import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
 import { tripsDaysRouter } from './routes/trips-days';
 import { tripsLegsRouter, tripsDayLegsRouter } from './routes/trips-legs';
+import { tripsBoardingPassRouter } from './routes/trips-boarding-pass';
 import { tripsAccommodationsRouter, tripsDayAccommodationsRouter } from './routes/trips-accommodations';
 import { tripsRestaurantsRouter } from './routes/trips-restaurants';
 import { tripsActivitiesRouter } from './routes/trips-activities';
@@ -69,7 +70,8 @@ export function createApp() {
 
     // Abuse limits (lib/rate-limit.ts), declared here like the trip guard so a
     // router cannot forget them. Buckets mirror the Next.js routes.
-    app.use('/api/trips/:id/media', rateLimit('mediaUpload'));
+    app.use('/api/trips/:id/media/uploads', rateLimit('mediaUpload'));
+    app.use('/api/trips/:id/media/confirm', rateLimit('mediaUpload'));
     app.use('/api/trips/:id/documents', rateLimit('fileUpload'));
     app.use('/api/trips/:id/days/:dayId/legs/:legId/boarding-pass', rateLimit('fileUpload'));
     app.use('/api/trips/:id/packing', rateLimit('ai'));
@@ -82,6 +84,7 @@ export function createApp() {
     app.route('/api/trips/:id/days', tripsDaysRouter);
     app.route('/api/trips/:id/legs', tripsLegsRouter);
     app.route('/api/trips/:id/days/:dayId/legs', tripsDayLegsRouter);
+    app.route('/api/trips/:id/days/:dayId/legs', tripsBoardingPassRouter);
     app.route('/api/trips/:id/accommodations', tripsAccommodationsRouter);
     app.route('/api/trips/:id/days/:dayId/accommodations', tripsDayAccommodationsRouter);
     app.route('/api/trips/:id/restaurants', tripsRestaurantsRouter);

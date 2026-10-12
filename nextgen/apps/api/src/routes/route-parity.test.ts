@@ -20,12 +20,6 @@ const KNOWN_GAPS: string[] = [
     'POST /api/trips/:param/invites',
     'DELETE /api/trips/:param/invites/:param',
     'POST /api/invites/accept',
-    // Upload pipeline: signed upload URL, then confirm (src/lib/media/pipeline.ts)
-    'POST /api/trips/:param/media/uploads',
-    'POST /api/trips/:param/media/confirm',
-    // Private files served through the API
-    'GET /api/trips/:param/documents/:param/file',
-    'GET /api/trips/:param/days/:param/legs/:param/boarding-pass',
     // Asynchronous Instagram export (202 + polling)
     'GET /api/trips/:param/instagram/exports',
     'POST /api/trips/:param/instagram/exports',
@@ -42,10 +36,8 @@ const KNOWN_EXTRAS: string[] = [
     'POST /api/admin/cleanup',
     'POST /api/admin/send-reminders',
     // Old behaviour, removed when sub-plan B ports its replacement:
-    // synchronous export (now POST …/instagram/exports) and upload through
-    // the request body (now …/media/uploads + …/media/confirm).
+    // synchronous export (now POST …/instagram/exports).
     'POST /api/instagram/generate',
-    'POST /api/trips/:param/media',
 ];
 
 function routeFiles(dir: string): string[] {

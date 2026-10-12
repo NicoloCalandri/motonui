@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam, readJsonObject, readFormData } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { convertCurrency } from '../lib/expenses';
 import { upsertFlightCheckinReminder } from '../lib/reminders';
-import { uploadFile, Buckets, validateFile } from '../lib/storage';
+import { removeLegFiles } from '../lib/trip-storage';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
@@ -235,13 +235,18 @@ tripsLegsRouter.delete(
 
         await requireTripMember(supabase, id, user.id);
 
-        const { error } = await supabase
+        const { data: leg, error } = await supabase
             .from('legs')
             .delete()
             .eq('id', legId)
-            .eq('trip_id', id);
+            .eq('trip_id', id)
+            .select('boarding_pass_path, boarding_pass_url')
+            .maybeSingle();
 
         if (error) throw new Error(`[motonui][legs][DELETE] ${error.message}`);
+
+        // The boarding pass file goes with the leg.
+        if (leg) await removeLegFiles(id, leg);
         return ok(c, { success: true });
     }, 'trips/:id/legs/:legId DELETE')
 );
@@ -548,88 +553,20 @@ tripsDayLegsRouter.delete(
             .eq('day_id', dayId)
             .like('description', 'Spostamento:%');
 
-        const { error } = await supabase
+        const { data: leg, error } = await supabase
             .from('legs')
             .delete()
             .eq('id', legId)
             .eq('day_id', dayId)
-            .eq('trip_id', id);
+            .eq('trip_id', id)
+            .select('boarding_pass_path, boarding_pass_url')
+            .maybeSingle();
 
         if (error) throw new Error(`[motonui][legs][DELETE] ${error.message}`);
 
+        // The boarding pass file goes with the leg.
+        if (leg) await removeLegFiles(id, leg);
+
         return ok(c, { success: true });
     }, 'trips/:id/days/:dayId/legs/:legId DELETE')
-);
-
-/** POST /api/trips/:id/days/:dayId/legs/:legId/boarding-pass */
-tripsDayLegsRouter.post(
-    '/:legId/boarding-pass',
-    requireUser,
-    loadProfile,
-    withErrorHandler(async (c) => {
-        const supabase = c.get('supabase');
-        const user = await getAuthUser(supabase);
-        const id = requireParam(c, 'id');
-        const dayId = requireParam(c, 'dayId');
-        const legId = requireParam(c, 'legId');
-
-        await requireTripMember(supabase, id, user.id);
-
-        const { data: leg } = await supabase
-            .from('legs')
-            .select('id')
-            .eq('id', legId)
-            .eq('day_id', dayId)
-            .eq('trip_id', id)
-            .single();
-        if (!leg) throw Errors.notFound('Spostamento');
-
-        const formData = await readFormData(c);
-        const file = formData.get('file') as File | null;
-        if (!file) throw Errors.validation('Campo "file" mancante.');
-
-        const ext = file.type === 'application/pdf' ? 'pdf' : file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') ?? 'bin';
-        const storagePath = `trips/${id}/boarding-passes/${legId}.${ext}`;
-        const buffer = Buffer.from(await file.arrayBuffer());
-        validateFile(file.type, file.size, buffer);
-        const publicUrl = await uploadFile(Buckets.tripMedia, storagePath, buffer, file.type);
-
-        const { data: updated, error } = await supabase
-            .from('legs')
-            .update({ boarding_pass_url: publicUrl })
-            .eq('id', legId)
-            .select()
-            .single();
-
-        if (error) throw new Error(`[motonui][boarding-pass][POST] ${error.message}`);
-
-        return ok(c, updated);
-    }, 'trips/:id/days/:dayId/legs/:legId/boarding-pass POST')
-);
-
-/** DELETE /api/trips/:id/days/:dayId/legs/:legId/boarding-pass */
-tripsDayLegsRouter.delete(
-    '/:legId/boarding-pass',
-    requireUser,
-    loadProfile,
-    withErrorHandler(async (c) => {
-        const supabase = c.get('supabase');
-        const user = await getAuthUser(supabase);
-        const id = requireParam(c, 'id');
-        const dayId = requireParam(c, 'dayId');
-        const legId = requireParam(c, 'legId');
-
-        await requireTripMember(supabase, id, user.id);
-
-        const { error } = await supabase
-            .from('legs')
-            .update({ boarding_pass_url: null })
-            .eq('id', legId)
-            .eq('day_id', dayId)
-            .eq('trip_id', id);
-
-        if (error) throw new Error(`[motonui][boarding-pass][DELETE] ${error.message}`);
-
-        return ok(c, { success: true });
-    }, 'trips/:id/days/:dayId/legs/:legId/boarding-pass DELETE')
 );
