@@ -62,7 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Name, avatar, role and suspension, for the shell and the route guards.
     apiFetch<SessionProfile>('/api/session', {}, tokenRef.current)
       .then((profile) => { if (current) setLoaded({ userId, profile }); })
-      .catch(() => { if (current) setLoaded({ userId, profile: null }); });
+      .catch((error: unknown) => {
+        // The API refuses the token (account deleted, session revoked): the
+        // session kept in this browser is dead, and keeping it would send the
+        // visitor from the login page straight back into an app that answers 401.
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+          void supabase.auth.signOut({ scope: 'local' });
+        }
+        if (current) setLoaded({ userId, profile: null });
+      });
     return () => { current = false; };
   }, [userId]);
 

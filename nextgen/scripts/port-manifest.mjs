@@ -106,6 +106,8 @@ export const EXCLUDED = {
  * Never edit the copy: edit the source and run `node scripts/port-lib.mjs`.
  */
 export const WEB_COPIES = [
+    'app/(app)/profile/page.test.tsx',
+    'app/(app)/profile/page.tsx',
     'components/calendar/TripCalendar.tsx',
     'components/calendar/calendar-events.test.ts',
     'components/calendar/calendar-events.ts',
@@ -115,6 +117,8 @@ export const WEB_COPIES = [
     'components/instagram/InstagramGenerator.tsx',
     'components/instagram/SlidePreview.tsx',
     'components/media/MediaTab.tsx',
+    'components/profile/DeleteAccountSection.tsx',
+    'components/profile/ProfileContent.tsx',
     'components/trip/BaggageFormPanel.tsx',
     'components/trip/PackingTab.tsx',
     'components/trip/packing-cards.tsx',
@@ -133,6 +137,7 @@ export const WEB_COPIES = [
     'lib/boarding-pass.ts',
     'lib/fetcher.test.ts',
     'lib/fetcher.ts',
+    'lib/hooks/use-profile.ts',
     'lib/media/instagram-slides.test.ts',
     'lib/media/instagram-slides.ts',
     'lib/media/upload-client.ts',
@@ -142,6 +147,7 @@ export const WEB_COPIES = [
     'lib/trip-files.ts',
     'lib/wall-clock.ts',
     'test/axe.ts',
+    'test/swr.tsx',
 ];
 
 /** Tests of copied files that are not copied, with the reason. */

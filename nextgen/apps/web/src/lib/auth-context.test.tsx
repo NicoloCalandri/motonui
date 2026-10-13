@@ -263,3 +263,26 @@ it('does not touch the cookie for a visitor who never had a session', async () =
 
   expect(cookieCalls()).toEqual([]);
 });
+
+it('drops a local session the API no longer accepts (deleted account, revoked token)', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 'stale' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  mockApiFetch.mockImplementation((path: string) =>
+    path === '/api/session' ? Promise.reject(Object.assign(new Error('Non sei autenticato.'), { status: 401 })) : Promise.resolve({}));
+
+  render(<AuthProvider><ProfileProbe /></AuthProvider>);
+
+  await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ scope: 'local' }));
+});
+
+it('keeps the session when the profile cannot be read for another reason', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  mockApiFetch.mockImplementation((path: string) =>
+    path === '/api/session' ? Promise.reject(Object.assign(new Error('boom'), { status: 500 })) : Promise.resolve({}));
+
+  render(<AuthProvider><ProfileProbe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('no-profile')).toBeInTheDocument());
+
+  expect(mockSignOut).not.toHaveBeenCalled();
+});

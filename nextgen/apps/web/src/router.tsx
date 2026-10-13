@@ -11,6 +11,8 @@ import { NewTripPage } from './pages/NewTripPage';
 import { TripDetailPage } from './pages/TripDetailPage';
 import { InvitePage } from './pages/InvitePage';
 import { SuspendedPage } from './pages/SuspendedPage';
+// Copied from the Next.js app (scripts/port-lib.mjs): the page file keeps its path.
+import ProfilePage from './app/(app)/profile/page';
 
 export const router = createBrowserRouter([
   { path: '/suspended', Component: SuspendedPage },
@@ -45,7 +47,7 @@ export const router = createBrowserRouter([
               { path: '/trips/:id', Component: TripDetailPage },
               { path: '/invite/:token', Component: InvitePage },
               { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
-              { path: '/profile', /* Task 4.12 */ Component: undefined },
+              { path: '/profile', Component: ProfilePage },
               {
                 path: '/admin',
                 element: <RequireAdmin />,
