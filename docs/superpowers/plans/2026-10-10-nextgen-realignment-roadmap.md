@@ -114,6 +114,14 @@ The old plan's Tasks 4.9.4–4.14 (wallet, calendar, packing, expenses, media, b
 
 **Done when:** every route of the Next.js app has a working page in `apps/web`.
 
+> **Split into D1–D5 (2026-10-14).** D1 base and trip tabs without files, D2 tabs with files (wallet, media, Instagram), D3 blog, D4 profile, D5 admin.
+>
+> **D1 done (2026-10-14)**, plan `2026-10-14-nextgen-d1-copied-components.md`. The components still to port import little more than React, the domain types, SWR and two Next.js modules, so they are copied by the port tool (`WEB_COPIES`) and checked against their source, instead of rewritten: the SPA adds the session token to same-origin `/api` requests made with plain `fetch` (`lib/api-auth.ts`), and `lib/next/{link,navigation}` stand in for the Next.js modules. Packing, calendar and expenses are mounted; the suspended page exists.
+>
+> **Found in the web app:** the profile was read from `GET /api/profile`, which returns neither role nor suspension (and other field names): the user name, the avatar, the admin guard and the suspended guard never worked. `GET /api/session` (Hono only) now answers what the Next.js app reads on the server.
+>
+> **Inherited by the copies, to fix in `src/` and re-port:** calendar dates read with `new Date('YYYY-MM-DD')` in `TripCalendar`, `calendar-events` and `packing-cards`; icon buttons without a name in `ExpensesTab`; the three tabs ignore a failed load. They are listed in `web-client-contract.test.ts` and `trip-tabs.test.tsx`.
+
 ### E. Validation, deployment, cutover
 
 The old plan's Phases 5 and 6: full verification, mobile impact, deployment configuration, environment parity, CI for `nextgen/`, cutover, decommission, documentation (`CLAUDE.md`, `docs/architecture.md`, security docs).

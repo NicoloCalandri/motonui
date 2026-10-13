@@ -21,6 +21,8 @@ const KNOWN_GAPS: string[] = [
 const KNOWN_EXTRAS: string[] = [
     // Kept on purpose: liveness probe, and POST next to GET for manual cron runs.
     'GET /api/health',
+    // What the SPA asks once per session: the Next.js app reads it on the server.
+    'GET /api/session',
     'POST /api/admin/cleanup',
     'POST /api/admin/send-reminders',
 ];

@@ -66,4 +66,20 @@ describe('router', () => {
     await waitFor(() => expect(memory.state.location.pathname).toBe('/auth/login'));
     expect(memory.state.location.search).toBe('?redirect=%2Ftrips');
   });
+
+  it('sends a suspended user to the page that says so, from anywhere in the app', async () => {
+    auth.value = { ...signedIn, profile: { ...signedIn.profile, suspended_at: '2026-10-01T00:00:00Z', suspended_reason: 'Verifica in corso' } };
+
+    const memory = open('/trips');
+
+    await waitFor(() => expect(memory.state.location.pathname).toBe('/suspended'));
+    expect(await screen.findByRole('heading', { name: 'Il tuo account è in pausa' })).toBeInTheDocument();
+    expect(screen.getByText('Verifica in corso')).toBeInTheDocument();
+  });
+
+  it('keeps a user who is not an admin out of the admin area', async () => {
+    const memory = open('/admin');
+
+    await waitFor(() => expect(memory.state.location.pathname).toBe('/dashboard'));
+  });
 });

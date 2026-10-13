@@ -10,9 +10,10 @@ import { TripsListPage } from './pages/TripsListPage';
 import { NewTripPage } from './pages/NewTripPage';
 import { TripDetailPage } from './pages/TripDetailPage';
 import { InvitePage } from './pages/InvitePage';
+import { SuspendedPage } from './pages/SuspendedPage';
 
 export const router = createBrowserRouter([
-  { path: '/suspended', /* Task 4.11 */ Component: undefined },
+  { path: '/suspended', Component: SuspendedPage },
   {
     element: <RedirectIfAuthenticated />,
     children: [

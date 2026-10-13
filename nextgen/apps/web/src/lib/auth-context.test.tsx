@@ -98,7 +98,7 @@ it('fetches and sets profile when session exists', async () => {
 
   render(<AuthProvider><ProfileProbe /></AuthProvider>);
   await waitFor(() => expect(screen.getByText('profile:profile1')).toBeInTheDocument());
-  expect(mockApiFetch).toHaveBeenCalledWith('/api/profile', {}, 't');
+  expect(mockApiFetch).toHaveBeenCalledWith('/api/session', {}, 't');
 });
 
 it('sets profile to null when apiFetch rejects', async () => {

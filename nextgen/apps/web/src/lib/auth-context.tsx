@@ -4,10 +4,16 @@ import { supabase } from './supabase-client';
 import { apiFetch } from './api-client';
 import type { Profile } from '@motonui/shared-types';
 
+/** What GET /api/session returns: the part of the profile the web app reads. */
+export type SessionProfile = Pick<Profile, 'display_name' | 'avatar_url' | 'role' | 'suspended_at' | 'suspended_reason'> & {
+  id: string;
+  email: string | null;
+};
+
 interface AuthValue {
   user: User | null;
   session: Session | null;
-  profile: Profile | null;
+  profile: SessionProfile | null;
   isLoading: boolean;
   profileLoading: boolean;
   signOut: () => Promise<void>;
@@ -17,7 +23,7 @@ const AuthContext = createContext<AuthValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<SessionProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -36,7 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session) { setProfile(null); setProfileLoading(false); return; }
     setProfileLoading(true);
-    apiFetch<Profile>('/api/profile', {}, session.access_token)
+    // Name, avatar, role and suspension, for the shell and the route guards.
+    apiFetch<SessionProfile>('/api/session', {}, session.access_token)
       .then((p) => { setProfile(p); setProfileLoading(false); })
       .catch(() => { setProfile(null); setProfileLoading(false); });
   }, [session]);

@@ -9,6 +9,7 @@ import { tripGuard } from './middleware/trip-guard';
 import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
 import { accountRouter } from './routes/account';
+import { sessionRouter } from './routes/session';
 import { invitesRouter } from './routes/invites';
 import { tripsInvitesRouter } from './routes/trips-invites';
 import { tripsDaysRouter } from './routes/trips-days';
@@ -107,6 +108,7 @@ export function createApp() {
     app.route('/api/expenses', expensesRouter);
     app.route('/api/profile', profileRouter);
     app.route('/api/account', accountRouter);
+    app.route('/api/session', sessionRouter);
     app.route('/api/invites', invitesRouter);
     app.route('/api/posts', postsRouter);
     app.route('/api/ai', aiRouter);

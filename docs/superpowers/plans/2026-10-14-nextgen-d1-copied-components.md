@@ -1,5 +1,7 @@
 # Nextgen D1 — Copied Components, Trip Tabs Without Files
 
+> **Status (2026-10-14): tasks 1–5 done** on `worktree-nextgen-migration`.
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** The trip page of `nextgen/apps/web` has working packing, calendar and expenses tabs, and the suspended-account page exists, with the components copied from the Next.js app instead of rewritten.
