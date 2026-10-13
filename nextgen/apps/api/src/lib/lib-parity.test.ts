@@ -1,8 +1,8 @@
 import { readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SRC_LIB, compare, portedFiles, transform } from '../../../../scripts/port-lib.mjs';
-import { EXCLUDED, PENDING, PORTED } from '../../../../scripts/port-manifest.mjs';
+import { SRC_LIB, compare, compareWeb, portedFiles, transform, transformWeb } from '../../../../scripts/port-lib.mjs';
+import { EXCLUDED, PENDING, PORTED, WEB_COPIES } from '../../../../scripts/port-manifest.mjs';
 
 /**
  * The library code of this app is a checked copy of src/lib (Next.js app).
@@ -109,5 +109,31 @@ describe('transform', () => {
 
     it('normalizes line endings', () => {
         expect(transform("a\r\nb\r\n", 'x.ts')).toBe('a\nb\n');
+    });
+});
+
+describe('files copied to the web app equal their source', () => {
+    it('copies the browser-safe helpers the ported pages need', () => {
+        expect(WEB_COPIES).toEqual(expect.arrayContaining([
+            'lib/wall-clock.ts', 'lib/auth/auth-error-message.ts', 'lib/auth/password.ts', 'lib/boarding-pass.ts',
+            'lib/trip-files.ts', 'components/ui/use-dialog-a11y.ts', 'test/axe.ts',
+        ]));
+    });
+
+    it.each(WEB_COPIES)('%s', (file) => {
+        const { current, expected } = compareWeb(file);
+        expect(current, `apps/web/src/${file} differs from src/${file}: run "node scripts/port-lib.mjs" in nextgen/`).toBe(expected);
+    });
+});
+
+describe('transformWeb', () => {
+    it('turns the app alias into a path relative to the file', () => {
+        expect(transformWeb("import { a } from '@/lib/boarding-pass';", 'lib/boarding-pass.test.ts')).toBe("import { a } from './boarding-pass';");
+        expect(transformWeb("import { a } from '@/lib/wall-clock';", 'components/ui/x.tsx')).toBe("import { a } from '../../lib/wall-clock';");
+        expect(transformWeb("vi.mock('@/test/axe')", 'lib/auth/x.test.ts')).toBe("vi.mock('../../test/axe')");
+    });
+
+    it('leaves packages and relative imports alone, and normalizes line endings', () => {
+        expect(transformWeb("import { z } from 'zod';\r\nimport { b } from './b';\r\n", 'lib/a.ts')).toBe("import { z } from 'zod';\nimport { b } from './b';\n");
     });
 });

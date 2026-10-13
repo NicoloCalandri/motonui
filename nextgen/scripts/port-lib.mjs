@@ -10,17 +10,21 @@
  *   '@/lib/<module>'                              →  a relative path
  *   '@/test/<helper>'                             →  the relative path of apps/api/src/test/<helper>
  *   '@sentry/nextjs'                              →  '@sentry/node' (same API for what src/lib uses)
+ * Browser-safe helpers listed in WEB_COPIES go to apps/web/src, at the path they
+ * have under src/, with the '@/…' alias turned into a relative path.
  * Domain types (src/lib/types) and the database types go to
  * packages/shared-types; everything else to apps/api/src/lib.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PORTED, WITHOUT_TEST } from './port-manifest.mjs';
+import { PORTED, WEB_COPIES, WITHOUT_TEST } from './port-manifest.mjs';
 
 const NEXTGEN = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const SRC_LIB = join(NEXTGEN, '..', 'src', 'lib');
+const SRC = join(NEXTGEN, '..', 'src');
 const API_LIB = join(NEXTGEN, 'apps', 'api', 'src', 'lib');
+const WEB_SRC = join(NEXTGEN, 'apps', 'web', 'src');
 const SHARED = join(NEXTGEN, 'packages', 'shared-types', 'src');
 const SHARED_PACKAGE = '@motonui/shared-types';
 const DATABASE_TYPES = 'supabase/database.types';
@@ -97,9 +101,42 @@ export function compare(module) {
     return { path, expected, current, same: current === expected };
 }
 
+/**
+ * Source of a file of the Next.js app (path relative to src/) as it must
+ * appear at the same path in apps/web/src: the '@/…' alias becomes a path
+ * relative to the file, nothing else changes. Only browser-safe files that
+ * import packages and each other are copied this way (WEB_COPIES).
+ */
+export function transformWeb(source, file) {
+    const dir = posix.dirname(file);
+    return source
+        .replace(/\r\n/g, '\n')
+        .replace(/(['"])@\/([^'"\n]+)\1/g, (_match, quote, target) => `${quote}${relative(dir, target)}${quote}`);
+}
+
+/** Expected and current content of one file copied to apps/web/src. */
+export function compareWeb(file) {
+    const expected = transformWeb(readFileSync(join(SRC, file), 'utf8'), file);
+    const path = join(WEB_SRC, file);
+    const current = existsSync(path) ? readFileSync(path, 'utf8').replace(/\r\n/g, '\n') : null;
+    return { path, expected, current, same: current === expected };
+}
+
 function main() {
     const check = process.argv.includes('--check');
     let changed = 0;
+    for (const file of WEB_COPIES) {
+        const { path, expected, same } = compareWeb(file);
+        if (same) continue;
+        changed += 1;
+        if (check) {
+            console.log(`differs: web ${file}`);
+        } else {
+            mkdirSync(dirname(path), { recursive: true });
+            writeFileSync(path, expected);
+            console.log(`ported:  web ${file}`);
+        }
+    }
     for (const module of portedFiles()) {
         const { path, expected, same } = compare(module);
         if (same) continue;

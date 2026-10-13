@@ -98,3 +98,25 @@ export const EXCLUDED = {
     'supabase/public.ts': 'anon client: Hono has createAnonClient in lib/supabase/server.ts',
     'supabase/server.ts': 'cookie-based clients: Hono has its own lib/supabase/server.ts',
 };
+
+/**
+ * Browser-safe files copied to apps/web/src, by their path under src/ (the
+ * copy keeps the same path). They import only packages and each other.
+ * wall-clock.test.ts is not copied: it sets process.env.TZ, and the web app
+ * is type-checked without Node globals; the test runs in the root app and in apps/api.
+ * Never edit the copy: edit the source and run `node scripts/port-lib.mjs`.
+ */
+export const WEB_COPIES = [
+    'components/ui/use-dialog-a11y.test.tsx',
+    'components/ui/use-dialog-a11y.ts',
+    'lib/auth/auth-error-message.test.ts',
+    'lib/auth/auth-error-message.ts',
+    'lib/auth/password.test.ts',
+    'lib/auth/password.ts',
+    'lib/boarding-pass.test.ts',
+    'lib/boarding-pass.ts',
+    'lib/trip-files.test.ts',
+    'lib/trip-files.ts',
+    'lib/wall-clock.ts',
+    'test/axe.ts',
+];
