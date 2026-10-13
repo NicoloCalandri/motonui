@@ -102,8 +102,7 @@ export const EXCLUDED = {
 /**
  * Browser-safe files copied to apps/web/src, by their path under src/ (the
  * copy keeps the same path). They import only packages and each other.
- * wall-clock.test.ts is not copied: it sets process.env.TZ, and the web app
- * is type-checked without Node globals; the test runs in the root app and in apps/api.
+ * A file whose source has a test lists the test too, or WEB_WITHOUT_TEST says why not.
  * Never edit the copy: edit the source and run `node scripts/port-lib.mjs`.
  */
 export const WEB_COPIES = [
@@ -122,3 +121,8 @@ export const WEB_COPIES = [
     'lib/wall-clock.ts',
     'test/axe.ts',
 ];
+
+/** Tests of copied files that are not copied, with the reason. */
+export const WEB_WITHOUT_TEST = {
+    'lib/wall-clock.test.ts': 'sets process.env.TZ: the web app is type-checked without Node globals; it runs in the root app and in apps/api',
+};

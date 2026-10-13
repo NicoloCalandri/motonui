@@ -111,6 +111,10 @@ export function transformWeb(source, file) {
     const dir = posix.dirname(file);
     return source
         .replace(/\r\n/g, '\n')
+        // Domain types come from the shared package, as in apps/api.
+        .replace(/(['"])@\/lib\/types\1/g, (_match, quote) => `${quote}${SHARED_PACKAGE}${quote}`)
+        // The two Next.js modules client components use have adapters in apps/web/src/lib/next.
+        .replace(/(['"])next\/(link|navigation)\1/g, (_match, quote, name) => `${quote}${relative(dir, `lib/next/${name}`)}${quote}`)
         .replace(/(['"])@\/([^'"\n]+)\1/g, (_match, quote, target) => `${quote}${relative(dir, target)}${quote}`);
 }
 

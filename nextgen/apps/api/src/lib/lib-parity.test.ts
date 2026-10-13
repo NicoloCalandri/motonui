@@ -1,8 +1,8 @@
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SRC_LIB, compare, compareWeb, portedFiles, transform, transformWeb } from '../../../../scripts/port-lib.mjs';
-import { EXCLUDED, PENDING, PORTED, WEB_COPIES } from '../../../../scripts/port-manifest.mjs';
+import { EXCLUDED, PENDING, PORTED, WEB_COPIES, WEB_WITHOUT_TEST } from '../../../../scripts/port-manifest.mjs';
 
 /**
  * The library code of this app is a checked copy of src/lib (Next.js app).
@@ -135,5 +135,37 @@ describe('transformWeb', () => {
 
     it('leaves packages and relative imports alone, and normalizes line endings', () => {
         expect(transformWeb("import { z } from 'zod';\r\nimport { b } from './b';\r\n", 'lib/a.ts')).toBe("import { z } from 'zod';\nimport { b } from './b';\n");
+    });
+});
+
+describe('transformWeb for components', () => {
+    it('points domain types to the shared package', () => {
+        expect(transformWeb("import type { Trip } from '@/lib/types';", 'components/trip/PackingTab.tsx')).toBe("import type { Trip } from '@motonui/shared-types';");
+    });
+
+    it('points the Next.js modules to their adapters', () => {
+        expect(transformWeb("import Link from 'next/link';", 'components/blog/BlogTab.tsx')).toBe("import Link from '../../lib/next/link';");
+        expect(transformWeb("import { useRouter } from 'next/navigation';", 'components/admin/x.tsx')).toBe("import { useRouter } from '../../lib/next/navigation';");
+        expect(transformWeb("vi.mock('next/navigation', () => ({}))", 'components/admin/x.test.tsx')).toBe("vi.mock('../../lib/next/navigation', () => ({}))");
+    });
+
+    it('leaves other packages alone', () => {
+        expect(transformWeb("import useSWR from 'swr';\nimport { z } from 'zod';", 'components/a.tsx')).toBe("import useSWR from 'swr';\nimport { z } from 'zod';");
+    });
+});
+
+describe('tests of the files copied to the web app', () => {
+    it('come with their file, or the manifest says why not', () => {
+        const SRC = join(SRC_LIB, '..');
+        const missing = WEB_COPIES
+            .filter((file) => !/\.test\.tsx?$/.test(file))
+            .flatMap((file) => ['.test.ts', '.test.tsx'].map((suffix) => file.replace(/\.tsx?$/, suffix)))
+            .filter((test) => existsSync(join(SRC, test)) && !WEB_COPIES.includes(test) && !(test in WEB_WITHOUT_TEST));
+
+        expect(missing, 'add the test to WEB_COPIES, or to WEB_WITHOUT_TEST with a reason').toEqual([]);
+    });
+
+    it('gives a reason for every test left out', () => {
+        expect(Object.values(WEB_WITHOUT_TEST).filter((reason) => reason.trim().length < 10)).toEqual([]);
     });
 });
