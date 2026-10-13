@@ -106,8 +106,18 @@ export const EXCLUDED = {
  * Never edit the copy: edit the source and run `node scripts/port-lib.mjs`.
  */
 export const WEB_COPIES = [
+    'app/(admin)/admin/_components/AdminNav.tsx',
+    'app/(admin)/admin/audit-log/page.tsx',
+    'app/(admin)/admin/page.tsx',
+    'app/(admin)/admin/users/page.tsx',
     'app/(app)/profile/page.test.tsx',
     'app/(app)/profile/page.tsx',
+    'components/admin/create-user-dialog.tsx',
+    'components/admin/delete-user-dialog.tsx',
+    'components/admin/edit-user-dialog.tsx',
+    'components/admin/impersonate-confirm-dialog.tsx',
+    'components/admin/suspend-dialog.tsx',
+    'components/admin/user-detail-drawer.tsx',
     'components/calendar/TripCalendar.tsx',
     'components/calendar/calendar-events.test.ts',
     'components/calendar/calendar-events.ts',

@@ -13,6 +13,10 @@ import { InvitePage } from './pages/InvitePage';
 import { SuspendedPage } from './pages/SuspendedPage';
 // Copied from the Next.js app (scripts/port-lib.mjs): the page file keeps its path.
 import ProfilePage from './app/(app)/profile/page';
+import AdminDashboardPage from './app/(admin)/admin/page';
+import AdminUsersPage from './app/(admin)/admin/users/page';
+import AdminAuditLogPage from './app/(admin)/admin/audit-log/page';
+import { AdminLayout } from './components/admin/AdminLayout';
 
 export const router = createBrowserRouter([
   { path: '/suspended', Component: SuspendedPage },
@@ -48,13 +52,19 @@ export const router = createBrowserRouter([
               { path: '/invite/:token', Component: InvitePage },
               { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
               { path: '/profile', Component: ProfilePage },
+            ],
+          },
+          // The admin area has its own frame, as in the Next.js app: it is not inside the app shell.
+          {
+            path: '/admin',
+            element: <RequireAdmin />,
+            children: [
               {
-                path: '/admin',
-                element: <RequireAdmin />,
+                element: <AdminLayout />,
                 children: [
-                  { index: true, /* Task 4.13 */ Component: undefined },
-                  { path: 'users', Component: undefined },
-                  { path: 'audit-log', Component: undefined },
+                  { index: true, Component: AdminDashboardPage },
+                  { path: 'users', Component: AdminUsersPage },
+                  { path: 'audit-log', Component: AdminAuditLogPage },
                 ],
               },
             ],
