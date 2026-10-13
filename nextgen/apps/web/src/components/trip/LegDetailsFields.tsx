@@ -25,8 +25,8 @@ interface LegDetailsFieldsProps {
     checkinOpensAtProps: UseFormRegisterReturn;
     carrierValue: string;
     onCarrierChange: (value: string) => void;
-    boardingPassUrl: string | null;
-    onBoardingPassChange: (url: string | null) => void;
+    boardingPassUploaded: boolean;
+    onBoardingPassChange: (uploaded: boolean) => void;
 }
 
 /**
@@ -65,7 +65,7 @@ export default function LegDetailsFields({
     checkinOpensAtProps,
     carrierValue,
     onCarrierChange,
-    boardingPassUrl,
+    boardingPassUploaded,
     onBoardingPassChange,
 }: LegDetailsFieldsProps) {
     return (
@@ -168,8 +168,8 @@ export default function LegDetailsFields({
                             tripId={tripId}
                             dayId={dayId}
                             legId={legId}
-                            boardingPassUrl={boardingPassUrl}
-                            onBoardingPassChange={onBoardingPassChange}
+                            uploaded={boardingPassUploaded}
+                            onUploadedChange={onBoardingPassChange}
                         />
                     )}
                 </>

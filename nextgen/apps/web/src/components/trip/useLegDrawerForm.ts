@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { Leg } from '@motonui/shared-types';
 import { useAuth } from '../../lib/auth-context';
 import { apiFetch } from '../../lib/api-client';
+import { hasBoardingPass } from '../../lib/boarding-pass';
 import type { FlightSegment } from './LegFlightSegments';
 
 const defaultSegment = (): FlightSegment => ({ from_name: '', to_name: '' });
@@ -62,7 +63,7 @@ export function useLegDrawerForm({ tripId, dayId, open, onClose, onSaved, dayDat
     const [segments, setSegments] = useState<FlightSegment[]>([defaultSegment()]);
 
     // Boarding pass state (upload/remove handled by BoardingPassField)
-    const [boardingPassUrl, setBoardingPassUrl] = useState<string | null>(null);
+    const [boardingPassUploaded, setBoardingPassUploaded] = useState(false);
 
     // Coordinates selected via geocoding (optional — map won't show if missing)
     const [fromCoords, setFromCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -99,7 +100,7 @@ export function useLegDrawerForm({ tripId, dayId, open, onClose, onSaved, dayDat
                         ? initialData.checkin_opens_at.slice(0, 16)
                         : undefined,
                 });
-                setBoardingPassUrl(initialData.boarding_pass_url ?? null);
+                setBoardingPassUploaded(hasBoardingPass(initialData));
                 setFromInitial(initialData.from_name);
                 setToInitial(initialData.to_name);
                 setFromCoords(
@@ -120,7 +121,7 @@ export function useLegDrawerForm({ tripId, dayId, open, onClose, onSaved, dayDat
                 setToInitial('');
                 setFromCoords(null);
                 setToCoords(null);
-                setBoardingPassUrl(null);
+                setBoardingPassUploaded(false);
                 setSegments([defaultSegment()]);
             }
         }
@@ -217,7 +218,7 @@ export function useLegDrawerForm({ tripId, dayId, open, onClose, onSaved, dayDat
             setToInitial('');
             setFromCoords(null);
             setToCoords(null);
-            setBoardingPassUrl(null);
+            setBoardingPassUploaded(false);
             setSegments([defaultSegment()]);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
@@ -230,7 +231,7 @@ export function useLegDrawerForm({ tripId, dayId, open, onClose, onSaved, dayDat
         register, handleSubmit, watch, setValue, errors,
         saving, error, isEditing, selectedType,
         segments, setSegments,
-        boardingPassUrl, setBoardingPassUrl,
+        boardingPassUploaded, setBoardingPassUploaded,
         fromCoords, setFromCoords, toCoords, setToCoords,
         fromInitial, toInitial,
         onSubmit,

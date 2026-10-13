@@ -75,7 +75,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
         register, handleSubmit, watch, setValue, errors,
         saving, error, isEditing, selectedType,
         segments, setSegments,
-        boardingPassUrl, setBoardingPassUrl,
+        boardingPassUploaded, setBoardingPassUploaded,
         setFromCoords, setToCoords,
         fromInitial, toInitial,
         onSubmit,
@@ -190,8 +190,8 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                     checkinOpensAtProps={register('checkin_opens_at')}
                                     carrierValue={watch('carrier') ?? ''}
                                     onCarrierChange={(val) => setValue('carrier', val || null)}
-                                    boardingPassUrl={boardingPassUrl}
-                                    onBoardingPassChange={setBoardingPassUrl}
+                                    boardingPassUploaded={boardingPassUploaded}
+                                    onBoardingPassChange={setBoardingPassUploaded}
                                 />
 
                                 <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">

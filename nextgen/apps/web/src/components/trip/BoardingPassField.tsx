@@ -1,89 +1,76 @@
 import { useState } from 'react';
 import { Loader2, Ticket, Upload } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
+import { hasBoardingPass } from '../../lib/boarding-pass';
 
 interface BoardingPassFieldProps {
     tripId: string;
     dayId: string;
     legId: string;
-    boardingPassUrl: string | null;
-    onBoardingPassChange: (url: string | null) => void;
+    /** Whether the leg has a boarding pass: the file itself is never needed here. */
+    uploaded: boolean;
+    onUploadedChange: (uploaded: boolean) => void;
 }
 
+const FALLBACK_ERROR = 'Ops! Non riusciamo a caricare la carta d’imbarco. Riprova tra poco 🏝️';
+
 /**
- * Boarding-pass upload/remove control shown inside LegDrawer when editing a
- * flight leg. Extracted out of LegDrawer.tsx's `handleBoardingPassUpload`/
- * `handleBoardingPassRemove` + their JSX block (src/components/trip/LegDrawer.tsx,
- * ~90 lines combined) into its own file to keep LegDrawer.tsx under
- * docs/CLAUDE.md's 300-line-per-file rule — the old 648-line LegDrawer.tsx
- * was not split at all.
+ * Upload and removal of a leg's boarding pass, inside LegDrawer.
  *
- * Touchpoint changes from the old inline code:
- * - The upload/delete calls a `multipart/form-data` endpoint, which
- *   `apiFetch` can't be used for (it always forces a JSON `Content-Type`
- *   header when a body is present — see `lib/api-client.ts` — which would
- *   corrupt the multipart boundary). Kept as raw `fetch`, matching the old
- *   app's behavior, but with the bearer token from `useAuth()` attached
- *   manually as an `Authorization` header (the old Next.js app relied on a
- *   same-origin session cookie for this call instead; this app's API has no
- *   cookie auth — see `requireUser` in `nextgen/apps/api`, which only reads
- *   the `Authorization` header — so this header is required, not optional).
- * - Added a `catch` around both calls (old code only had `try`/`finally`)
- *   so a network failure is logged instead of becoming an unhandled promise
- *   rejection; behavior is otherwise identical — `finally` already reset
- *   the loading flag in the old code, so there was no stuck-button bug here.
+ * `apiFetch` forces a JSON Content-Type when there is a body, which would
+ * break the multipart boundary: the two calls use `fetch` with the bearer
+ * token attached by hand. The API stores the file in a private bucket and
+ * answers with the leg (`boarding_pass_path` set, `boarding_pass_url` null).
  */
-export default function BoardingPassField({ tripId, dayId, legId, boardingPassUrl, onBoardingPassChange }: BoardingPassFieldProps) {
+export default function BoardingPassField({ tripId, dayId, legId, uploaded, onUploadedChange }: BoardingPassFieldProps) {
     const { session } = useAuth();
     const token = session?.access_token;
     const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const route = `/api/trips/${tripId}/days/${dayId}/legs/${legId}/boarding-pass`;
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+    const messageOf = async (res: Response) => {
+        const body: unknown = await res.json().catch(() => null);
+        const message = body && typeof body === 'object' && 'error' in body ? body.error : null;
+        return typeof message === 'string' ? message : FALLBACK_ERROR;
+    };
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+        const input = e.target;
+        const file = input.files?.[0];
         if (!file) return;
         setUploading(true);
+        setError(null);
         const form = new FormData();
         form.append('file', file);
         try {
-            const res = await fetch(
-                `/api/trips/${tripId}/days/${dayId}/legs/${legId}/boarding-pass`,
-                {
-                    method: 'POST',
-                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                    body: form,
-                }
-            );
-            if (res.ok) {
-                const data = await res.json();
-                onBoardingPassChange(data.boarding_pass_url ?? null);
-            }
-        } catch (err) {
-            console.error('[motonui][BoardingPassField] failed to upload boarding pass', err);
+            const res = await fetch(route, { method: 'POST', headers, body: form });
+            if (res.ok) onUploadedChange(hasBoardingPass(await res.json()));
+            else setError(await messageOf(res));
+        } catch {
+            setError(FALLBACK_ERROR);
         } finally {
             setUploading(false);
-            e.target.value = '';
+            input.value = '';
         }
     };
 
     const handleRemove = async () => {
+        setError(null);
         try {
-            const res = await fetch(
-                `/api/trips/${tripId}/days/${dayId}/legs/${legId}/boarding-pass`,
-                {
-                    method: 'DELETE',
-                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                }
-            );
-            if (res.ok) onBoardingPassChange(null);
-        } catch (err) {
-            console.error('[motonui][BoardingPassField] failed to remove boarding pass', err);
+            const res = await fetch(route, { method: 'DELETE', headers });
+            if (res.ok) onUploadedChange(false);
+            else setError(await messageOf(res));
+        } catch {
+            setError(FALLBACK_ERROR);
         }
     };
 
     return (
         <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d&apos;imbarco</label>
-            {boardingPassUrl ? (
+            <p className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d&apos;imbarco</p>
+            {uploaded ? (
                 <div className="flex items-center gap-3 p-4 bg-sage-50 rounded-2xl">
                     <Ticket className="w-5 h-5 text-sage-500 flex-shrink-0" />
                     <span className="flex-1 text-sm font-medium text-ink-700 truncate">Documento caricato</span>
@@ -112,6 +99,7 @@ export default function BoardingPassField({ tripId, dayId, legId, boardingPassUr
                     />
                 </label>
             )}
+            {error && <p role="alert" className="mt-2 text-xs font-medium text-red-500">{error}</p>}
         </div>
     );
 }

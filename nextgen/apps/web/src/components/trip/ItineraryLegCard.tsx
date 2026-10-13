@@ -1,5 +1,6 @@
 import { Plane, Train, Car, Ship, PersonStanding, Bus, MapPin, Pencil, Trash2, Ticket } from 'lucide-react';
 import type { Leg } from '@motonui/shared-types';
+import { hasBoardingPass } from '../../lib/boarding-pass';
 import { wallClockDayTime, wallClockTime } from '../../lib/wall-clock';
 
 const LEG_ICONS: Record<string, React.ElementType> = {
@@ -60,7 +61,7 @@ export default function ItineraryLegCard({ leg, expanded, onToggleExpand, onShow
                     </span>
                 )}
                 <div className="flex gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                    {leg.type === 'flight' && leg.boarding_pass_url && (
+                    {leg.type === 'flight' && hasBoardingPass(leg) && (
                         <button
                             aria-label="Vedi carta d'imbarco"
                             onClick={(e) => { e.stopPropagation(); onShowBoardingPass(); }}
