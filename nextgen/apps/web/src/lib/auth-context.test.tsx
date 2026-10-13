@@ -137,6 +137,8 @@ it('resolves profileLoading to false when profile fetch fails', async () => {
   await waitFor(() => expect(screen.getByText('profile-loaded:null')).toBeInTheDocument());
 });
 
+const profileCalls = () => mockApiFetch.mock.calls.filter(([path]) => path === '/api/session');
+
 function GuardProbe() {
   const { user, profile, isLoading, profileLoading } = useAuth();
   // What a route guard sees: it decides as soon as nothing is loading.
@@ -180,7 +182,7 @@ it('keeps the profile and does not go back to loading when the same user gets a 
   });
 
   expect(seen).not.toContain('loading');
-  expect(mockApiFetch).toHaveBeenCalledTimes(1);
+  expect(profileCalls()).toHaveLength(1);
 });
 
 it('loads the profile again when another user signs in, and ignores a late answer for the previous one', async () => {
@@ -191,16 +193,73 @@ it('loads the profile again when another user signs in, and ignores a late answe
     emit = callback;
     return { data: { subscription: { unsubscribe: vi.fn() } } };
   });
-  mockApiFetch
-    .mockImplementationOnce(() => new Promise((resolve) => { answerFirst = resolve; }))
-    .mockResolvedValueOnce({ id: 'u2', role: 'user', suspended_at: null });
+  let profileRequests = 0;
+  mockApiFetch.mockImplementation((path: string) => {
+    if (path !== '/api/session') return Promise.resolve({});
+    profileRequests += 1;
+    return profileRequests === 1
+      ? new Promise((resolve) => { answerFirst = resolve; })
+      : Promise.resolve({ id: 'u2', role: 'user', suspended_at: null });
+  });
 
   render(<AuthProvider><ProfileProbe /></AuthProvider>);
-  await waitFor(() => expect(mockApiFetch).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(profileCalls()).toHaveLength(1));
 
   await act(async () => { emit('SIGNED_IN', { user: { id: 'u2' }, access_token: 't2' }); });
   await waitFor(() => expect(screen.getByText('profile:u2')).toBeInTheDocument());
 
   await act(async () => { answerFirst({ id: 'u1', role: 'admin', suspended_at: null }); });
   expect(screen.getByText('profile:u2')).toBeInTheDocument();
+});
+
+const cookieCalls = () => mockApiFetch.mock.calls.filter(([path]) => path === '/api/session/cookie');
+
+it('copies the token into the session cookie, and again when the token changes', async () => {
+  let emit: (event: string, session: unknown) => void = () => {};
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't1' } } });
+  mockOnAuthStateChange.mockImplementationOnce((callback: (event: string, session: unknown) => void) => {
+    emit = callback;
+    return { data: { subscription: { unsubscribe: vi.fn() } } };
+  });
+  mockApiFetch.mockResolvedValue({ id: 'u1', role: 'user', suspended_at: null });
+
+  render(<AuthProvider><ProfileProbe /></AuthProvider>);
+  await waitFor(() => expect(cookieCalls()).toHaveLength(1));
+  expect(cookieCalls()[0]).toEqual(['/api/session/cookie', { method: 'POST' }, 't1']);
+
+  await act(async () => { emit('TOKEN_REFRESHED', { user: { id: 'u1' }, access_token: 't2' }); });
+  await waitFor(() => expect(cookieCalls()).toHaveLength(2));
+  expect(cookieCalls()[1]).toEqual(['/api/session/cookie', { method: 'POST' }, 't2']);
+
+  // Same token again (the browser tab became visible): nothing to copy.
+  await act(async () => { emit('SIGNED_IN', { user: { id: 'u1' }, access_token: 't2' }); });
+  expect(cookieCalls()).toHaveLength(2);
+});
+
+it('clears the session cookie when the session ends', async () => {
+  let emit: (event: string, session: unknown) => void = () => {};
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't1' } } });
+  mockOnAuthStateChange.mockImplementationOnce((callback: (event: string, session: unknown) => void) => {
+    emit = callback;
+    return { data: { subscription: { unsubscribe: vi.fn() } } };
+  });
+  mockApiFetch.mockResolvedValue({ id: 'u1', role: 'user', suspended_at: null });
+
+  render(<AuthProvider><ProfileProbe /></AuthProvider>);
+  await waitFor(() => expect(cookieCalls()).toHaveLength(1));
+
+  await act(async () => { emit('SIGNED_OUT', null); });
+
+  await waitFor(() => expect(cookieCalls()).toHaveLength(2));
+  expect(cookieCalls()[1]).toEqual(['/api/session/cookie', { method: 'DELETE' }, undefined]);
+});
+
+it('does not touch the cookie for a visitor who never had a session', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: null } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+
+  render(<AuthProvider><Probe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('anon')).toBeInTheDocument());
+
+  expect(cookieCalls()).toEqual([]);
 });

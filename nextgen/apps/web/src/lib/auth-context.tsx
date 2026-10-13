@@ -19,6 +19,14 @@ interface AuthValue {
   signOut: () => Promise<void>;
 }
 
+async function syncSessionCookie(method: 'POST' | 'DELETE', token: string | undefined): Promise<void> {
+  try {
+    await apiFetch('/api/session/cookie', { method }, token);
+  } catch {
+    // Private files will not show until the next token; nothing else depends on it.
+  }
+}
+
 const AuthContext = createContext<AuthValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -57,6 +65,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => { if (current) setLoaded({ userId, profile: null }); });
     return () => { current = false; };
   }, [userId]);
+
+  // The API also accepts the token from an httpOnly cookie, on reads only: an
+  // `<img>` or a link to a private file cannot send a header. The cookie is a
+  // copy of the current token, renewed when the token changes and cleared when
+  // the session ends. A failure only means private files will not show.
+  const accessToken = session?.access_token;
+  const hadSession = useRef(false);
+  useEffect(() => {
+    if (accessToken) {
+      hadSession.current = true;
+      void syncSessionCookie('POST', accessToken);
+    } else if (hadSession.current) {
+      hadSession.current = false;
+      void syncSessionCookie('DELETE', undefined);
+    }
+  }, [accessToken]);
 
   const profile = loaded && loaded.userId === userId ? loaded.profile : null;
   const profileLoading = userId !== null && loaded?.userId !== userId;
