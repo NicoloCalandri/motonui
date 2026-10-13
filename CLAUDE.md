@@ -85,7 +85,11 @@ npm run test:rls       # test SQL delle policy, su Supabase locale
 
 - **`src/`** è l'app Next.js in produzione: tutto questo file parla di lei, salvo dove indicato.
 - **`mobile/`** è un client Expo che parla direttamente con Supabase, senza passare dalle API route: per questo ogni invariante di sicurezza sta anche nella RLS. Ha il suo `package.json`; i suoi test girano dalla radice con `npm run test:mobile`.
-- **`nextgen/`** è la migrazione in corso verso Vite (SPA) + Hono (API), in workspace npm separati (`apps/web`, `apps/api`, `packages/shared-types`). Non è in produzione e la suite di radice la ignora: i comandi (`npm test`, `npm run type-check`, `npm run build`) si lanciano dentro `nextgen/`.
+- **`nextgen/`** è la migrazione in corso verso Vite (SPA) + Hono (API), in workspace npm separati (`apps/web`, `apps/api`, `packages/shared-types`). Non è in produzione e la suite di radice la ignora: i comandi (`npm test`, `npm run type-check`, `npm run build`) si lanciano dentro `nextgen/`. Gran parte del suo codice è una **copia controllata di `src/`**, quindi una modifica qui ha un seguito là:
+  - dopo aver cambiato un file di `src/lib` o un componente client copiato, esegui `npm run port:lib` in `nextgen/` e committa le copie: senza, il job `nextgen` della CI fallisce (`lib-parity.test.ts`). Le copie in `nextgen/` non si modificano mai a mano;
+  - dopo aver cambiato un gestore in `src/app/api` (schema, tabelle, RPC, messaggi), riporta la modifica nel gestore Hono corrispondente in `nextgen/apps/api/src/routes`: lo controllano `route-parity.test.ts` e `handler-drift.test.ts`;
+  - un nuovo modulo in `src/lib` va classificato in `nextgen/scripts/port-manifest.mjs`.
+  Dettagli in `nextgen/README.md`; decisioni in ADR-09; passaggio in produzione in `docs/nextgen-cutover.md`.
 
 ---
 

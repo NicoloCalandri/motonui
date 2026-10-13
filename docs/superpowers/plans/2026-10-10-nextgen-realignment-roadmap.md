@@ -121,12 +121,20 @@ The old plan's Tasks 4.9.4–4.14 (wallet, calendar, packing, expenses, media, b
 > **Found in the web app:** the profile was read from `GET /api/profile`, which returns neither role nor suspension (and other field names): the user name, the avatar, the admin guard and the suspended guard never worked. `GET /api/session` (Hono only) now answers what the Next.js app reads on the server.
 >
 > **Inherited by the copies, to fix in `src/` and re-port:** calendar dates read with `new Date('YYYY-MM-DD')` in `TripCalendar`, `calendar-events` and `packing-cards`; icon buttons without a name in `ExpensesTab`; the three tabs ignore a failed load. They are listed in `web-client-contract.test.ts` and `trip-tabs.test.tsx`.
+>
+> **D2–D5 done (2026-10-14).** Wallet, photos and the Instagram generator; profile and account deletion; the admin area; the blog tab, the post editor and the public blog. All but the public blog pages, the admin frame and the suspended page are copies. For private files shown with `<img>` or links the API accepts a read-only session cookie (`POST /api/session/cookie`), kept in step with the token by the web app. Every route of the Next.js app now has a page in `apps/web`.
+>
+> **Found on the way, in the Next.js app:** the post editor autosaves with `PATCH`, which the route does not handle: in production the autosave is answered 405 and saves nothing (Hono accepts `PATCH`). More unnamed icon buttons (`MediaTab`).
 
 ### E. Validation, deployment, cutover
 
 The old plan's Phases 5 and 6: full verification, mobile impact, deployment configuration, environment parity, CI for `nextgen/`, cutover, decommission, documentation (`CLAUDE.md`, `docs/architecture.md`, security docs).
 
 **Done when:** production runs on `nextgen/` and the Next.js app is removed.
+
+> **E, the part that lives in the repository, done (2026-10-14).** The API serves the built web app on the same origin, with a content security policy (`apps/api/src/web-app.ts`). The API build is an esbuild bundle: the output of `tsc` could not start under Node, which nobody had tried. `npm run smoke` starts the build and probes it; `nextgen/Dockerfile` was built and run locally; the `nextgen` job in CI type-checks, checks the copies, tests, builds and smokes. `main` was merged into the branch and the copies are in step. Decisions are in ADR-09, the manual steps in `docs/nextgen-cutover.md`.
+>
+> **Not done, and not doable from the repository:** the cutover itself (hosting account, DNS, Supabase redirect URLs, Google OAuth origins) and, after it, the removal of `src/`. Also open: pre-rendering for the public blog (SEO), code splitting of the web bundle, an ESLint configuration for `nextgen/`.
 
 ---
 
