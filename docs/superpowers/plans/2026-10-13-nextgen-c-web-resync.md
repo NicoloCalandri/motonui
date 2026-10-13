@@ -1,5 +1,7 @@
 # Nextgen C — Web Re-sync Implementation Plan
 
+> **Status (2026-10-13): tasks 1–9 done** on `worktree-nextgen-migration`.
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** The pages already ported to `nextgen/apps/web` (auth, landing, dashboard, trips list, new trip, trip detail with overview, itinerary and bookings) behave like their current Next.js sources and call only routes the Hono API serves.
