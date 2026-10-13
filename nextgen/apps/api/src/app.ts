@@ -38,10 +38,13 @@ import { featuresRouter } from './routes/admin/features';
 import { usersRouter as adminUsersRouter } from './routes/admin/users';
 import { adminTripsRouter } from './routes/admin/trips';
 import { impersonateExitRouter } from './routes/admin/impersonate';
+import { webApp } from './web-app';
 import type { AppEnv } from './types';
 
-export function createApp() {
+export function createApp(options: { webDist?: string } = {}) {
     const app = new Hono<AppEnv>();
+    // Folder of the built web app; unset in development, where Vite serves it.
+    const webDist = 'webDist' in options ? options.webDist : process.env.WEB_DIST;
 
     // First, so every log line and every response (errors included) carries the request id.
     app.use('*', requestContext);
@@ -123,6 +126,9 @@ export function createApp() {
     app.route('/api/admin/users', adminUsersRouter);
     app.route('/api/admin/trips', adminTripsRouter);
     app.route('/api/admin/impersonate', impersonateExitRouter);
+
+    // Last: everything that is not the API is the web app, when its build is here.
+    if (webDist) app.on(['GET', 'HEAD'], '*', webApp(webDist));
 
     return app;
 }
