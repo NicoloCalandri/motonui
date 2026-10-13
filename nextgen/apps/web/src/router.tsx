@@ -17,9 +17,11 @@ export const router = createBrowserRouter([
     children: [
       { path: '/auth/login', Component: LoginPage },
       { path: '/auth/forgot-password', Component: ForgotPasswordPage },
-      { path: '/auth/reset-password', Component: ResetPasswordPage },
     ],
   },
+  // Outside RedirectIfAuthenticated: the link of the reset email signs the user
+  // in (recovery session) before the page opens.
+  { path: '/auth/reset-password', Component: ResetPasswordPage },
   {
     element: <RequireNotSuspended />,
     children: [

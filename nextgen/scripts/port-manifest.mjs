@@ -115,6 +115,8 @@ export const WEB_COPIES = [
     'lib/auth/password.ts',
     'lib/boarding-pass.test.ts',
     'lib/boarding-pass.ts',
+    'lib/redirect.test.ts',
+    'lib/redirect.ts',
     'lib/trip-files.test.ts',
     'lib/trip-files.ts',
     'lib/wall-clock.ts',

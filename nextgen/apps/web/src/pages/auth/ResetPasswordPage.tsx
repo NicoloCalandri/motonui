@@ -2,6 +2,8 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plane, Lock, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase-client';
+import { authErrorMessage } from '../../lib/auth/auth-error-message';
+import { passwordProblem } from '../../lib/auth/password';
 
 /**
  * Reset-password page — lands here from the Supabase reset-password email
@@ -36,6 +38,12 @@ export function ResetPasswordPage() {
       return;
     }
 
+    const problem = passwordProblem(password);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -44,7 +52,7 @@ export function ResetPasswordPage() {
     });
 
     if (updateError) {
-      setError(updateError.message);
+      setError(authErrorMessage(updateError));
       setLoading(false);
       return;
     }
@@ -141,7 +149,7 @@ export function ResetPasswordPage() {
         <div className="hidden lg:block lg:w-1/2 relative bg-neutral-900">
           <img
             src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=2073"
-            alt="Background"
+            alt=""
             className="absolute inset-0 w-full h-full object-cover opacity-50"
           />
           <div className="absolute inset-0 flex flex-col justify-end p-20 text-white">

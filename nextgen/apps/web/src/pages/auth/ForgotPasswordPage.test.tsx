@@ -42,25 +42,26 @@ describe('ForgotPasswordPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Inserisci la tua email'), {
       target: { value: 'user@example.com' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /invia link di reset/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Invia il link' }));
 
     await waitFor(() => expect(screen.getByText('Controlla la tua email')).toBeInTheDocument());
     expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
       'user@example.com',
-      expect.objectContaining({ redirectTo: expect.stringContaining('/auth/callback') })
+      { redirectTo: `${window.location.origin}/auth/reset-password` }
     );
   });
 
   it('shows an error message when the reset request fails', async () => {
-    mockResetPasswordForEmail.mockResolvedValue({ error: { message: 'Email non trovata' } });
+    mockResetPasswordForEmail.mockResolvedValue({ error: { message: 'email rate limit exceeded for nope@example.com', code: 'over_email_send_rate_limit' } });
     renderPage();
 
     fireEvent.change(screen.getByPlaceholderText('Inserisci la tua email'), {
       target: { value: 'nope@example.com' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /invia link di reset/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Invia il link' }));
 
-    await waitFor(() => expect(screen.getByText('Email non trovata')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/ti abbiamo già scritto da poco/i)).toBeInTheDocument());
+    expect(screen.queryByText(/rate limit exceeded/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Controlla la tua email')).not.toBeInTheDocument();
   });
 });

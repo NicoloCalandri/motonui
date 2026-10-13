@@ -72,4 +72,34 @@ describe('ResetPasswordPage', () => {
     await waitFor(() => expect(screen.getByText('Password Aggiornata!')).toBeInTheDocument());
     expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'newpassword1' });
   });
+
+  it.each([
+    ['too short', 'corta1', /almeno 10 caratteri/i],
+    ['without a number', 'solo-lettere-qui', /una lettera e un numero/i],
+  ])('refuses a password that is %s before asking Supabase', async (_label, password, message) => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: 't' } } });
+    renderPage();
+
+    await waitFor(() => screen.getByPlaceholderText('Nuova Password'));
+    fireEvent.change(screen.getByPlaceholderText('Nuova Password'), { target: { value: password } });
+    fireEvent.change(screen.getByPlaceholderText('Conferma Nuova Password'), { target: { value: password } });
+    fireEvent.click(screen.getByRole('button', { name: /reimposta password/i }));
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+  });
+
+  it('shows the Italian message of a Supabase error, never the raw one', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: 't' } } });
+    mockUpdateUser.mockResolvedValue({ error: { message: 'New password should be different from the old password.', code: 'same_password' } });
+    renderPage();
+
+    await waitFor(() => screen.getByPlaceholderText('Nuova Password'));
+    fireEvent.change(screen.getByPlaceholderText('Nuova Password'), { target: { value: 'newpassword1' } });
+    fireEvent.change(screen.getByPlaceholderText('Conferma Nuova Password'), { target: { value: 'newpassword1' } });
+    fireEvent.click(screen.getByRole('button', { name: /reimposta password/i }));
+
+    await waitFor(() => expect(screen.getByText('La nuova password deve essere diversa da quella attuale 🏝️')).toBeInTheDocument());
+    expect(screen.queryByText(/should be different/i)).not.toBeInTheDocument();
+  });
 });
