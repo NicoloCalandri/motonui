@@ -161,9 +161,9 @@ describe('TripDetailPage', () => {
   it('respects the initial ?tab= query param for the default active tab', async () => {
     mockApiFetch.mockResolvedValueOnce(makeTrip());
 
-    renderTripDetail('/trips/trip-1?tab=wallet');
+    renderTripDetail('/trips/trip-1?tab=blog');
 
-    await waitFor(() => expect(screen.getByText('Tab in arrivo — Task 4.9.4')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Tab in arrivo — Task 4.9.9')).toBeInTheDocument());
   });
 
   describe('members', () => {
