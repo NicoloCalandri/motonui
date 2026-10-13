@@ -106,6 +106,16 @@ export const EXCLUDED = {
  * Never edit the copy: edit the source and run `node scripts/port-lib.mjs`.
  */
 export const WEB_COPIES = [
+    'components/calendar/TripCalendar.tsx',
+    'components/calendar/calendar-events.test.ts',
+    'components/calendar/calendar-events.ts',
+    'components/expense/ExpenseDrawer.tsx',
+    'components/expense/ExpensesTab.tsx',
+    'components/trip/BaggageFormPanel.tsx',
+    'components/trip/PackingTab.tsx',
+    'components/trip/packing-cards.tsx',
+    'components/trip/packing-form.test.ts',
+    'components/trip/packing-form.ts',
     'components/ui/use-dialog-a11y.test.tsx',
     'components/ui/use-dialog-a11y.ts',
     'lib/auth/auth-error-message.test.ts',
@@ -114,6 +124,8 @@ export const WEB_COPIES = [
     'lib/auth/password.ts',
     'lib/boarding-pass.test.ts',
     'lib/boarding-pass.ts',
+    'lib/fetcher.test.ts',
+    'lib/fetcher.ts',
     'lib/redirect.test.ts',
     'lib/redirect.ts',
     'lib/trip-files.test.ts',

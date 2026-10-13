@@ -9,6 +9,7 @@ import LegDrawer from './trip/LegDrawer';
 import AccommodationDrawer from './trip/AccommodationDrawer';
 import ActivityDrawer from './booking/ActivityDrawer';
 import RestaurantDrawer from './booking/RestaurantDrawer';
+import ExpenseDrawer from './expense/ExpenseDrawer';
 
 /**
  * Every form drawer is a labelled modal dialog, keeps focus inside, closes
@@ -29,6 +30,7 @@ const drawers: Array<[string, string, (onClose: () => void) => ReactElement]> = 
     ['AccommodationDrawer', 'Nuovo alloggio', (onClose) => <AccommodationDrawer tripId={TRIP} open onClose={onClose} onSaved={vi.fn()} />],
     ['ActivityDrawer', 'attività', (onClose) => <ActivityDrawer tripId={TRIP} open onClose={onClose} onSaved={vi.fn()} />],
     ['RestaurantDrawer', 'ristorante', (onClose) => <RestaurantDrawer tripId={TRIP} open onClose={onClose} onSaved={vi.fn()} />],
+    ['ExpenseDrawer', 'Nuova spesa', (onClose) => <ExpenseDrawer tripId={TRIP} open onClose={onClose} onSaved={vi.fn()} />],
 ];
 
 function show(element: ReactElement) {

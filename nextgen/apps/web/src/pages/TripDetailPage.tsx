@@ -21,6 +21,9 @@ import { useAuth } from '../lib/auth-context';
 import { apiFetch } from '../lib/api-client';
 import OverviewTab from '../components/trip/OverviewTab';
 import InvitePartnerCard from '../components/trip/InvitePartnerCard';
+import PackingTab from '../components/trip/PackingTab';
+import TripCalendar from '../components/calendar/TripCalendar';
+import ExpensesTab from '../components/expense/ExpensesTab';
 import ItineraryTab from '../components/trip/ItineraryTab';
 import BookingsTab from '../components/booking/BookingsTab';
 import type { TripWithDetails } from '@motonui/shared-types';
@@ -251,6 +254,13 @@ export function TripDetailPage() {
                 onDataChange={() => queryClient.invalidateQueries({ queryKey: ['trips', id] })}
               />
             );
+          }
+
+          // Copied from the Next.js app (scripts/port-lib.mjs): they read the API themselves, with SWR.
+          if (tabId === 'calendar') return <TripCalendar key={tabId} trip={trip} />;
+          if (tabId === 'packing') return <PackingTab key={tabId} trip={trip} />;
+          if (tabId === 'expenses') {
+            return <ExpensesTab key={tabId} tripId={trip.id} tripStartDate={trip.start_date} tripEndDate={trip.end_date} />;
           }
 
           return (
