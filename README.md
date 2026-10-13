@@ -25,7 +25,7 @@
 
 | Layer | Tecnologia |
 |---|---|
-| Framework | Next.js 15 (App Router), TypeScript strict |
+| Framework | Next.js 16 (App Router), TypeScript strict |
 | Database, Auth, Storage | Supabase (Postgres con RLS, email + password e Google) |
 | Stile | Tailwind CSS + shadcn/ui |
 | Mappe | Mapbox GL |

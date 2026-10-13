@@ -1,6 +1,8 @@
-# CLAUDE.md — motonui
+# CLAUDE.md
 
-Istruzioni per Claude Code. Leggi questo file integralmente prima di toccare qualsiasi file del progetto.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Istruzioni per lavorare su **motonui**. Le regole qui sotto valgono per ogni modifica; i documenti in `docs/` si leggono quando il task tocca la loro area.
 
 ---
 
@@ -14,13 +16,15 @@ Il nome viene da *Motu Nui*, l'isolotto più vicino al Point Nemo — il posto p
 
 ## Come lavorare su questo progetto
 
-### Prima di iniziare qualsiasi task
+### Prima di iniziare un task
 
-1. Leggi `agents/00_ORCHESTRATOR.md` per capire la visione d'insieme
-2. Leggi il file agente rilevante in `agents/` per la fase su cui stai lavorando
-3. Leggi `docs/architecture.md` (architettura attuale, obiettivo e ADR) e `docs/tasks.md` (piano a fasi)
-4. Se il task tocca sicurezza, DB, storage, API o CI, leggi `docs/security/` — in particolare `04-SECURITY-CHECKLIST.md`
-5. Controlla `src/lib/types/` (importato come `@/lib/types`) prima di creare nuovi tipi — potrebbe già esistere quello che cerchi
+Leggi il documento che riguarda l'area che tocchi; la tabella qui sotto è l'indice.
+
+- Sicurezza, DB, storage, API o CI: `docs/security/`, in particolare `04-SECURITY-CHECKLIST.md`
+- Scelte di architettura: `docs/architecture.md` (architettura attuale, obiettivo e ADR)
+- Lavoro di una fase: `docs/tasks.md` e il file agente della fase in `agents/` (`00_ORCHESTRATOR.md` per la visione d'insieme)
+- Testo mostrato all'utente: `docs/brand-voice.md`
+- Nuovi tipi: controlla prima `src/lib/types/` (importato come `@/lib/types`), potrebbe già esistere quello che cerchi
 
 Documenti di riferimento:
 
@@ -36,6 +40,9 @@ Documenti di riferimento:
 | `docs/security/04-SECURITY-CHECKLIST.md` | Checklist per PR e rilasci, registro verifiche |
 | `docs/security/05-OPS-RUNBOOK.md` | Parità Auth locale/cloud, backup e restore, rotazione dei segreti |
 | `docs/brand-voice.md` | Voce del brand: persona (tu/voi/noi), tono per contesto, parole da usare, struttura degli errori |
+| `docs/ENV_VARS.md` | Variabili d'ambiente, una per una |
+| `docs/ADMIN_SETUP.md` | Come creare il primo admin e usare l'area `/admin` |
+| `DEPLOY.md` | Deploy su Vercel e progetto Supabase cloud |
 
 `docs/archive/` contiene documenti superati (vecchio `ARCHITECTURE.md` e `SECURITY.md`): non usarli come fonte.
 
@@ -44,10 +51,41 @@ Documenti di riferimento:
 L'ordine degli agenti descrive la costruzione da zero:
 
 ```
-01_ARCHITECT  →  02_BACKEND  →  03_FRONTEND  →  04_MEDIA  →  05_CONTENT  →  06_DEVOPS
+01_ARCHITECT  →  02_BACKEND  →  03_FRONTEND  →  04_MEDIA  →  05_CONTENT  →  06_DEVOPS  →  07_ADMIN
 ```
 
 Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** seguendo `docs/tasks.md` (Fase 0 contenimento → Fase 5 SEO). Ogni task indica l'agente di riferimento, che dà lo scope del commit. Regola invariata: nessuna modifica di frontend che dipenda da uno schema non ancora migrato. Ogni PR che chiude un requisito aggiorna la riga corrispondente in `docs/security/01-SECURITY-REQUIREMENTS.md`.
+
+---
+
+## Comandi
+
+```bash
+npm run setup          # copia .env.example in .env.local e installa le dipendenze
+npm run dev            # dev server; prima esegue l'intera suite (predev): un test rotto lo blocca
+npm run type-check
+npm run lint           # --max-warnings=0
+npm run test           # Vitest, solo l'app Next.js (mobile/ e nextgen/ sono esclusi)
+npm run build
+
+npx vitest run src/lib/expenses.test.ts      # un file
+npx vitest run src/lib -t "nome del test"    # un test per nome
+npm run test:pages     # solo i test sotto src/app
+npm run test:mobile    # i test di mobile/ (config: mobile/vitest.config.mjs)
+npm run test:coverage  # fallisce sotto le soglie di src/lib
+
+npm run db:start       # Supabase locale (serve Docker)
+npm run db:reset       # riapplica tutte le migration: cancella i dati locali
+npm run db:seed
+npm run db:types       # rigenera src/lib/supabase/database.types.ts dopo una migration
+npm run test:rls       # test SQL delle policy, su Supabase locale
+```
+
+## Le tre app del repository
+
+- **`src/`** è l'app Next.js in produzione: tutto questo file parla di lei, salvo dove indicato.
+- **`mobile/`** è un client Expo che parla direttamente con Supabase, senza passare dalle API route: per questo ogni invariante di sicurezza sta anche nella RLS. Ha il suo `package.json`; i suoi test girano dalla radice con `npm run test:mobile`.
+- **`nextgen/`** è la migrazione in corso verso Vite (SPA) + Hono (API), in workspace npm separati (`apps/web`, `apps/api`, `packages/shared-types`). Non è in produzione e la suite di radice la ignora: i comandi (`npm test`, `npm run type-check`, `npm run build`) si lanciano dentro `nextgen/`.
 
 ---
 
@@ -55,17 +93,17 @@ Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** segue
 
 | Layer | Tecnologia |
 |---|---|
-| Framework | Next.js 15, App Router, TypeScript strict |
+| Framework | Next.js 16, React 19, App Router, TypeScript strict |
 | Database | Supabase (Postgres + RLS) |
 | Auth | Supabase Auth (email + password + Google OAuth; niente magic link, vedi ADR-06) |
 | Storage | Supabase Storage |
 | Styling | Tailwind CSS + shadcn/ui (config unica: `tailwind.config.ts`) |
 | Mappe | Mapbox GL |
-| Blog editor | Tiptap |
+| Blog editor | Tiptap 3 |
 | Grafici | Recharts |
 | Image processing | sharp (solo server-side) |
 | AI | Anthropic Claude API (`@anthropic-ai/sdk`) |
-| Test | Vitest + Testing Library |
+| Test | Vitest 5 + Testing Library |
 | Deploy | Vercel + GitHub Actions |
 
 ---
@@ -81,24 +119,13 @@ Il codice copre già tutte le fasi, quindi oggi si procede **per rischio** segue
 - Preferisci `type` a `interface` per i tipi di dominio, `interface` per i props dei componenti React
 
 ### Naming
-- File: `kebab-case` (es. `expense-summary.tsx`)
-- Componenti e tipi: `PascalCase`
-- Funzioni, variabili: `camelCase`
-- Costanti: `UPPER_SNAKE_CASE`
+- File in `kebab-case` (es. `expense-summary.tsx`)
 - Route API: `/api/trips/[id]/expenses` — plurale, kebab-case
 
 ### Struttura file
 - Massimo 300 righe per file — se superi, spezza in moduli
 - Test co-locati con il file sorgente: `expenses.ts` → `expenses.test.ts`
 - Componenti grandi: una cartella con `index.tsx`, `types.ts`, `utils.ts`
-
-### Import
-```typescript
-// Ordine: external → internal → types → styles
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { Trip } from '@/lib/types'
-```
 
 ---
 
@@ -259,49 +286,33 @@ Variabili opzionali (alcune feature si disabilitano senza):
 ```
 src/
 ├── app/
-│   ├── (auth)/          # Login, signup — senza nav
+│   ├── auth/            # Login, password dimenticata, callback OAuth — senza nav
 │   ├── (app)/           # App autenticata — con nav
-│   │   ├── page.tsx     # Dashboard
 │   │   └── trips/[id]/  # Trip detail con tabs
+│   ├── (admin)/         # Area admin
 │   ├── (public)/        # Blog pubblico — senza auth
 │   └── api/             # Route handler
 ├── components/
 │   ├── ui/              # Primitivi (Button, Input, Card...)
-│   ├── trip/            # Componenti specifici per trip
-│   ├── expense/         # Tracker spese
-│   ├── media/           # Griglia foto, upload
-│   ├── blog/            # Editor Tiptap
-│   ├── map/             # Componenti Mapbox
-│   └── instagram/       # Generator export
+│   └── …                # Una cartella per area: trip, expense, media, blog, map, instagram, admin…
 ├── lib/
-│   ├── supabase/        # Client setup (client, server, middleware)
+│   ├── supabase/        # Client setup (client, server, middleware) e tipi generati
+│   ├── api/             # withRoute e schemi dei parametri
 │   ├── ai/              # Integrazioni Claude API
 │   ├── media/           # Image processing pipeline
 │   ├── types/           # TUTTI i tipi di dominio, per dominio — fonte della verità
 │   ├── expenses.ts      # Business logic spese
 │   └── trips.ts         # Statistiche viaggio
+├── middleware.ts        # Sessione, 401 delle API, CSP, impersonazione
+└── test/                # Helper di test (mock Supabase, SWR, axe)
 supabase/
-└── migrations/          # SQL migrations — fonte della verità per lo schema
+├── migrations/          # SQL migrations — fonte della verità per lo schema
+└── tests/               # Test SQL delle policy RLS
+mobile/                  # Client Expo
+nextgen/                 # Migrazione Vite + Hono (non in produzione)
 agents/                  # Prompt sistema multi-agente
-docs/                    # Decisioni architetturali
+docs/                    # Requisiti, architettura, sicurezza, piani
 ```
-
----
-
-## Criteri di accettazione
-
-Il progetto è completo quando:
-
-- [ ] `npm run dev` parte senza errori
-- [ ] Nicolò e Giorgia possono registrarsi e creare un viaggio insieme
-- [ ] Si possono aggiungere giorni, tappe e alloggi all'itinerario
-- [ ] Si possono registrare spese e vedere chi deve quanto a chi
-- [ ] Si possono caricare foto e vederle nella griglia media
-- [ ] Si può generare un carousel ZIP pronto per Instagram
-- [ ] Si può scrivere e pubblicare un post del blog
-- [ ] Il blog pubblico su `/blog` funziona senza login
-- [ ] Tutti i check CI passano
-- [ ] Il deploy su Vercel funziona
 
 ---
 
