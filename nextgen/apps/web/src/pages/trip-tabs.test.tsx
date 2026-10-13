@@ -34,6 +34,10 @@ const API: Record<string, unknown> = {
     '/api/trips/trip-1/baggage': [],
     '/api/trips/trip-1/packing': { checklist: null, stale: false },
     '/api/trips/trip-1/restaurants': [],
+    '/api/trips/trip-1/posts': [{
+        id: 'post-1', title: 'Tramonto a Rapa Nui', slug: 'tramonto-a-rapa-nui', status: 'published', published_at: '2026-10-01T10:00:00Z',
+        cover_image: null, reading_time: 4, created_at: '2026-10-01T09:00:00Z',
+    }],
     '/api/trips/trip-1/documents': [{
         id: 'doc-1', trip_id: 'trip-1', type: 'ticket', title: 'Biglietto Rapa Nui', file_type: 'image',
         file_path: 'trips/trip-1/documents/doc-1.png', file_url: null, valid_from: null, valid_until: null,
@@ -159,6 +163,16 @@ describe('trip tabs copied from the Next.js app', () => {
         open(tab);
 
         await waitFor(() => expect(screen.getByText('Rapa Nui')).toBeInTheDocument());
+        expect(screen.queryByText(/tab in arrivo/i)).not.toBeInTheDocument();
+    });
+
+    it('blog: lists the posts of the trip, with links to edit and to read them', async () => {
+        const { container } = open('blog');
+
+        expect(await screen.findByText('Tramonto a Rapa Nui')).toBeInTheDocument();
+        expect(requested()).toContain('/api/trips/trip-1/posts');
+        const hrefs = [...container.querySelectorAll('a')].map((link) => link.getAttribute('href'));
+        expect(hrefs).toEqual(expect.arrayContaining(['/trips/trip-1/posts/new/edit', '/trips/trip-1/posts/post-1/edit', '/blog/tramonto-a-rapa-nui']));
         expect(screen.queryByText(/tab in arrivo/i)).not.toBeInTheDocument();
     });
 });

@@ -26,6 +26,7 @@ import TripCalendar from '../components/calendar/TripCalendar';
 import ExpensesTab from '../components/expense/ExpensesTab';
 import TravelWallet from '../components/wallet/TravelWallet';
 import MediaTab from '../components/media/MediaTab';
+import BlogTab from '../components/blog/BlogTab';
 import ItineraryTab from '../components/trip/ItineraryTab';
 import BookingsTab from '../components/booking/BookingsTab';
 import type { TripWithDetails } from '@motonui/shared-types';
@@ -263,6 +264,7 @@ export function TripDetailPage() {
           if (tabId === 'packing') return <PackingTab key={tabId} trip={trip} />;
           if (tabId === 'wallet') return <TravelWallet key={tabId} trip={trip} />;
           if (tabId === 'media') return <MediaTab key={tabId} tripId={trip.id} />;
+          if (tabId === 'blog') return <BlogTab key={tabId} tripId={trip.id} />;
           if (tabId === 'expenses') {
             return <ExpensesTab key={tabId} tripId={trip.id} tripStartDate={trip.start_date} tripEndDate={trip.end_date} />;
           }

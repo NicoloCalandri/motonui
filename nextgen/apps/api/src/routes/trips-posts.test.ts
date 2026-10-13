@@ -57,6 +57,8 @@ const SAFE = paragraph([{ type: 'link', attrs: { href: 'https://motonui.app/blog
 const ROUTES: Array<[string, string, string, Record<string, unknown>]> = [
     ['create', 'POST', '', { title: 'Rapa Nui', slug: 'rapa-nui' }],
     ['update', 'PUT', `/${POST_ID}`, {}],
+    // The editor autosaves with PATCH.
+    ['autosave', 'PATCH', `/${POST_ID}`, {}],
 ];
 
 beforeEach(() => {

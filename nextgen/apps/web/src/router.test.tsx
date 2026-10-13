@@ -82,4 +82,19 @@ describe('router', () => {
 
     await waitFor(() => expect(memory.state.location.pathname).toBe('/dashboard'));
   });
+
+  it('opens the post editor on a new post', async () => {
+    open('/trips/10000000-0000-4000-8000-00000000000a/posts/new/edit');
+
+    expect(await screen.findByPlaceholderText('Titolo del post...')).toBeInTheDocument();
+  });
+
+  it('shows the public blog without a session', async () => {
+    auth.value = signedOut;
+
+    const memory = open('/blog');
+
+    expect(await screen.findByRole('heading', { name: 'Il nostro diario di viaggio' })).toBeInTheDocument();
+    expect(memory.state.location.pathname).toBe('/blog');
+  });
 });

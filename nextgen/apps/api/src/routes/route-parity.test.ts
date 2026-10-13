@@ -25,6 +25,8 @@ const KNOWN_EXTRAS: string[] = [
     'GET /api/session',
     'POST /api/session/cookie',
     'DELETE /api/session/cookie',
+    // The editor autosaves with PATCH; the Next.js route only has PUT (a defect there).
+    'PATCH /api/trips/:param/posts/:param',
     'POST /api/session/cookie',
     'DELETE /api/session/cookie',
     'POST /api/admin/cleanup',

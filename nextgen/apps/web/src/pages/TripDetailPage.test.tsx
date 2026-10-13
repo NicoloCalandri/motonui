@@ -89,6 +89,8 @@ describe('TripDetailPage', () => {
     mockApiFetch.mockReset();
     mockUseAuth.mockReset();
     mockUseAuth.mockReturnValue(authValue());
+    // The tabs copied from the Next.js app read the API with plain fetch.
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('[]', { status: 200 })));
   });
 
   it('shows a loading state while the trip is being fetched', () => {
@@ -155,7 +157,8 @@ describe('TripDetailPage', () => {
     expect(screen.queryByText('Nessuno spostamento aggiunto')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^blog$/i }));
-    expect(screen.getByText('Tab in arrivo — Task 4.9.9')).toBeInTheDocument();
+    expect(await screen.findByText('Nessun post ancora')).toBeInTheDocument();
+    expect(screen.queryByText(/Tab in arrivo/)).not.toBeInTheDocument();
   });
 
   it('respects the initial ?tab= query param for the default active tab', async () => {
@@ -163,7 +166,7 @@ describe('TripDetailPage', () => {
 
     renderTripDetail('/trips/trip-1?tab=blog');
 
-    await waitFor(() => expect(screen.getByText('Tab in arrivo — Task 4.9.9')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Nessun post ancora')).toBeInTheDocument());
   });
 
   describe('members', () => {

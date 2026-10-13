@@ -17,9 +17,21 @@ import AdminDashboardPage from './app/(admin)/admin/page';
 import AdminUsersPage from './app/(admin)/admin/users/page';
 import AdminAuditLogPage from './app/(admin)/admin/audit-log/page';
 import { AdminLayout } from './components/admin/AdminLayout';
+import PostEditPage from './app/(app)/trips/[id]/posts/[postId]/edit/page';
+import { BlogLayout } from './pages/blog/BlogLayout';
+import { BlogIndexPage } from './pages/blog/BlogIndexPage';
+import { BlogPostPage } from './pages/blog/BlogPostPage';
 
 export const router = createBrowserRouter([
   { path: '/suspended', Component: SuspendedPage },
+  // The public blog: no session, no guard, its own frame.
+  {
+    element: <BlogLayout />,
+    children: [
+      { path: '/blog', Component: BlogIndexPage },
+      { path: '/blog/:slug', Component: BlogPostPage },
+    ],
+  },
   {
     element: <RedirectIfAuthenticated />,
     children: [
@@ -37,8 +49,6 @@ export const router = createBrowserRouter([
         element: <RedirectIfAuthenticated />,
         children: [{ path: '/', Component: LandingPage }],
       },
-      { path: '/blog', /* Task 4.9 */ Component: undefined },
-      { path: '/blog/:slug', Component: undefined },
       {
         element: <RequireAuth />,
         children: [
@@ -50,7 +60,7 @@ export const router = createBrowserRouter([
               { path: '/trips/new', Component: NewTripPage },
               { path: '/trips/:id', Component: TripDetailPage },
               { path: '/invite/:token', Component: InvitePage },
-              { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
+              { path: '/trips/:id/posts/:postId/edit', Component: PostEditPage },
               { path: '/profile', Component: ProfilePage },
             ],
           },

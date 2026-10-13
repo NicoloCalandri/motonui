@@ -116,8 +116,15 @@ tripsPostsRouter.get(
     }, 'trips/:id/posts/:postId GET')
 );
 
-/** PUT /api/trips/:id/posts/:postId — update a blog post */
-tripsPostsRouter.put(
+/**
+ * PUT|PATCH /api/trips/:id/posts/:postId — update a blog post.
+ *
+ * PATCH is what the editor's autosave sends (components/blog/PostEditor.tsx).
+ * The Next.js route has no PATCH handler, so there the autosave is answered
+ * 405 and nothing is saved; here both methods run the same handler.
+ */
+tripsPostsRouter.on(
+    ['PUT', 'PATCH'],
     '/:postId',
     requireUser,
     loadProfile,

@@ -169,3 +169,14 @@ describe('tests of the files copied to the web app', () => {
         expect(Object.values(WEB_WITHOUT_TEST).filter((reason) => reason.trim().length < 10)).toEqual([]);
     });
 });
+
+describe('transformWeb for the blog', () => {
+    it('points the database types to the shared package', () => {
+        expect(transformWeb("import type { Database } from '@/lib/supabase/database.types';", 'lib/blog/public-posts.ts'))
+            .toBe("import type { Database } from '@motonui/shared-types';");
+    });
+
+    it('uses the browser build of the HTML renderer', () => {
+        expect(transformWeb("import { generateHTML } from '@tiptap/html/server';", 'lib/blog/render.ts')).toBe("import { generateHTML } from '@tiptap/html';");
+    });
+});
