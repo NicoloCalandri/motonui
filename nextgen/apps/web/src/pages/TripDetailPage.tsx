@@ -20,6 +20,7 @@ import {
 import { useAuth } from '../lib/auth-context';
 import { apiFetch } from '../lib/api-client';
 import OverviewTab from '../components/trip/OverviewTab';
+import InvitePartnerCard from '../components/trip/InvitePartnerCard';
 import ItineraryTab from '../components/trip/ItineraryTab';
 import BookingsTab from '../components/booking/BookingsTab';
 import type { TripWithDetails } from '@motonui/shared-types';
@@ -53,7 +54,11 @@ const TABS: { id: TabId; label: string; icon: React.ElementType; task: string }[
 function useTrip(id: string | undefined, token: string | undefined) {
   return useQuery({
     queryKey: ['trips', id],
-    queryFn: () => apiFetch<TripWithDetails>(`/api/trips/${id}`, {}, token),
+    queryFn: async () => {
+      // The API returns the members under `trip_members`; the pages read `members`.
+      const trip = await apiFetch<TripWithDetails & { trip_members?: TripWithDetails['members'] }>(`/api/trips/${id}`, {}, token);
+      return { ...trip, members: trip.members ?? trip.trip_members ?? [] };
+    },
     enabled: !!id && !!token,
   });
 }
@@ -90,12 +95,12 @@ function useTrip(id: string | undefined, token: string | undefined) {
  *   (set once, never written back to the URL); that one-way read is
  *   preserved via `useSearchParams()` here too.
  *
+ * Members: `TripWithDetails` declares `members`, but `GET /api/trips/:id`
+ * returns them as `trip_members` (in the Next.js app too, where the hero
+ * shows "undefined persone" and the invite card never hides). useTrip maps
+ * one onto the other, so the count and the invite card are right here.
+ *
  * Known gaps ported unchanged from the old page (not introduced here):
- * - `trip.members?.length` in the hero reads a `members` field that
- *   `TripWithDetails` declares, but the API (both the old Next.js route and
- *   the ported `GET /api/trips/:id` in nextgen/apps/api) actually returns
- *   `trip_members` — this was already a silent no-op in the old app (always
- *   renders "undefined persone"), not a regression from this port.
  * - The `hero-gradient` and `scrollbar-hide` classes on the hero/tab-bar
  *   have no definition anywhere in the old app's CSS (nor in the new
  *   index.css/tailwind.config.ts) and were already no-ops in the old page;
@@ -179,7 +184,7 @@ export function TripDetailPage() {
             )}
             <span className="flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
-              {trip.members?.length} persone
+              {trip.members.length === 1 ? '1 persona' : `${trip.members.length} persone`}
             </span>
           </div>
         </div>
@@ -212,16 +217,18 @@ export function TripDetailPage() {
 
           if (tabId === 'overview') {
             return (
-              <OverviewTab
-                key={tabId}
-                trip={trip}
-                onNavigate={(tab) => setActiveTab(tab as TabId)}
-                onTripUpdate={(updates) =>
-                  queryClient.setQueryData<TripWithDetails>(['trips', id], (old) =>
-                    old ? { ...old, ...updates } : old
-                  )
-                }
-              />
+              <div key={tabId}>
+                {trip.members.length < 2 && <InvitePartnerCard tripId={trip.id} />}
+                <OverviewTab
+                  trip={trip}
+                  onNavigate={(tab) => setActiveTab(tab as TabId)}
+                  onTripUpdate={(updates) =>
+                    queryClient.setQueryData<TripWithDetails>(['trips', id], (old) =>
+                      old ? { ...old, ...updates } : old
+                    )
+                  }
+                />
+              </div>
             );
           }
 

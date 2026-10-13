@@ -9,6 +9,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { TripsListPage } from './pages/TripsListPage';
 import { NewTripPage } from './pages/NewTripPage';
 import { TripDetailPage } from './pages/TripDetailPage';
+import { InvitePage } from './pages/InvitePage';
 
 export const router = createBrowserRouter([
   { path: '/suspended', /* Task 4.11 */ Component: undefined },
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
               { path: '/trips', Component: TripsListPage },
               { path: '/trips/new', Component: NewTripPage },
               { path: '/trips/:id', Component: TripDetailPage },
+              { path: '/invite/:token', Component: InvitePage },
               { path: '/trips/:id/posts/:postId/edit', /* Task 4.10 */ Component: undefined },
               { path: '/profile', /* Task 4.12 */ Component: undefined },
               {

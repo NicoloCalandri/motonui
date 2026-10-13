@@ -163,4 +163,31 @@ describe('TripDetailPage', () => {
 
     await waitFor(() => expect(screen.getByText('Tab in arrivo — Task 4.9.4')).toBeInTheDocument());
   });
+
+  describe('members', () => {
+    // GET /api/trips/:id returns the members under `trip_members`.
+    const withMembers = (count: number) => makeTrip({
+      members: undefined,
+      trip_members: Array.from({ length: count }, (_value, index) => ({ id: `m${index}`, user_id: `user-${index}`, role: index === 0 ? 'owner' : 'member' })),
+    });
+    const show = async (count: number) => {
+      mockApiFetch.mockImplementation((path: string) => Promise.resolve(path === '/api/trips/trip-1' ? withMembers(count) : {}));
+      renderTripDetail();
+      await waitFor(() => expect(screen.getByText('Avventura in Giappone')).toBeInTheDocument());
+    };
+
+    it('counts one traveller and offers to invite the partner', async () => {
+      await show(1);
+
+      expect(screen.getByText('1 persona')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Invita il tuo partner' })).toBeInTheDocument();
+    });
+
+    it('counts two travellers and offers no invite', async () => {
+      await show(2);
+
+      expect(screen.getByText('2 persone')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Invita il tuo partner' })).not.toBeInTheDocument();
+    });
+  });
 });
