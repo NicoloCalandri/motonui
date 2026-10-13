@@ -1,5 +1,6 @@
 import { X, Download, QrCode, Plane } from 'lucide-react';
 import type { Leg } from '@motonui/shared-types';
+import { wallClockDayTime } from '../../lib/wall-clock';
 
 interface BoardingPassViewerProps {
     leg: Leg;
@@ -100,10 +101,7 @@ export default function BoardingPassViewer({ leg, onClose }: BoardingPassViewerP
                 <div className="flex-shrink-0 px-6 py-4 bg-white/5 flex justify-between items-center text-sm">
                     <span className="text-neutral-400">Partenza</span>
                     <span className="text-white font-bold">
-                        {new Date(leg.departure_at).toLocaleString('it-IT', {
-                            day: '2-digit', month: 'short', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit',
-                        })}
+                        {wallClockDayTime(leg.departure_at)}
                     </span>
                 </div>
             )}

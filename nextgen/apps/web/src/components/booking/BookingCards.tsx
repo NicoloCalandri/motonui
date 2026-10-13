@@ -5,6 +5,7 @@ import {
     PersonStanding, Bus, Pencil, Trash2,
 } from 'lucide-react';
 import type { Leg, Accommodation, Restaurant, Activity } from '@motonui/shared-types';
+import { wallClockDayTime } from '../../lib/wall-clock';
 
 const LEG_ICONS: Record<string, React.ElementType> = {
     flight: Plane, train: Train, car: Car, ferry: Ship, walk: PersonStanding, bus: Bus, other: MapPin,
@@ -49,7 +50,7 @@ export function FlightCard({ leg, onEdit, onDelete }: { leg: Leg; onEdit: () => 
                     {leg.departure_at && (
                         <span className="text-xs text-ink-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(leg.departure_at), 'd MMM · HH:mm', { locale: it })}
+                            {wallClockDayTime(leg.departure_at)}
                         </span>
                     )}
                 </div>
@@ -213,7 +214,7 @@ export function TransportCard({ leg, onEdit, onDelete }: { leg: Leg; onEdit: () 
                     {leg.departure_at && (
                         <span className="text-xs text-ink-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(leg.departure_at), 'd MMM · HH:mm', { locale: it })}
+                            {wallClockDayTime(leg.departure_at)}
                         </span>
                     )}
                 </div>

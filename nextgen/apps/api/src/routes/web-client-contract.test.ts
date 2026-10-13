@@ -86,6 +86,19 @@ describe('web client contract', () => {
     });
 });
 
+describe('web sources', () => {
+    it('no component formats a typed time in the browser zone', () => {
+        // Departures, arrivals and check-in openings are wall-clock times stored
+        // in UTC: they go through lib/wall-clock.ts (see typed-times.test.tsx).
+        const typed = /new Date\(\s*[\w.?]*\b(departure_at|arrival_at|checkin_opens_at)\)\s*(?:,|\.toLocale)/;
+        const offenders = sourceFiles(WEB_SRC)
+            .filter((path) => typed.test(stripComments(readFileSync(path, 'utf8'))))
+            .map((path) => relative(WEB_SRC, path).split(sep).join('/'));
+
+        expect(offenders).toEqual([]);
+    });
+});
+
 describe('apiCalls', () => {
     it('reads the path and the method of a call', () => {
         const source = "await apiFetch<Trip>(`/api/trips/${id}/days/${dayId}`, { method: 'DELETE' }, token);";

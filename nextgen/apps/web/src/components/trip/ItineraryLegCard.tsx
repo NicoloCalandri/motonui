@@ -1,7 +1,6 @@
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
 import { Plane, Train, Car, Ship, PersonStanding, Bus, MapPin, Pencil, Trash2, Ticket } from 'lucide-react';
 import type { Leg } from '@motonui/shared-types';
+import { wallClockDayTime, wallClockTime } from '../../lib/wall-clock';
 
 const LEG_ICONS: Record<string, React.ElementType> = {
     flight: Plane, train: Train, car: Car, ferry: Ship, walk: PersonStanding, bus: Bus, other: MapPin,
@@ -50,8 +49,8 @@ export default function ItineraryLegCard({ leg, expanded, onToggleExpand, onShow
                     )}
                     {leg.departure_at && (
                         <p className="text-xs text-ink-400">
-                            {format(new Date(leg.departure_at), 'HH:mm')}
-                            {leg.arrival_at && ` → ${format(new Date(leg.arrival_at), 'HH:mm')}`}
+                            {wallClockTime(leg.departure_at)}
+                            {leg.arrival_at && ` → ${wallClockTime(leg.arrival_at)}`}
                         </p>
                     )}
                 </div>
@@ -93,12 +92,12 @@ export default function ItineraryLegCard({ leg, expanded, onToggleExpand, onShow
                         <div>
                             <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Da</span>
                             <span className="font-medium">{leg.from_name}</span>
-                            {leg.departure_at && <span className="block text-xs">{format(new Date(leg.departure_at), 'd MMM HH:mm', { locale: it })}</span>}
+                            {leg.departure_at && <span className="block text-xs">{wallClockDayTime(leg.departure_at, ' ')}</span>}
                         </div>
                         <div>
                             <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">A</span>
                             <span className="font-medium">{leg.to_name}</span>
-                            {leg.arrival_at && <span className="block text-xs">{format(new Date(leg.arrival_at), 'd MMM HH:mm', { locale: it })}</span>}
+                            {leg.arrival_at && <span className="block text-xs">{wallClockDayTime(leg.arrival_at, ' ')}</span>}
                         </div>
                     </div>
 
