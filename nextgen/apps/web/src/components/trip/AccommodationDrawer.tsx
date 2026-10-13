@@ -114,7 +114,7 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
 
             reset({ currency: values.currency || 'EUR', check_in: dayDate || undefined, check_out: dayDate || undefined });
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

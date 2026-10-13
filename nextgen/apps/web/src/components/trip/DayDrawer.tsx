@@ -74,7 +74,7 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
             onClose();
             onSaved();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

@@ -87,6 +87,23 @@ describe('web client contract', () => {
 });
 
 describe('web sources', () => {
+    it('shows no copy the Next.js app has retired', () => {
+        // Brand voice (docs/brand-voice.md): Italian, "motonui" lowercase, errors
+        // as "Ops! … 🏝️". Each entry was replaced in the Next.js app.
+        const retired = [
+            'Errore imprevisto', 'Errore con Google', "Errore durante l'eliminazione", 'Errore nel salvataggio',
+            'Motonui App', 'Travel App', 'Accedi / Registrati', 'Chi siamo', 'Diario AI',
+            'Recent Trips', 'Location Live', 'Welcome Back', 'Remember me', 'Log in to your account', 'Go around the world',
+            'Tutto quello che ti serve', 'viaggio perfetto',
+        ];
+        const found = sourceFiles(WEB_SRC).flatMap((path) => {
+            const code = stripComments(readFileSync(path, 'utf8'));
+            return retired.filter((text) => code.includes(text)).map((text) => `${text}  (${relative(WEB_SRC, path).split(sep).join('/')})`);
+        });
+
+        expect(found).toEqual([]);
+    });
+
     it('no component formats a typed time in the browser zone', () => {
         // Departures, arrivals and check-in openings are wall-clock times stored
         // in UTC: they go through lib/wall-clock.ts (see typed-times.test.tsx).

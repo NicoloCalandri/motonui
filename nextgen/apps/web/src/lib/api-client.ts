@@ -35,7 +35,7 @@ export async function apiFetch<T>(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new ApiError(
-      body.error ?? 'Errore imprevisto 🏝️',
+      body.error ?? 'Ops! Qualcosa è andato storto 🏝️',
       body.code ?? 'UNKNOWN_ERROR',
       res.status
     );

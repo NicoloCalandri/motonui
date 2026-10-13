@@ -137,7 +137,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                 date: dayContext?.date ?? undefined,
             });
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

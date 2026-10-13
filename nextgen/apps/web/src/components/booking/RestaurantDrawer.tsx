@@ -116,7 +116,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
             reset({ currency: values.currency || 'EUR', covers: values.covers || 2 });
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

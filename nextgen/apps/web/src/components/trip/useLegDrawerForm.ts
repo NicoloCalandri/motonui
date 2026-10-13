@@ -220,7 +220,7 @@ export function useLegDrawerForm({ tripId, dayId, open, onClose, onSaved, dayDat
             setBoardingPassUrl(null);
             setSegments([defaultSegment()]);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore imprevisto');
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
         } finally {
             setSaving(false);
         }

@@ -37,7 +37,7 @@ export function DeleteTripButton({ tripId, tripTitle }: { tripId: string; tripTi
       await apiFetch(`/api/trips/${tripId}`, { method: 'DELETE' }, session?.access_token);
       await queryClient.invalidateQueries({ queryKey: ['trips'] });
     } catch {
-      alert("Errore durante l'eliminazione del viaggio.");
+      alert('Ops! Non riusciamo a eliminare il viaggio. Riprova tra poco 🏝️');
     } finally {
       setIsLoading(false);
     }

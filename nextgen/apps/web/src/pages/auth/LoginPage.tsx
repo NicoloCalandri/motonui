@@ -80,7 +80,7 @@ export function LoginPage() {
     });
 
     if (authError) {
-      setError('Errore Dev Login: ' + authError.message);
+      setError(authErrorMessage(authError));
       setLoading(false);
       return;
     }
