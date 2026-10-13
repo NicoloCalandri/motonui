@@ -21,7 +21,9 @@ export default function BoardingPassViewer({ leg, onClose }: BoardingPassViewerP
     const panelRef = useDialogA11y<HTMLDivElement>(true, onClose);
     const isPdf = isPdfBoardingPass(leg);
     const source = boardingPassHref(leg);
-    const { url, loading, failed } = usePrivateFile(source);
+    // The old public column is not trusted: only the API route is read.
+    const legacy = Boolean(source) && !source?.startsWith('/api/');
+    const { url, loading, failed } = usePrivateFile(legacy ? null : source);
     const fileName = `carta-imbarco-${leg.pnr ?? leg.id}.${isPdf ? 'pdf' : 'jpg'}`;
 
     return (
@@ -89,6 +91,10 @@ export default function BoardingPassViewer({ leg, onClose }: BoardingPassViewerP
                         <p className="font-semibold">Nessuna carta d&apos;imbarco caricata</p>
                         <p className="text-sm mt-1">Carica un&apos;immagine o PDF dal drawer dello spostamento</p>
                     </div>
+                ) : legacy ? (
+                    <p className="text-center text-neutral-200 font-semibold max-w-sm">
+                        Questa carta d&apos;imbarco è salvata in un formato precedente: caricala di nuovo dallo spostamento 🏝️
+                    </p>
                 ) : failed ? (
                     <p role="alert" className="text-center text-neutral-200 font-semibold">
                         Ops! Non riusciamo ad aprire la carta d&apos;imbarco. Riprova tra poco 🏝️

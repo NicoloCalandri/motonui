@@ -12,6 +12,7 @@ import ItineraryAccommodationCard from './ItineraryAccommodationCard';
 import ItineraryActivityCard from './ItineraryActivityCard';
 import ActivityDrawer from '../booking/ActivityDrawer';
 import { useItineraryDays, type DayWithDetails } from './useItineraryDays';
+import { calendarDate } from '../../lib/calendar-date';
 
 interface ItineraryTabProps {
     trip: TripWithDetails;
@@ -124,10 +125,10 @@ export default function ItineraryTab({ trip, onDataChange }: ItineraryTabProps) 
                             <div className="flex-1 flex items-center gap-2">
                                 <div>
                                     <h3 className="font-display font-semibold text-ink-900 flex items-center gap-2">
-                                        {day.title ?? format(new Date(day.date), 'EEEE', { locale: it })}
+                                        {day.title ?? format(calendarDate(day.date), 'EEEE', { locale: it })}
                                     </h3>
                                     <p className="text-xs text-ink-400">
-                                        {format(new Date(day.date), 'd MMMM yyyy', { locale: it })}
+                                        {format(calendarDate(day.date), 'd MMMM yyyy', { locale: it })}
                                     </p>
                                 </div>
                                 <div className="flex gap-1 ml-auto">

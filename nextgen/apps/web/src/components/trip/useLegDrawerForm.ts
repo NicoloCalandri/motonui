@@ -6,6 +6,7 @@ import type { Leg } from '@motonui/shared-types';
 import { useAuth } from '../../lib/auth-context';
 import { apiFetch } from '../../lib/api-client';
 import { hasBoardingPass } from '../../lib/boarding-pass';
+import { dayItemPath } from '../../lib/form-payload';
 import type { FlightSegment } from './LegFlightSegments';
 
 const defaultSegment = (): FlightSegment => ({ from_name: '', to_name: '' });
@@ -193,14 +194,8 @@ export function useLegDrawerForm({ tripId, dayId, open, onClose, onSaved, dayDat
                     to_lng: toCoords?.lng ?? null,
                 };
 
-                let url = '';
-                if (isEditing) {
-                    url = `/api/trips/${tripId}/days/${dayId}/legs/${initialData!.id}`;
-                } else {
-                    url = dayId
-                        ? `/api/trips/${tripId}/days/${dayId}/legs`
-                        : `/api/trips/${tripId}/legs`;
-                }
+                // Opened from a list without days (bookings): the leg's own day, or the day-less route.
+                const url = dayItemPath(tripId, 'legs', dayId ?? initialData?.day_id, initialData?.id);
 
                 await apiFetch(url, { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(payload) }, token);
             }

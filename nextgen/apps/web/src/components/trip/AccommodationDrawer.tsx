@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { X, Loader2 } from 'lucide-react';
 import type { Accommodation } from '@motonui/shared-types';
 import { useAuth } from '../../lib/auth-context';
+import { dayItemPath, emptyToNull } from '../../lib/form-payload';
 import { apiFetch } from '../../lib/api-client';
 import CurrencyCostField from './CurrencyCostField';
 
@@ -94,16 +95,10 @@ export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSa
         const submitMode = submitter?.getAttribute('data-submit-mode') === 'add-another' ? 'add-another' : 'save';
 
         try {
-            let url = '';
-            if (isEditing) {
-                url = `/api/trips/${tripId}/days/${dayId}/accommodations/${initialData!.id}`;
-            } else {
-                url = dayId
-                    ? `/api/trips/${tripId}/days/${dayId}/accommodations`
-                    : `/api/trips/${tripId}/accommodations`;
-            }
+            // Opened from a list without days (bookings): the accommodation's own day, or the day-less route.
+            const url = dayItemPath(tripId, 'accommodations', dayId ?? initialData?.day_id, initialData?.id);
 
-            await apiFetch(url, { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(values) }, token);
+            await apiFetch(url, { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(emptyToNull(values)) }, token);
 
             onSaved();
 

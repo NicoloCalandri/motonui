@@ -46,15 +46,36 @@ export function apiCalls(source: string, file: string): Call[] {
     const literal = /([`'"])(\/api\/(?:(?!\1).)+)\1/g;
     for (const match of code.matchAll(literal)) {
         const start = match.index ?? 0;
-        // The options object of the same call: up to the next API literal or 300 characters.
-        const rest = code.slice(start + match[0].length, start + match[0].length + 300);
-        const next = rest.search(/[`'"]\/api\//);
-        const options = next >= 0 ? rest.slice(0, next) : rest;
-        const method = /^\s*,\s*\{[^}]*?method:\s*'([A-Z]+)'/.exec(options)?.[1] ?? null;
+        const rest = code.slice(start + match[0].length);
         const isCall = /(?:apiFetch(?:<[^>(]*>)?|fetch)\(\s*$/.test(code.slice(Math.max(0, start - 80), start));
-        calls.push({ file, path: normalizePath(match[2]), method: method ?? (isCall && /^\s*[,)]/.test(options) && !/^\s*,\s*\{/.test(options) ? 'GET' : null) });
+        calls.push({ file, path: normalizePath(match[2]), method: isCall ? methodOf(rest) : null });
     }
     return calls;
+}
+
+/**
+ * Method of a call, from what follows its path: none or `undefined` options
+ * and an options object that names no method are a GET; a written
+ * `method: 'X'` is X; anything else (a variable, a computed method) is unknown.
+ */
+function methodOf(rest: string): string | null {
+    if (/^\s*\)/.test(rest) || /^\s*,\s*undefined\b/.test(rest)) return 'GET';
+    const open = /^\s*,\s*\{/.exec(rest);
+    if (!open) return null;
+
+    let depth = 0;
+    let end = -1;
+    for (let i = open[0].length - 1; i < rest.length; i += 1) {
+        if (rest[i] === '{') depth += 1;
+        if (rest[i] === '}') depth -= 1;
+        if (depth === 0) { end = i; break; }
+    }
+    if (end < 0) return null;
+
+    const options = rest.slice(open[0].length - 1, end + 1);
+    const written = /\bmethod:\s*'([A-Z]+)'/.exec(options);
+    if (written) return written[1];
+    return /\bmethod\b/.test(options) ? null : 'GET';
 }
 
 const routes = new Set(
@@ -105,6 +126,17 @@ describe('web sources', () => {
         expect(found).toEqual([]);
     });
 
+    it('no component reads a calendar date as a UTC instant', () => {
+        // new Date('2026-11-01') is midnight UTC: formatted in a zone west of
+        // UTC it shows 31 October. Calendar dates go through lib/calendar-date.ts.
+        const calendar = /new Date\(\s*[\w.?]*\.(date|check_in|check_out|start_date|end_date|start|end|payment_deadline|cancellation_deadline)\)/;
+        const offenders = sourceFiles(WEB_SRC)
+            .filter((path) => calendar.test(stripComments(readFileSync(path, 'utf8'))))
+            .map((path) => relative(WEB_SRC, path).split(sep).join('/'));
+
+        expect(offenders).toEqual([]);
+    });
+
     it('no component formats a typed time in the browser zone', () => {
         // Departures, arrivals and check-in openings are wall-clock times stored
         // in UTC: they go through lib/wall-clock.ts (see typed-times.test.tsx).
@@ -127,6 +159,16 @@ describe('apiCalls', () => {
     it('reads a call without options as a GET', () => {
         expect(apiCalls("apiFetch<Trip[]>('/api/trips', undefined, token)", 'a.ts')[0]).toMatchObject({ method: 'GET' });
         expect(apiCalls("apiFetch<Trip[]>('/api/trips')", 'a.ts')[0]).toMatchObject({ path: '/api/trips', method: 'GET' });
+    });
+
+    it('reads a call whose options name no method as a GET', () => {
+        expect(apiCalls('apiFetch<Trip>(`/api/trips/${id}`, {}, token)', 'a.ts')[0]).toMatchObject({ method: 'GET' });
+        expect(apiCalls("fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } })", 'a.ts')[0]).toMatchObject({ method: 'GET' });
+    });
+
+    it('leaves the method open when the options carry one it cannot read', () => {
+        expect(apiCalls("apiFetch('/api/trips', { method, body }, token)", 'a.ts')[0]).toMatchObject({ method: null });
+        expect(apiCalls("apiFetch('/api/trips', options, token)", 'a.ts')[0]).toMatchObject({ method: null });
     });
 
     it('leaves the method open when it is computed', () => {

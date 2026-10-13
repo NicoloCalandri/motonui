@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import type { Leg, Accommodation, Restaurant, Activity } from '@motonui/shared-types';
 import { wallClockDayTime } from '../../lib/wall-clock';
+import { calendarDate } from '../../lib/calendar-date';
 
 const LEG_ICONS: Record<string, React.ElementType> = {
     flight: Plane, train: Train, car: Car, ferry: Ship, walk: PersonStanding, bus: Bus, other: MapPin,
@@ -88,7 +89,7 @@ export function AccommodationCard({ accommodation: acc, onEdit, onDelete }: { ac
                     {acc.check_in && acc.check_out && (
                         <span className="text-xs text-ink-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(acc.check_in), 'd MMM', { locale: it })} – {format(new Date(acc.check_out), 'd MMM', { locale: it })}
+                            {format(calendarDate(acc.check_in), 'd MMM', { locale: it })} – {format(calendarDate(acc.check_out), 'd MMM', { locale: it })}
                         </span>
                     )}
                 </div>
@@ -124,7 +125,7 @@ export function RestaurantCard({ restaurant: rest, onEdit, onDelete }: { restaur
                     {rest.date && (
                         <span className="text-xs text-ink-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(rest.date), 'd MMM', { locale: it })}
+                            {format(calendarDate(rest.date), 'd MMM', { locale: it })}
                             {rest.time && ` · ${rest.time}`}
                         </span>
                     )}
@@ -166,7 +167,7 @@ export function ActivityCard({ activity: act, onEdit, onDelete }: { activity: Ac
                     {act.date && (
                         <span className="text-xs text-ink-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(act.date), 'd MMM', { locale: it })}
+                            {format(calendarDate(act.date), 'd MMM', { locale: it })}
                             {act.time && ` · ${act.time}`}
                         </span>
                     )}

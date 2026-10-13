@@ -102,7 +102,9 @@ Review Task 4.9.3 (pending), then re-port the changed behaviour into the 40 exis
 >
 > **Found in the web app:** a call to a route that never existed (`POST /api/trips/invite`); the password reset could not work (the email pointed to a server callback the SPA does not have, and the reset page bounced signed-in users); Google sign-in pointed to the same missing callback; the trip page read `members` while the API returns `trip_members`.
 >
-> **Found in the Next.js app, not fixed here:** `src/app/(app)/trips/[id]/page.tsx` reads `trip.members`, which `GET /api/trips/[id]` never returns (the hero shows "undefined persone" and the invite card never hides); `BoardingPassViewer` formats the departure in the browser time zone.
+> **Found in the Next.js app:** the trip page read `trip.members`, which `GET /api/trips/[id]` never returned (fixed on `main` by PR #156). Still there, and fixed only in `apps/web`: editing a leg or an accommodation from the bookings tab calls `…/days/undefined/…` and gets a 404; a restaurant or activity saved without a time, or an accommodation without a deadline, sends `''` and is refused; calendar dates are read with `new Date('YYYY-MM-DD')` and show the day before in a browser west of UTC.
+>
+> **Final review (2026-10-13):** no critical finding. Fixed after it, each with a test that failed first: the three defects above in `apps/web`, a stricter route contract test (a call whose options name no method is a GET), and the old public `boarding_pass_url` is no longer rendered. The contract test still does not check request bodies or URLs held in variables.
 >
 > **Open for sub-plan D:** private files are fetched with the bearer token and shown from an object URL (`lib/use-private-file.ts`), because an `<img>` cannot send the token; the same choice has to be made for trip photos and documents. Google sign-in and password reset need one manual test against a real Supabase project.
 

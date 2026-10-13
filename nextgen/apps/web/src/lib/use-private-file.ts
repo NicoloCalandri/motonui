@@ -11,8 +11,9 @@ type PrivateFile = { url: string | null; loading: boolean; failed: boolean };
  * fetched and shown from memory. The object URL is released when the path
  * changes or the component unmounts.
  *
- * A path that is not an API route (the legacy public URL of an old boarding
- * pass) is returned as it is.
+ * Only routes of the API are read. Anything else (the legacy public URL of an
+ * old boarding pass, which a trip member can write) gives no URL: it is not
+ * a link to follow or an image to load.
  */
 export function usePrivateFile(path: string | null): PrivateFile {
     const { session } = useAuth();
@@ -22,7 +23,7 @@ export function usePrivateFile(path: string | null): PrivateFile {
 
     useEffect(() => {
         if (!path || !viaApi) {
-            setState({ url: path, loading: false, failed: false });
+            setState({ url: null, loading: false, failed: false });
             return;
         }
 

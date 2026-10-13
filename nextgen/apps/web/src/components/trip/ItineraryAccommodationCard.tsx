@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Hotel, Pencil, Trash2 } from 'lucide-react';
 import type { Accommodation } from '@motonui/shared-types';
+import { calendarDate } from '../../lib/calendar-date';
 
 interface ItineraryAccommodationCardProps {
     acc: Accommodation;
@@ -64,11 +65,11 @@ export default function ItineraryAccommodationCard({ acc, expanded, onToggleExpa
                     <div className="grid grid-cols-2 gap-2 mt-2">
                         <div>
                             <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Check-in</span>
-                            <span className="font-medium">{acc.check_in ? format(new Date(acc.check_in), 'd MMM yyyy', { locale: it }) : '-'}</span>
+                            <span className="font-medium">{acc.check_in ? format(calendarDate(acc.check_in), 'd MMM yyyy', { locale: it }) : '-'}</span>
                         </div>
                         <div>
                             <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Check-out</span>
-                            <span className="font-medium">{acc.check_out ? format(new Date(acc.check_out), 'd MMM yyyy', { locale: it }) : '-'}</span>
+                            <span className="font-medium">{acc.check_out ? format(calendarDate(acc.check_out), 'd MMM yyyy', { locale: it }) : '-'}</span>
                         </div>
                     </div>
 

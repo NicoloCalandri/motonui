@@ -95,6 +95,21 @@ describe('BoardingPassViewer', () => {
         expect(screen.queryByAltText("Carta d'imbarco")).not.toBeInTheDocument();
     });
 
+    it.each([
+        'https://evil.example/pass.png',
+        'https://abc.supabase.co/storage/v1/object/public/trip-media/trips/x/boarding-passes/y.pdf',
+        'javascript:alert(1)',
+    ])('never renders the URL stored in the old public column (%s)', (boarding_pass_url) => {
+        // The column is writable by a trip member: its value is not a link to follow.
+        const { container } = render(<BoardingPassViewer leg={leg({ boarding_pass_path: null, boarding_pass_url })} onClose={vi.fn()} />);
+
+        expect(container.innerHTML).not.toContain(boarding_pass_url);
+        expect(container.querySelector('img')).toBeNull();
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(screen.getByText(/caricala di nuovo/i)).toBeInTheDocument();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it('fetches nothing when the leg has no boarding pass', () => {
         render(<BoardingPassViewer leg={leg({ boarding_pass_path: null })} onClose={vi.fn()} />);
 

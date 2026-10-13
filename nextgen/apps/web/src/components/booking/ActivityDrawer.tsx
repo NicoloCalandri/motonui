@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { X, Loader2 } from 'lucide-react';
 import type { Activity } from '@motonui/shared-types';
 import { useAuth } from '../../lib/auth-context';
+import { emptyToNull } from '../../lib/form-payload';
 import { apiFetch } from '../../lib/api-client';
 import CurrencyCostField from '../trip/CurrencyCostField';
 
@@ -118,7 +119,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                 : `/api/trips/${tripId}/activities`;
 
             const payload = {
-                ...values,
+                ...emptyToNull(values),
                 day_id: dayContext?.id ?? initialData?.day_id ?? null,
             };
 

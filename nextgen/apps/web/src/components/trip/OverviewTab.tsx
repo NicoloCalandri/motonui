@@ -7,6 +7,7 @@ import { useAuth } from '../../lib/auth-context';
 import { apiFetch } from '../../lib/api-client';
 import TripMap from '../map/TripMap';
 import TripStatsCard from './TripStatsCard';
+import { calendarDate } from '../../lib/calendar-date';
 
 interface OverviewTabProps {
   trip: TripWithDetails;
@@ -151,7 +152,7 @@ export default function OverviewTab({ trip, onNavigate, onTripUpdate }: Overview
               <div className="flex items-center gap-2">
                 <span>
                   {currentDates.start && currentDates.end
-                    ? `${format(new Date(currentDates.start), 'd MMM', { locale: it })} – ${format(new Date(currentDates.end), 'd MMM yyyy', { locale: it })}`
+                    ? `${format(calendarDate(currentDates.start), 'd MMM', { locale: it })} – ${format(calendarDate(currentDates.end), 'd MMM yyyy', { locale: it })}`
                     : 'Date non impostate'
                   }
                 </span>

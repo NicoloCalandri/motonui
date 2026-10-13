@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth-context';
 import { apiFetch } from '../lib/api-client';
 import { DeleteTripButton } from '../components/DeleteTripButton';
 import type { Trip } from '@motonui/shared-types';
+import { calendarDate } from '../lib/calendar-date';
 
 const FALLBACK_COVER = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1';
 
@@ -96,7 +97,7 @@ export function TripsListPage() {
                       </h3>
                       <div className="flex items-center gap-2 text-sm font-medium text-neutral-500">
                         <Calendar className="w-4 h-4" />
-                        {trip.start_date ? format(new Date(trip.start_date), 'd MMM yyyy', { locale: itLocale }) : 'Prossimamente'}
+                        {trip.start_date ? format(calendarDate(trip.start_date), 'd MMM yyyy', { locale: itLocale }) : 'Prossimamente'}
                       </div>
                     </div>
 

@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Ticket, Pencil, Trash2 } from 'lucide-react';
 import type { Activity } from '@motonui/shared-types';
+import { calendarDate } from '../../lib/calendar-date';
 
 interface ItineraryActivityCardProps {
     activity: Activity;
@@ -40,7 +41,7 @@ export default function ItineraryActivityCard({ activity, expanded, onToggleExpa
                     <p className="text-xs text-ink-500 capitalize">{activity.type}</p>
                     {(activity.date || activity.time) && (
                         <p className="text-xs text-ink-400">
-                            {activity.date ? format(new Date(activity.date), 'd MMM', { locale: it }) : ''}
+                            {activity.date ? format(calendarDate(activity.date), 'd MMM', { locale: it }) : ''}
                             {activity.time ? `${activity.date ? ' · ' : ''}${activity.time}` : ''}
                         </p>
                     )}

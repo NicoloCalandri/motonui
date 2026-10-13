@@ -24,6 +24,7 @@ import InvitePartnerCard from '../components/trip/InvitePartnerCard';
 import ItineraryTab from '../components/trip/ItineraryTab';
 import BookingsTab from '../components/booking/BookingsTab';
 import type { TripWithDetails } from '@motonui/shared-types';
+import { calendarDate } from '../lib/calendar-date';
 
 const FALLBACK_COVER = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1';
 
@@ -178,8 +179,8 @@ export function TripDetailPage() {
             {trip.start_date && trip.end_date && (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
-                {format(new Date(trip.start_date), 'd MMM', { locale: itLocale })} –{' '}
-                {format(new Date(trip.end_date), 'd MMM yyyy', { locale: itLocale })}
+                {format(calendarDate(trip.start_date), 'd MMM', { locale: itLocale })} –{' '}
+                {format(calendarDate(trip.end_date), 'd MMM yyyy', { locale: itLocale })}
               </span>
             )}
             <span className="flex items-center gap-1">

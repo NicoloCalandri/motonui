@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { X, Loader2 } from 'lucide-react';
 import type { Restaurant } from '@motonui/shared-types';
 import { useAuth } from '../../lib/auth-context';
+import { emptyToNull } from '../../lib/form-payload';
 import { apiFetch } from '../../lib/api-client';
 import CurrencyCostField from '../trip/CurrencyCostField';
 
@@ -105,7 +106,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                 ? `/api/trips/${tripId}/restaurants/${initialData!.id}`
                 : `/api/trips/${tripId}/restaurants`;
 
-            await apiFetch(url, { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(values) }, token);
+            await apiFetch(url, { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(emptyToNull(values)) }, token);
 
             onSaved();
 
