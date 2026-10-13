@@ -24,6 +24,8 @@ import InvitePartnerCard from '../components/trip/InvitePartnerCard';
 import PackingTab from '../components/trip/PackingTab';
 import TripCalendar from '../components/calendar/TripCalendar';
 import ExpensesTab from '../components/expense/ExpensesTab';
+import TravelWallet from '../components/wallet/TravelWallet';
+import MediaTab from '../components/media/MediaTab';
 import ItineraryTab from '../components/trip/ItineraryTab';
 import BookingsTab from '../components/booking/BookingsTab';
 import type { TripWithDetails } from '@motonui/shared-types';
@@ -259,6 +261,8 @@ export function TripDetailPage() {
           // Copied from the Next.js app (scripts/port-lib.mjs): they read the API themselves, with SWR.
           if (tabId === 'calendar') return <TripCalendar key={tabId} trip={trip} />;
           if (tabId === 'packing') return <PackingTab key={tabId} trip={trip} />;
+          if (tabId === 'wallet') return <TravelWallet key={tabId} trip={trip} />;
+          if (tabId === 'media') return <MediaTab key={tabId} tripId={trip.id} />;
           if (tabId === 'expenses') {
             return <ExpensesTab key={tabId} tripId={trip.id} tripStartDate={trip.start_date} tripEndDate={trip.end_date} />;
           }

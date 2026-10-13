@@ -14,6 +14,8 @@ import { seriousA11yViolations } from '../test/axe';
 
 const { mockApiFetch } = vi.hoisted(() => ({ mockApiFetch: vi.fn() }));
 vi.mock('../lib/api-client', () => ({ apiFetch: mockApiFetch }));
+// The media tab uploads straight to storage with the browser client.
+vi.mock('../lib/supabase-client', () => ({ supabase: { storage: { from: vi.fn() }, auth: { getSession: vi.fn() } } }));
 vi.mock('../lib/auth-context', () => ({
     useAuth: () => ({
         user: { id: 'user-1', email: 'giorgia@example.com' }, profile: { display_name: 'Giorgia' },
@@ -32,6 +34,16 @@ const API: Record<string, unknown> = {
     '/api/trips/trip-1/baggage': [],
     '/api/trips/trip-1/packing': { checklist: null, stale: false },
     '/api/trips/trip-1/restaurants': [],
+    '/api/trips/trip-1/documents': [{
+        id: 'doc-1', trip_id: 'trip-1', type: 'ticket', title: 'Biglietto Rapa Nui', file_type: 'image',
+        file_path: 'trips/trip-1/documents/doc-1.png', file_url: null, valid_from: null, valid_until: null,
+        entity_type: null, entity_id: null, barcode_data: null, notes: null, created_at: '2026-10-01T00:00:00Z',
+    }],
+    '/api/trips/trip-1/media': [{
+        id: 'media-1', trip_id: 'trip-1', mime_type: 'image/webp', caption: 'Tramonto ad Anakena', storage_path: 'trips/trip-1/original/a.webp',
+        thumb_path: 'trips/trip-1/thumbs/a.webp', signed_url: 'https://signed.example/original', thumb_signed_url: 'https://signed.example/thumb',
+        url: null, taken_at: null, created_at: '2026-10-01T00:00:00Z', tags: [],
+    }],
     '/api/trips/trip-1/activities': [],
     '/api/trips/trip-1/expenses': {
         expenses: [{
@@ -117,6 +129,33 @@ describe('trip tabs copied from the Next.js app', () => {
     });
 
     it.each(['packing', 'calendar', 'expenses'])('%s is no longer a placeholder', async (tab) => {
+        open(tab);
+
+        await waitFor(() => expect(screen.getByText('Rapa Nui')).toBeInTheDocument());
+        expect(screen.queryByText(/tab in arrivo/i)).not.toBeInTheDocument();
+    });
+
+    it('wallet: lists the documents and never shows a storage URL', async () => {
+        const { container } = open('wallet');
+
+        expect(await screen.findByText('Biglietto Rapa Nui')).toBeInTheDocument();
+        expect(requested()).toContain('/api/trips/trip-1/documents');
+        expect(container.innerHTML).not.toContain('/storage/v1/');
+        expect(await seriousA11yViolations(container)).toEqual([]);
+    });
+
+    it('media: shows the photos from their signed URLs', async () => {
+        const { container } = open('media');
+
+        const image = await screen.findByAltText(/tramonto ad anakena|foto/i);
+        expect(image.getAttribute('src')?.startsWith('https://signed.example/')).toBe(true);
+        expect(requested()).toContain('/api/trips/trip-1/media');
+        // Inherited from src/components/media/MediaTab.tsx (copied, not editable here):
+        // the button that selects a photo is an icon without a name. Exactly this one.
+        expect(await seriousA11yViolations(container)).toEqual(['button-name: Buttons must have discernible text (.left-2)']);
+    });
+
+    it.each(['wallet', 'media'])('%s is no longer a placeholder', async (tab) => {
         open(tab);
 
         await waitFor(() => expect(screen.getByText('Rapa Nui')).toBeInTheDocument());

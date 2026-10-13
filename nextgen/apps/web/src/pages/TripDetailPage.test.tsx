@@ -9,6 +9,8 @@ import type { TripStats } from '@motonui/shared-types';
 const { mockApiFetch } = vi.hoisted(() => ({ mockApiFetch: vi.fn() }));
 
 vi.mock('../lib/api-client', () => ({ apiFetch: mockApiFetch }));
+// The media tab uploads straight to storage with the browser client.
+vi.mock('../lib/supabase-client', () => ({ supabase: { storage: { from: vi.fn() }, auth: { getSession: vi.fn() } } }));
 
 const mockUseAuth = vi.fn();
 vi.mock('../lib/auth-context', () => ({ useAuth: () => mockUseAuth() }));
