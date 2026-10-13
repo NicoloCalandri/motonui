@@ -1,5 +1,5 @@
 import { it, expect, vi, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 
 // Use vi.hoisted to make mocks available
 const { mockGetSession, mockOnAuthStateChange, mockSignOut, mockApiFetch } = vi.hoisted(() => ({
@@ -135,4 +135,72 @@ it('resolves profileLoading to false when profile fetch fails', async () => {
 
   render(<AuthProvider><ProfileLoadingProbe /></AuthProvider>);
   await waitFor(() => expect(screen.getByText('profile-loaded:null')).toBeInTheDocument());
+});
+
+function GuardProbe() {
+  const { user, profile, isLoading, profileLoading } = useAuth();
+  // What a route guard sees: it decides as soon as nothing is loading.
+  const state = isLoading || profileLoading ? 'loading' : user ? `decided:${profile?.role ?? 'no-profile'}` : 'decided:anon';
+  seen.push(state);
+  return <span>{state}</span>;
+}
+const seen: string[] = [];
+
+it('never lets a guard decide for a signed-in user before the profile has arrived', async () => {
+  seen.length = 0;
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  mockApiFetch.mockResolvedValueOnce({ id: 'u1', role: 'admin', suspended_at: null });
+
+  render(<AuthProvider><GuardProbe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('decided:admin')).toBeInTheDocument());
+
+  // An admin reloading /admin must not be seen, even for one render, as a user without a profile.
+  expect(seen).not.toContain('decided:no-profile');
+});
+
+it('keeps the profile and does not go back to loading when the same user gets a new session object', async () => {
+  seen.length = 0;
+  let emit: (event: string, session: unknown) => void = () => {};
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't1' } } });
+  mockOnAuthStateChange.mockImplementationOnce((callback: (event: string, session: unknown) => void) => {
+    emit = callback;
+    return { data: { subscription: { unsubscribe: vi.fn() } } };
+  });
+  mockApiFetch.mockResolvedValue({ id: 'u1', role: 'user', suspended_at: null });
+
+  render(<AuthProvider><GuardProbe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('decided:user')).toBeInTheDocument());
+  seen.length = 0;
+
+  // The browser tab becomes visible again, or the token is refreshed: same user, new object.
+  await act(async () => {
+    emit('SIGNED_IN', { user: { id: 'u1' }, access_token: 't2' });
+    emit('TOKEN_REFRESHED', { user: { id: 'u1' }, access_token: 't3' });
+  });
+
+  expect(seen).not.toContain('loading');
+  expect(mockApiFetch).toHaveBeenCalledTimes(1);
+});
+
+it('loads the profile again when another user signs in, and ignores a late answer for the previous one', async () => {
+  let emit: (event: string, session: unknown) => void = () => {};
+  let answerFirst: (value: unknown) => void = () => {};
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't1' } } });
+  mockOnAuthStateChange.mockImplementationOnce((callback: (event: string, session: unknown) => void) => {
+    emit = callback;
+    return { data: { subscription: { unsubscribe: vi.fn() } } };
+  });
+  mockApiFetch
+    .mockImplementationOnce(() => new Promise((resolve) => { answerFirst = resolve; }))
+    .mockResolvedValueOnce({ id: 'u2', role: 'user', suspended_at: null });
+
+  render(<AuthProvider><ProfileProbe /></AuthProvider>);
+  await waitFor(() => expect(mockApiFetch).toHaveBeenCalledTimes(1));
+
+  await act(async () => { emit('SIGNED_IN', { user: { id: 'u2' }, access_token: 't2' }); });
+  await waitFor(() => expect(screen.getByText('profile:u2')).toBeInTheDocument());
+
+  await act(async () => { answerFirst({ id: 'u1', role: 'admin', suspended_at: null }); });
+  expect(screen.getByText('profile:u2')).toBeInTheDocument();
 });

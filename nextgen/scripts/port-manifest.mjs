@@ -90,7 +90,7 @@ export const EXCLUDED = {
     'auth/require-admin.ts': 'imports next/server: Hono uses middleware/admin.ts',
     'csp.ts': 'page headers: belongs to the hosting layer of apps/web',
     'errors.ts': 'imports next/server: Hono has lib/errors.ts (same AppError and Errors) and lib/http.ts',
-    'fetcher.ts': 'browser only: apps/web uses its own api-client',
+    'fetcher.ts': 'browser only: copied to apps/web (WEB_COPIES), not to the API',
     'hooks/use-profile.ts': 'React hook: belongs to apps/web',
     'media/upload-client.ts': 'browser only: belongs to apps/web',
     'supabase/client.ts': 'browser client: belongs to apps/web',

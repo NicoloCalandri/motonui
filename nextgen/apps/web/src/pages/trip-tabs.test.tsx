@@ -103,10 +103,9 @@ describe('trip tabs copied from the Next.js app', () => {
         expect(await screen.findByText('Cena a Hanga Roa')).toBeInTheDocument();
         expect(requested()).toContain('/api/trips/trip-1/expenses');
         // Inherited from src/components/expense/ExpensesTab.tsx, which is copied and
-        // cannot be edited here: the edit and delete buttons of a row are icons
-        // without a name. To fix in the source, then re-port.
-        const violations = await seriousA11yViolations(container);
-        expect(violations.filter((violation) => !violation.startsWith('button-name:'))).toEqual([]);
+        // cannot be edited here: the CSV export button is an icon without a name.
+        // To fix in the source, then re-port. Exactly this one violation, no other.
+        expect(await seriousA11yViolations(container)).toEqual(['button-name: Buttons must have discernible text (.p-2)']);
     });
 
     it('expenses: says so when there are none', async () => {

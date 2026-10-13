@@ -97,4 +97,28 @@ describe('withApiAuth', () => {
         expect(init?.body).toBe(body);
         expect(new Headers(init?.headers).has('content-type')).toBe(false);
     });
+
+    it('resolves a relative URL like the browser does, against the page, not against the site root', async () => {
+        // fetch('api/x') from /trips/1 goes to /trips/api/x, which is not the API.
+        const inner = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response('{}'));
+        const getToken = vi.fn(async () => 'token-1');
+        const authed = withApiAuth(inner as unknown as typeof fetch, getToken, ORIGIN, () => `${ORIGIN}/trips/1`);
+
+        await authed('api/x');
+
+        expect(getToken).not.toHaveBeenCalled();
+        expect(new Headers(inner.mock.calls[0][1]?.headers).has('authorization')).toBe(false);
+    });
+
+    it('keeps the init passed next to a Request object', async () => {
+        const inner = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response('{}'));
+        const authed = withApiAuth(inner as unknown as typeof fetch, async () => 'token-1', ORIGIN);
+
+        await authed(new Request(`${ORIGIN}/api/trips`), { method: 'POST', body: '{"title":"Rapa Nui"}' });
+
+        const sent = inner.mock.calls[0][0] as Request;
+        expect(sent.method).toBe('POST');
+        expect(await sent.text()).toBe('{"title":"Rapa Nui"}');
+        expect(sent.headers.get('authorization')).toBe('Bearer token-1');
+    });
 });

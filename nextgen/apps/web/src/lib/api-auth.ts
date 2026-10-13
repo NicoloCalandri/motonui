@@ -15,12 +15,14 @@ export function withApiAuth(
     fetchImpl: typeof fetch,
     getToken: () => Promise<string | null>,
     origin: string,
+    // Relative URLs resolve against the page, as the browser will do when it sends them.
+    baseUrl: () => string = () => origin,
 ): typeof fetch {
     const isOwnApi = (input: RequestInfo | URL): boolean => {
         const raw = input instanceof Request ? input.url : String(input);
         let url: URL;
         try {
-            url = new URL(raw, origin);
+            url = new URL(raw, baseUrl());
         } catch {
             return false;
         }
@@ -37,12 +39,12 @@ export function withApiAuth(
         if (!token) return fetchImpl(input, init);
 
         headers.set('Authorization', `Bearer ${token}`);
-        return input instanceof Request ? fetchImpl(new Request(input, { headers })) : fetchImpl(input, { ...init, headers });
+        return input instanceof Request ? fetchImpl(new Request(input, { ...init, headers })) : fetchImpl(input, { ...init, headers });
     };
 }
 
 /** Wraps `window.fetch` with the Supabase session token. Called once, in main.tsx. */
 export function installApiAuth(): void {
     const getToken = async () => (await supabase.auth.getSession()).data.session?.access_token ?? null;
-    window.fetch = withApiAuth(window.fetch.bind(window), getToken, window.location.origin);
+    window.fetch = withApiAuth(window.fetch.bind(window), getToken, window.location.origin, () => document.baseURI);
 }

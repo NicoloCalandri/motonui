@@ -22,6 +22,11 @@ export default function TripStatsCard({ tripId }: { tripId: string }) {
     queryKey: ['trips', tripId, 'stats'],
     queryFn: () => apiFetch<TripStats>(`/api/trips/${tripId}/stats`, {}, token),
     enabled: !!tripId && !!token,
+    // The expenses tab is copied from the Next.js app and writes through SWR:
+    // this cache does not hear about it, so the totals are read again each
+    // time the card appears instead of being served from the last 30 seconds.
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   if (loading) {
