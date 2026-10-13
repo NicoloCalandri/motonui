@@ -113,6 +113,46 @@ describe('NewTripPage', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/trips/trip-99'), { timeout: 3000 });
   });
 
+  it('invites the partner through the invites route of the new trip', async () => {
+    mockApiFetch.mockImplementation((path: string) => {
+      if (path === '/api/trips') return Promise.resolve({ id: 'trip-99', title: 'Giappone 2025', destination: 'Tokyo' });
+      if (path === '/api/trips/trip-99/invites') return Promise.resolve({ email_sent: true });
+      return Promise.reject(new Error(`unexpected path ${path}`));
+    });
+
+    const user = userEvent.setup();
+    renderNewTrip();
+    await fillStep1AndContinue(user);
+    await user.type(screen.getByPlaceholderText(/partner@example.com/i), 'giorgia@example.com');
+    await user.click(screen.getByRole('button', { name: /concludi e crea/i }));
+
+    await waitFor(() => expect(screen.getByText(/viaggio creato/i)).toBeInTheDocument());
+    const [path, init, token] = mockApiFetch.mock.calls[1];
+    expect(path).toBe('/api/trips/trip-99/invites');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body)).toEqual({ email: 'giorgia@example.com' });
+    expect(token).toBe('token-1');
+    // Let the delayed redirect fire here, not during the next test.
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/trips/trip-99'), { timeout: 3000 });
+  });
+
+  it('still creates the trip when the invite cannot be sent', async () => {
+    mockApiFetch.mockImplementation((path: string) => {
+      if (path === '/api/trips') return Promise.resolve({ id: 'trip-99', title: 'Giappone 2025', destination: 'Tokyo' });
+      return Promise.reject(new Error('invite failed'));
+    });
+
+    const user = userEvent.setup();
+    renderNewTrip();
+    await fillStep1AndContinue(user);
+    await user.type(screen.getByPlaceholderText(/partner@example.com/i), 'giorgia@example.com');
+    await user.click(screen.getByRole('button', { name: /concludi e crea/i }));
+
+    await waitFor(() => expect(screen.getByText(/viaggio creato/i)).toBeInTheDocument());
+    // Let the delayed redirect fire here, not during the next test.
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/trips/trip-99'), { timeout: 3000 });
+  });
+
   it('shows an API error message when trip creation fails', async () => {
     mockApiFetch.mockImplementation((path: string) => {
       if (path === '/api/trips') {

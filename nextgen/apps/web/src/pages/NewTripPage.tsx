@@ -47,13 +47,8 @@ type Step2Values = z.infer<typeof Step2Schema>;
  *   `['trips']` query key, this invalidates that key on success so they
  *   show the new trip immediately instead of serving a stale cached list.
  *
- * Known gap (present in the old app too, not introduced by this port): the
- * optional partner-email invite in step 2 calls `POST /api/trips/invite`,
- * which never existed as a Next.js API route in the old app either (only
- * `src/app/api/trips/route.ts` and `[id]/...` routes exist) — it was
- * already a silently-swallowed dead call before this migration. It's ported
- * unchanged (same fire-and-forget `.catch()`) for parity, and will start
- * working once/if that endpoint is added to the Hono API.
+ * The optional partner email of step 2 is sent to `POST /api/trips/:id/invites`
+ * once the trip exists; a failed invite does not undo the trip.
  */
 export function NewTripPage() {
   const navigate = useNavigate();
@@ -87,9 +82,10 @@ export function NewTripPage() {
       }, token);
 
       if (values.partner_email) {
-        await apiFetch('/api/trips/invite', {
+        // The trip exists anyway: a failed invite can be resent from the trip page.
+        await apiFetch(`/api/trips/${trip.id}/invites`, {
           method: 'POST',
-          body: JSON.stringify({ trip_id: trip.id, email: values.partner_email }),
+          body: JSON.stringify({ email: values.partner_email }),
         }, token).catch(() => {});
       }
 
