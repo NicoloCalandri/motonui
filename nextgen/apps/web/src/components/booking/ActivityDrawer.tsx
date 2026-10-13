@@ -1,4 +1,5 @@
 import { useState, useEffect, type BaseSyntheticEvent } from 'react';
+import { useDialogA11y } from '../ui/use-dialog-a11y';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -143,6 +144,8 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
         }
     };
 
+    const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
+
     if (!open) return null;
 
     return (
@@ -150,14 +153,14 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
             <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
             <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
                 <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
-                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
+                    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="activity-drawer-title" tabIndex={-1} className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
                         <div className="p-6 sm:p-10 overflow-y-auto">
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">
+                                <h2 id="activity-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">
                                     {isEditing ? 'Modifica attività' : 'Nuova attività'}
                                 </h2>
-                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -191,8 +194,9 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Attività *</label>
+                                    <label htmlFor="activity-name" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Attività *</label>
                                     <input
+                                        id="activity-name"
                                         {...register('name')}
                                         placeholder="es. Tour del Colosseo"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
@@ -201,8 +205,9 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo / Luogo</label>
+                                    <label htmlFor="activity-address" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo / Luogo</label>
                                     <input
+                                        id="activity-address"
                                         {...register('address')}
                                         placeholder="es. Piazza del Colosseo, 1"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
@@ -211,8 +216,9 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
+                                        <label htmlFor="activity-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
                                         <input
+                                            id="activity-date"
                                             {...register('date')}
                                             type="date"
                                             min={tripStartDate || undefined}
@@ -221,8 +227,9 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
+                                        <label htmlFor="activity-time" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
                                         <input
+                                            id="activity-time"
                                             {...register('time')}
                                             type="time"
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -231,8 +238,9 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Durata (minuti)</label>
+                                    <label htmlFor="activity-duration-min" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Durata (minuti)</label>
                                     <input
+                                        id="activity-duration-min"
                                         {...register('duration_min')}
                                         type="number"
                                         min="1"
@@ -248,8 +256,9 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 />
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
+                                    <label htmlFor="activity-booking-ref" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
                                     <input
+                                        id="activity-booking-ref"
                                         {...register('booking_ref')}
                                         placeholder="es. TKT-98765"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -257,8 +266,9 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
+                                    <label htmlFor="activity-notes" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
                                     <textarea
+                                        id="activity-notes"
                                         {...register('notes')}
                                         rows={2}
                                         placeholder="es. portare scarpe comode..."

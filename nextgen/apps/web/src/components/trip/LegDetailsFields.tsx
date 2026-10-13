@@ -84,9 +84,10 @@ export default function LegDetailsFields({
 
             <div className="space-y-4">
                 <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Partenza</label>
+                    <label htmlFor="leg-departure-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Partenza</label>
                     <div className="grid grid-cols-2 gap-3">
                         <input
+                            id="leg-departure-date"
                             {...departureDateProps}
                             type="date"
                             min={tripStartDate || undefined}
@@ -95,15 +96,17 @@ export default function LegDetailsFields({
                         />
                         <input
                             {...departureTimeProps}
+                            aria-label="Ora di partenza"
                             type="time"
                             className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                         />
                     </div>
                 </div>
                 <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Arrivo</label>
+                    <label htmlFor="leg-arrival-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Arrivo</label>
                     <div className="grid grid-cols-2 gap-3">
                         <input
+                            id="leg-arrival-date"
                             {...arrivalDateProps}
                             type="date"
                             min={departureDateValue || tripStartDate || undefined}
@@ -112,6 +115,7 @@ export default function LegDetailsFields({
                         />
                         <input
                             {...arrivalTimeProps}
+                            aria-label="Ora di arrivo"
                             type="time"
                             className="w-full px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                         />
@@ -128,8 +132,9 @@ export default function LegDetailsFields({
             {/* Booking reference (all non-walk types) */}
             {selectedType !== 'walk' && (
                 <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Numero prenotazione</label>
+                    <label htmlFor="leg-booking-ref" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Numero prenotazione</label>
                     <input
+                        id="leg-booking-ref"
                         {...bookingRefProps}
                         placeholder="es. ABC123456"
                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -141,16 +146,18 @@ export default function LegDetailsFields({
             {selectedType === 'flight' && (
                 <>
                     <div>
-                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">PNR (codice volo)</label>
+                        <label htmlFor="leg-pnr" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">PNR (codice volo)</label>
                         <input
+                            id="leg-pnr"
                             {...pnrProps}
                             placeholder="es. XKQM5A"
                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-mono font-bold tracking-widest uppercase"
                         />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Apertura check-in online</label>
+                        <label htmlFor="leg-checkin-opens-at" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Apertura check-in online</label>
                         <input
+                            id="leg-checkin-opens-at"
                             {...checkinOpensAtProps}
                             type="datetime-local"
                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"

@@ -23,6 +23,7 @@ export default function CurrencyCostField({ label, currencyProps, costProps }: C
             <div className="flex gap-3">
                 <select
                     {...currencyProps}
+                    aria-label="Valuta"
                     className="px-4 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-sm w-28 flex-shrink-0"
                 >
                     <option value="EUR">EUR €</option>
@@ -38,6 +39,7 @@ export default function CurrencyCostField({ label, currencyProps, costProps }: C
                 </select>
                 <input
                     {...costProps}
+                    aria-label={label}
                     type="number"
                     step="0.01"
                     placeholder="0.00"

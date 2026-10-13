@@ -1,4 +1,5 @@
 import { useState, useEffect, type BaseSyntheticEvent } from 'react';
+import { useDialogA11y } from '../ui/use-dialog-a11y';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -122,6 +123,8 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
         }
     };
 
+    const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
+
     if (!open) return null;
 
     return (
@@ -129,14 +132,14 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
             <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
             <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
                 <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
-                    <div className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
+                    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="restaurant-drawer-title" tabIndex={-1} className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
                         <div className="p-6 sm:p-10 overflow-y-auto">
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold tracking-tight text-neutral-900">
+                                <h2 id="restaurant-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">
                                     {isEditing ? 'Modifica ristorante' : 'Nuovo ristorante'}
                                 </h2>
-                                <button onClick={onClose} className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -149,8 +152,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Ristorante *</label>
+                                    <label htmlFor="restaurant-name" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Ristorante *</label>
                                     <input
+                                        id="restaurant-name"
                                         {...register('name')}
                                         placeholder="es. Trattoria da Mario"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
@@ -159,8 +163,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo di Cucina</label>
+                                    <label htmlFor="restaurant-cuisine-type" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo di Cucina</label>
                                     <select
+                                        id="restaurant-cuisine-type"
                                         {...register('cuisine_type')}
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
                                     >
@@ -170,8 +175,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo</label>
+                                    <label htmlFor="restaurant-address" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo</label>
                                     <input
+                                        id="restaurant-address"
                                         {...register('address')}
                                         placeholder="es. Via Roma, 42"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
@@ -180,8 +186,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
+                                        <label htmlFor="restaurant-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
                                         <input
+                                            id="restaurant-date"
                                             {...register('date')}
                                             type="date"
                                             min={tripStartDate || undefined}
@@ -190,8 +197,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
+                                        <label htmlFor="restaurant-time" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
                                         <input
+                                            id="restaurant-time"
                                             {...register('time')}
                                             type="time"
                                             className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -201,8 +209,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Coperti</label>
+                                        <label htmlFor="restaurant-covers" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Coperti</label>
                                         <input
+                                            id="restaurant-covers"
                                             {...register('covers')}
                                             type="number"
                                             min="1"
@@ -210,8 +219,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Telefono</label>
+                                        <label htmlFor="restaurant-phone" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Telefono</label>
                                         <input
+                                            id="restaurant-phone"
                                             {...register('phone')}
                                             type="tel"
                                             placeholder="+39 06 123456"
@@ -227,8 +237,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 />
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
+                                    <label htmlFor="restaurant-booking-ref" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
                                     <input
+                                        id="restaurant-booking-ref"
                                         {...register('booking_ref')}
                                         placeholder="es. RES-12345"
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -236,8 +247,9 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
+                                    <label htmlFor="restaurant-notes" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
                                     <textarea
+                                        id="restaurant-notes"
                                         {...register('notes')}
                                         rows={2}
                                         placeholder="es. tavolo all'aperto, allergie..."
