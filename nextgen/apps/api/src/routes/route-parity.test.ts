@@ -23,6 +23,10 @@ const KNOWN_EXTRAS: string[] = [
     'GET /api/health',
     // What the SPA asks once per session: the Next.js app reads it on the server.
     'GET /api/session',
+    'POST /api/session/cookie',
+    'DELETE /api/session/cookie',
+    'POST /api/session/cookie',
+    'DELETE /api/session/cookie',
     'POST /api/admin/cleanup',
     'POST /api/admin/send-reminders',
 ];

@@ -119,6 +119,7 @@ async function expectStandardError(res: Response, status: number) {
  */
 const BODYLESS = new Set([
     'POST /api/admin/impersonate/exit',
+    'POST /api/session/cookie',
     'POST /api/admin/users/:id/impersonate',
     'POST /api/admin/users/:id/unsuspend',
     'POST /api/trips/:id/packing',
