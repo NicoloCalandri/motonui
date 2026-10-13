@@ -42,7 +42,8 @@ type Call = { file: string; path: string; method: string | null };
 export function apiCalls(source: string, file: string): Call[] {
     const code = stripComments(source);
     const calls: Call[] = [];
-    const literal = /([`'"])(\/api\/(?:(?!\1).)*)\1/g;
+    // At least one character after the prefix: '/api/' alone is a prefix check, not a route.
+    const literal = /([`'"])(\/api\/(?:(?!\1).)+)\1/g;
     for (const match of code.matchAll(literal)) {
         const start = match.index ?? 0;
         // The options object of the same call: up to the next API literal or 300 characters.
