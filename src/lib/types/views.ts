@@ -17,7 +17,8 @@ export interface UserProfile {
 
 /** Trip with additional aggregated data */
 export interface TripWithDetails extends Trip {
-  members: (TripMember & { profile: UserProfile })[];
+  /** As returned by GET /api/trips/[id]: no profile data is joined. */
+  members: Pick<TripMember, 'id' | 'user_id' | 'role'>[];
   days: (Day & { legs: Leg[]; accommodations: Accommodation[]; activities?: Activity[] })[];
   restaurants: Restaurant[];
   activities: Activity[];

@@ -106,7 +106,7 @@ export default function TripPage() {
                                 {format(new Date(trip.end_date), 'd MMM yyyy', { locale: it })}
                             </span>
                         )}
-                        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{trip.members?.length} persone</span>
+                        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{trip.members.length === 1 ? '1 persona' : `${trip.members.length} persone`}</span>
                     </div>
                 </div>
             </div>
@@ -132,7 +132,7 @@ export default function TripPage() {
 
             {/* Active Tab Content */}
             <div className="flex-1 pb-24 md:pb-8">
-                {(trip.members?.length ?? 0) < 2 && activeTab === 'overview' && <InvitePartnerCard tripId={trip.id} />}
+                {trip.members.length < 2 && activeTab === 'overview' && <InvitePartnerCard tripId={trip.id} />}
                 {activeTab === 'overview' && <OverviewTab trip={trip} onNavigate={(tab) => setActiveTab(tab as TabId)} onTripUpdate={patchTrip} />}
                 {activeTab === 'itinerary' && <ItineraryTab trip={trip} onDaysChange={handleDaysChange} onDataChange={fetchTrip} />}
                 {activeTab === 'bookings' && <BookingsTab trip={trip} onDataChange={fetchTrip} />}

@@ -23,7 +23,7 @@ export const GET = withRoute(
     const { data: trip, error } = await supabase.from('trips')
         .select(`
       *,
-      trip_members (
+      members:trip_members (
         id, user_id, role
       ),
       days (
