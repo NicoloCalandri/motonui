@@ -126,6 +126,8 @@ Salti di versione maggiore che non sono semplici aggiornamenti: provati il 2026-
 | D-4 | ESLint 10 | `eslint-config-next` 15 supporta solo ESLint ≤ 9: dopo Next 16 | `npm run lint` a zero warning |
 | D-5 | Mobile: allineare a Expo SDK 57 | `main` ha `expo` 57 ma React Native 0.76 e React 18 (SDK 57 richiede 0.86 e 19.2): il type-check del mobile fallisce già oggi | `npx expo install --fix`, type-check verde e prova su dispositivo; in alternativa tornare a SDK 52 |
 | D-6 | Next 16 (PR Dependabot #127) | type-check, lint, test e build passano; manca la prova a runtime (cache, middleware, immagini) | deploy di anteprima verificato a mano, poi merge |
+| D-7 | TypeScript 7 | `typescript-eslint` (via `eslint-config-next`) rifiuta TS 7.0 e il lint si ferma; tornati a 5.9 il 2026-10-21 | `typescript-eslint` con supporto a TS 7; type-check e lint verdi |
+| D-8 | Regole React Compiler di `eslint-plugin-react-hooks` 7 | caricando `eslint-config-next` senza `FlatCompat` si accendono `refs`, `set-state-in-effect`, `static-components`, `incompatible-library`: 19 segnalazioni, spente in `eslint.config.mjs` | regole attive e `npm run lint` a zero warning |
 
 ---
 
