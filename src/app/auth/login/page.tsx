@@ -83,12 +83,13 @@ function LoginForm() {
         });
 
         if (authError) {
-            setError('Errore Dev Login: ' + authError.message);
+            setError(authErrorMessage(authError));
             setLoading(false);
             return;
         }
 
         router.push(redirectTo);
+        router.refresh();
     };
 
     return (
