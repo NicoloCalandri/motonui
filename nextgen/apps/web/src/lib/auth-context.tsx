@@ -36,6 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // loading and the profile is not there yet (a route guard would decide on it).
   const [loaded, setLoaded] = useState<{ userId: string; profile: SessionProfile | null } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // False until the first session cookie request has settled. Private files
+  // (documents, boarding passes) are `<img>`/links that rely on the cookie, so
+  // nothing that shows them may render before the cookie is there. Only the
+  // first sync holds the app back: later token refreshes keep the old cookie
+  // valid until the new one lands, and must not unmount the guarded pages.
+  const [cookieReady, setCookieReady] = useState(false);
   const userId = session?.user.id ?? null;
   const tokenRef = useRef<string | undefined>(undefined);
   tokenRef.current = session?.access_token;
@@ -43,9 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      if (!data.session) setCookieReady(true);
       setIsLoading(false);
     }).catch(() => {
       setSession(null);
+      setCookieReady(true);
       setIsLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
@@ -83,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (accessToken) {
       hadSession.current = true;
-      void syncSessionCookie('POST', accessToken);
+      void syncSessionCookie('POST', accessToken).then(() => setCookieReady(true));
     } else if (hadSession.current) {
       hadSession.current = false;
       void syncSessionCookie('DELETE', undefined);
@@ -96,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => { await supabase.auth.signOut(); };
 
   return (
-    <AuthContext.Provider value={{ user: session?.user ?? null, session, profile, isLoading, profileLoading, signOut }}>
+    <AuthContext.Provider value={{ user: session?.user ?? null, session, profile, isLoading: isLoading || !cookieReady, profileLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -286,3 +286,44 @@ it('keeps the session when the profile cannot be read for another reason', async
 
   expect(mockSignOut).not.toHaveBeenCalled();
 });
+
+it('keeps the app loading until the first session cookie request has settled', async () => {
+  let settleCookie: (() => void) | null = null;
+  mockApiFetch.mockReset();
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  mockApiFetch.mockImplementation((path: string) =>
+    path === '/api/session/cookie' ? new Promise<void>((resolve) => { settleCookie = resolve; }) : Promise.resolve({ id: 'u1' }));
+
+  render(<AuthProvider><Probe /></AuthProvider>);
+
+  // The session is known, the cookie is not there yet: a private file would 401.
+  await waitFor(() => expect(settleCookie).not.toBeNull());
+  expect(screen.getByText('loading')).toBeInTheDocument();
+
+  await act(async () => { settleCookie?.(); });
+  await waitFor(() => expect(screen.getByText('user:u1')).toBeInTheDocument());
+});
+
+it('does not wait for a cookie that fails: private files just will not show', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  mockApiFetch.mockImplementation((path: string) =>
+    path === '/api/session/cookie' ? Promise.reject(new Error('offline')) : Promise.resolve({ id: 'u1' }));
+
+  render(<AuthProvider><Probe /></AuthProvider>);
+
+  await waitFor(() => expect(screen.getByText('user:u1')).toBeInTheDocument());
+});
+
+it('keeps the session when the API answers 503 because Supabase Auth is down', async () => {
+  mockGetSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+  mockOnAuthStateChange.mockReturnValueOnce({ data: { subscription: { unsubscribe: vi.fn() } } });
+  mockApiFetch.mockImplementation((path: string) =>
+    path === '/api/session' ? Promise.reject(Object.assign(new Error('Il servizio di accesso non risponde.'), { status: 503 })) : Promise.resolve({}));
+
+  render(<AuthProvider><ProfileProbe /></AuthProvider>);
+  await waitFor(() => expect(screen.getByText('no-profile')).toBeInTheDocument());
+
+  expect(mockSignOut).not.toHaveBeenCalled();
+});
