@@ -75,6 +75,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                                 key={href}
                                 href={href}
                                 title={label}
+                                aria-label={label}
+                                aria-current={active ? 'page' : undefined}
                                 className={`relative group p-3 rounded-2xl transition-all duration-300 hover:bg-white/10 ${
                                     active ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'
                                 }`}
@@ -177,7 +179,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
 
                 {/* Mobile Bottom Navigation (Still needed for small screens) */}
-                <nav className="md:hidden fixed bottom-6 inset-x-4 z-40 bg-[var(--color-sidebar)]/90 backdrop-blur-xl rounded-3xl shadow-2xl p-2 border border-white/10">
+                <nav className="md:hidden fixed bottom-6 inset-x-4 z-40 bg-sidebar/90 backdrop-blur-xl rounded-3xl shadow-2xl p-2 border border-white/10">
                     <div className="flex items-center justify-around">
                         {NAV_ITEMS.concat([{ href: '/trips/new', label: 'Nuovo', icon: PlusCircle }]).map(({ href, label, icon: Icon }) => {
                             const active = href === '/dashboard'
@@ -187,6 +189,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             <Link
                                 key={href}
                                 href={href}
+                                aria-current={active ? 'page' : undefined}
                                 className={`flex flex-col items-center gap-1 py-2 px-3 transition-all ${
                                     active ? 'text-white' : 'text-gray-400 hover:text-white'
                                 }`}

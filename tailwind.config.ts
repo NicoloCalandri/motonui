@@ -14,6 +14,8 @@ const config: Config = {
     theme: {
         extend: {
             colors: {
+                // RGB channels so opacity modifiers work (bg-sidebar/90)
+                sidebar: 'rgb(var(--color-sidebar-rgb) / <alpha-value>)',
                 sand: {
                     50: '#FDFAF4',
                     100: '#F5EFE0',
