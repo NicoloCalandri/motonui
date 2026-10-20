@@ -75,7 +75,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps = {}) {
                                             className="w-full h-full group-hover:scale-105 transition-transform duration-700"
                                         />
                                         <div className="absolute top-4 right-4">
-                                            <div className="px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-wider text-white border border-white/20">
+                                            <div className="px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-white border border-white/20">
                                                 {trip.status === 'active' ? '🌍 In corso' : '✅ Completato'}
                                             </div>
                                         </div>
@@ -84,7 +84,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps = {}) {
                                     {/* Content */}
                                     <div className="p-8 flex-1 flex flex-col justify-between">
                                         <div className="space-y-4">
-                                            <div className="flex items-center gap-2 text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
                                                 <MapPin className="w-3.5 h-3.5" />
                                                 {trip.destination}
                                             </div>

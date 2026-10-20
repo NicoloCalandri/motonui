@@ -14,8 +14,18 @@ const config: Config = {
     theme: {
         extend: {
             colors: {
-                // RGB channels so opacity modifiers work (bg-sidebar/90)
-                sidebar: 'rgb(var(--color-sidebar-rgb) / <alpha-value>)',
+                // Design tokens (globals.css): RGB channels so opacity modifiers work (bg-sidebar/90)
+                canvas: 'rgb(var(--rgb-canvas) / <alpha-value>)',
+                surface: 'rgb(var(--rgb-surface) / <alpha-value>)',
+                sidebar: 'rgb(var(--rgb-sidebar) / <alpha-value>)',
+                sea: 'rgb(var(--rgb-sea) / <alpha-value>)',
+                isobath: 'rgb(var(--rgb-isobath) / <alpha-value>)',
+                beacon: {
+                    DEFAULT: 'rgb(var(--rgb-beacon) / <alpha-value>)',
+                    ink: 'rgb(var(--rgb-beacon-ink) / <alpha-value>)',
+                    tint: 'rgb(var(--rgb-beacon-tint) / <alpha-value>)',
+                },
+                separator: 'rgb(var(--rgb-ink) / 0.08)',
                 sand: {
                     50: '#FDFAF4',
                     100: '#F5EFE0',
@@ -32,8 +42,9 @@ const config: Config = {
                     400: '#6B5E56',
                     500: '#3D322D',
                     // Active values of the former tailwind.config.js (it took precedence over this file)
-                    900: 'var(--color-ink)',
-                    muted: 'var(--color-ink-muted)',
+                    DEFAULT: 'rgb(var(--rgb-ink) / <alpha-value>)',
+                    900: 'rgb(var(--rgb-ink) / <alpha-value>)',
+                    muted: 'rgb(var(--rgb-ink-muted) / <alpha-value>)',
                 },
                 terracotta: {
                     50: '#FBF0EB',
@@ -63,14 +74,15 @@ const config: Config = {
                     "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E\")",
             },
             animation: {
-                'fade-in': 'fadeIn 0.4s ease-out',
+                'fade-in': 'fadeIn 0.2s ease-out',
                 'slide-up': 'slideUp 0.3s ease-out',
                 'spin-slow': 'spin 2s linear infinite',
             },
             keyframes: {
+                // Page entry: opacity only, no movement (disabled with reduced motion in globals.css)
                 fadeIn: {
-                    from: { opacity: '0', transform: 'translateY(8px)' },
-                    to: { opacity: '1', transform: 'translateY(0)' },
+                    from: { opacity: '0' },
+                    to: { opacity: '1' },
                 },
                 slideUp: {
                     from: { opacity: '0', transform: 'translateY(20px)' },
@@ -85,6 +97,9 @@ const config: Config = {
             borderRadius: {
                 '2xl': '16px',
                 '3xl': '24px',
+                card: '24px',
+                control: '16px',
+                pill: '999px',
             },
         },
     },

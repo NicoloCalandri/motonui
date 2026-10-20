@@ -69,7 +69,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                     <p className="text-neutral-400 font-medium text-lg italic">Personalizza la tua esperienza di viaggio</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="px-4 py-1.5 bg-neutral-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
+                    <span className="px-4 py-1.5 bg-neutral-900 text-white text-xs font-black uppercase tracking-[0.2em] rounded-full">
                         Membro Premium
                     </span>
                 </div>
@@ -124,11 +124,11 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                         <div className="grid grid-cols-2 w-full gap-4 pt-6 border-t border-neutral-50">
                             <div className="text-center">
                                 <p className="text-xl font-bold text-neutral-900">{stats.trips}</p>
-                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-center">Viaggi</p>
+                                <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider text-center">Viaggi</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-xl font-bold text-neutral-900">{stats.posts}</p>
-                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-center">Post</p>
+                                <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider text-center">Post</p>
                             </div>
                         </div>
                     </div>
@@ -137,7 +137,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                     <div className="bg-neutral-900 rounded-[40px] p-8 text-white space-y-6">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-black uppercase tracking-[0.2em] opacity-50">Quick Settings</h3>
-                            <span className="text-[8px] font-black uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded-full text-white/40">In Progress</span>
+                            <span className="text-xs font-black uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded-full text-white/40">In Progress</span>
                         </div>
                         <nav className="space-y-2">
                             {[
@@ -150,7 +150,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                                         <item.icon className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
                                         <span className="font-bold text-sm tracking-tight">{item.label}</span>
                                     </div>
-                                    <span className="text-[10px] font-bold text-white/20">TODO</span>
+                                    <span className="text-xs font-bold text-white/20">TODO</span>
                                 </button>
                             ))}
                         </nav>
@@ -176,7 +176,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                         <form onSubmit={handleUpdateProfile} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label htmlFor="full_name" className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">
+                                    <label htmlFor="full_name" className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">
                                         Nome Completo
                                     </label>
                                     <div className="relative group">
@@ -193,7 +193,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                                 </div>
 
                                 <div className="space-y-2 opacity-60">
-                                    <label htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">
+                                    <label htmlFor="email" className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">
                                         Email (non modificabile)
                                     </label>
                                     <div className="relative">
@@ -219,7 +219,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-xl shadow-neutral-200 active:scale-[0.98] disabled:opacity-50"
+                                className="flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl shadow-neutral-200 active:scale-[0.98] disabled:opacity-50"
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 {saving ? 'Salvataggio...' : 'Salva Modifiche'}
@@ -237,7 +237,7 @@ export default function ProfileContent({ profile, stats, onProfileChange }: Prof
                                 <p className="text-neutral-400 font-medium text-sm max-w-sm">
                                     Sblocca mappe offline, esportazioni AI illimitate e backup cloud avanzato.
                                 </p>
-                                <button className="text-neutral-900 font-black uppercase tracking-[0.2em] text-[10px] border-b-2 border-neutral-900 py-1 inline-block">
+                                <button className="text-neutral-900 font-black uppercase tracking-[0.2em] text-xs border-b-2 border-neutral-900 py-1 inline-block">
                                     Vedi Piani
                                 </button>
                             </div>

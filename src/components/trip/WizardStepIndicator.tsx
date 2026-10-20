@@ -33,7 +33,7 @@ export default function StepIndicator({ current, total }: { current: number; tot
             >
               <Icon className="w-5 h-5" />
             </div>
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${
+            <span className={`text-xs font-bold uppercase tracking-widest ${
               isActive ? 'text-neutral-900' : 'text-neutral-400'
             }`}>
               {s.label}

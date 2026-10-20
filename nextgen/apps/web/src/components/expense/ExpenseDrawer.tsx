@@ -160,7 +160,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 {/* Description */}
                                 <div>
-                                    <label htmlFor="expense-description" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="expense-description" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Cosa hai acquistato? *
                                     </label>
                                     <input id="expense-description"
@@ -175,7 +175,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                 {/* Amount + Currency */}
                                 <div className="flex gap-4">
                                     <div className="flex-1">
-                                        <label htmlFor="expense-amount" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        <label htmlFor="expense-amount" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                             Importo *
                                         </label>
                                         <input id="expense-amount"
@@ -189,7 +189,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                         {errors.amount && <p className="text-xs font-bold text-red-500 mt-2">{errors.amount.message}</p>}
                                     </div>
                                     <div className="w-36">
-                                        <label htmlFor="expense-currency" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        <label htmlFor="expense-currency" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                             Valuta
                                         </label>
                                         <select id="expense-currency"
@@ -203,7 +203,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
 
                                 {/* Category */}
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Categoria *
                                     </label>
                                     <div className="grid grid-cols-3 gap-3">
@@ -221,7 +221,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                                     }`}
                                                 >
                                                     <span className="text-4xl mb-3 block drop-shadow-sm">{emoji}</span>
-                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-white' : 'text-neutral-500'}`}>{label}</span>
+                                                    <span className={`text-xs font-black uppercase tracking-widest ${isSelected ? 'text-white' : 'text-neutral-500'}`}>{label}</span>
                                                 </button>
                                             );
                                         })}
@@ -231,7 +231,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                 {/* Date & Split */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="expense-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                        <label htmlFor="expense-date" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                             Data
                                         </label>
                                         <input id="expense-date"
@@ -253,8 +253,8 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
                                             }`}
                                         >
                                             <div className="text-left flex-1 min-w-0 mr-3">
-                                                <p className={`text-[10px] font-black uppercase tracking-widest truncate ${watch('split') ? 'text-white' : 'text-neutral-500'}`}>Condivisa</p>
-                                                <p className={`text-[10px] font-medium truncate ${watch('split') ? 'text-neutral-400' : 'text-neutral-400'}`}>Dividi 50%</p>
+                                                <p className={`text-xs font-black uppercase tracking-widest truncate ${watch('split') ? 'text-white' : 'text-neutral-500'}`}>Condivisa</p>
+                                                <p className={`text-xs font-medium truncate ${watch('split') ? 'text-neutral-400' : 'text-neutral-400'}`}>Dividi 50%</p>
                                             </div>
                                             <div className={`w-12 h-6 shrink-0 rounded-full relative transition-colors duration-300 ${watch('split') ? 'bg-white/20' : 'bg-neutral-200'}`}>
                                                 <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 ${watch('split') ? 'translate-x-6 shadow-sm' : ''}`} />
@@ -265,7 +265,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
 
                                 {/* Notes */}
                                 <div>
-                                    <label htmlFor="expense-notes" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="expense-notes" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Note (Opzionale)
                                     </label>
                                     <textarea id="expense-notes"

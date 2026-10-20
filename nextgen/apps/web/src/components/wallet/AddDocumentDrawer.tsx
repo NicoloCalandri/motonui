@@ -95,7 +95,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
                             <form onSubmit={onSubmit} className="space-y-6">
                                 <div>
-                                    <label htmlFor="document-title" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Titolo *</label>
+                                    <label htmlFor="document-title" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Titolo *</label>
                                     <input
                                             id="document-title"
                                         value={title}
@@ -107,7 +107,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                 </div>
 
                                 <div>
-                                    <p id="document-type-label" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo documento</p>
+                                    <p id="document-type-label" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo documento</p>
                                     <div role="group" aria-labelledby="document-type-label" className="flex flex-wrap gap-2">
                                         {(Object.entries(DOC_TYPE_CONFIG) as [DocumentType, typeof DOC_TYPE_CONFIG[DocumentType]][]).map(([key, config]) => {
                                             const Icon = config.icon;
@@ -132,7 +132,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                 </div>
 
                                 <div>
-                                    <label htmlFor="document-file" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">File (PDF o immagine, max 20 MB)</label>
+                                    <label htmlFor="document-file" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">File (PDF o immagine, max 20 MB)</label>
                                     <input
                                         id="document-file"
                                         type="file"
@@ -144,7 +144,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
                                 {!file && (
                                     <div>
-                                        <label htmlFor="document-url" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Oppure link https</label>
+                                        <label htmlFor="document-url" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Oppure link https</label>
                                         <input
                                             id="document-url"
                                             type="url"
@@ -159,7 +159,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="document-file-type" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo file</label>
+                                        <label htmlFor="document-file-type" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo file</label>
                                         <select
                                             id="document-file-type"
                                             value={fileType}
@@ -171,7 +171,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                         </select>
                                     </div>
                                     <div>
-                                        <label htmlFor="document-barcode" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice/Barcode</label>
+                                        <label htmlFor="document-barcode" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice/Barcode</label>
                                         <input
                                             id="document-barcode"
                                             value={barcodeData}
@@ -184,7 +184,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="document-valid-from" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido dal</label>
+                                        <label htmlFor="document-valid-from" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido dal</label>
                                         <input
                                             id="document-valid-from"
                                             value={validFrom}
@@ -194,7 +194,7 @@ export default function AddDocumentDrawer({ tripId, onClose, onSaved }: {
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="document-valid-until" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido fino al</label>
+                                        <label htmlFor="document-valid-until" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Valido fino al</label>
                                         <input
                                             id="document-valid-until"
                                             value={validUntil}

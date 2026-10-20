@@ -240,7 +240,7 @@ export default function LegDrawer({ tripId, dayId, open, onClose, onSaved, dayDa
                                 {/* Carrier */}
                                 {selectedType !== 'walk' && (
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Compagnia / Vettore</label>
+                                        <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Compagnia / Vettore</label>
                                         <CarrierSearch
                                             legType={selectedType}
                                             initialValue={watch('carrier') ?? ''}

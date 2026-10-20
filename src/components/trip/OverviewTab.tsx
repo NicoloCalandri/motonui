@@ -95,7 +95,7 @@ export default function OverviewTab({ trip, onNavigate, onTripUpdate }: Overview
                                 <button
                                     onClick={saveDates}
                                     disabled={savingDates}
-                                    className="px-2 py-1 bg-ink-900 text-white text-[10px] font-bold rounded hover:bg-black transition-colors disabled:opacity-50"
+                                    className="px-2 py-1 bg-ink-900 text-white text-xs font-bold rounded hover:bg-black transition-colors disabled:opacity-50"
                                 >
                                     {savingDates ? '...' : 'Salva'}
                                 </button>
@@ -107,7 +107,7 @@ export default function OverviewTab({ trip, onNavigate, onTripUpdate }: Overview
                                             end: currentDates.end ? currentDates.end.split('T')[0] : '',
                                         });
                                     }}
-                                    className="px-2 py-1 text-[10px] font-semibold text-ink-400 hover:text-ink-900 transition-colors"
+                                    className="px-2 py-1 text-xs font-semibold text-ink-400 hover:text-ink-900 transition-colors"
                                 >
                                     Annulla
                                 </button>
@@ -122,7 +122,7 @@ export default function OverviewTab({ trip, onNavigate, onTripUpdate }: Overview
                                 </span>
                                 <button
                                     onClick={() => setEditingDates(true)}
-                                    className="text-[10px] font-bold uppercase tracking-wider text-terracotta-400 hover:text-terracotta-600 transition-colors bg-terracotta-50 px-2 py-0.5 rounded-md"
+                                    className="text-xs font-bold uppercase tracking-wider text-terracotta-400 hover:text-terracotta-600 transition-colors bg-terracotta-50 px-2 py-0.5 rounded-md"
                                 >
                                     Modifica
                                 </button>

@@ -18,7 +18,7 @@ export default function FlightSegmentsPicker({ segments, setSegments, isEditing,
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Tratte *</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400">Tratte *</label>
                 {!isEditing && (
                     <button
                         type="button"
@@ -35,7 +35,7 @@ export default function FlightSegmentsPicker({ segments, setSegments, isEditing,
                 <div key={idx} className="relative bg-neutral-50 rounded-2xl p-3 space-y-2">
                     {segments.length > 1 && (
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                            <span className="text-xs font-black uppercase tracking-widest text-neutral-400">
                                 {idx === 0 ? 'Volo 1' : `Scalo ${idx} → Volo ${idx + 1}`}
                             </span>
                             {!isEditing && segments.length > 1 && (

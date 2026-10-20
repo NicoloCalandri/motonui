@@ -27,9 +27,9 @@ export function PackingContextCard({ checklist, stops, activities }: PackingCont
                     <div className="flex gap-2 overflow-x-auto pb-1">
                         {checklist.weather_snapshot.map((d) => (
                             <div key={d.date} className="flex-shrink-0 px-3 py-2 bg-sky-50 rounded-xl text-center min-w-[84px]">
-                                <p className="text-[11px] font-semibold text-sky-700">{format(new Date(d.date), 'd MMM', { locale: it })}</p>
+                                <p className="text-xs font-semibold text-sky-700">{format(new Date(d.date), 'd MMM', { locale: it })}</p>
                                 <p className="text-sm font-bold text-sky-900">{Number.isFinite(d.temp_max_c) ? `${d.temp_min_c}–${d.temp_max_c}°` : '—'}</p>
-                                <p className="text-[11px] text-sky-600">{d.condition}</p>
+                                <p className="text-xs text-sky-600">{d.condition}</p>
                             </div>
                         ))}
                     </div>

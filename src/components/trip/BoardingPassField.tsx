@@ -40,7 +40,7 @@ export default function BoardingPassField({ tripId, dayId, legId, hasFile, onCha
 
     return (
         <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d&apos;imbarco</label>
+            <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Carta d&apos;imbarco</label>
             {hasFile ? (
                 <div className="flex items-center gap-3 p-4 bg-sage-50 rounded-2xl">
                     <Ticket className="w-5 h-5 text-sage-500 flex-shrink-0" />

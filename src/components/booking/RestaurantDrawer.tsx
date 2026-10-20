@@ -141,7 +141,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 <div>
-                                    <label htmlFor="restaurant-name" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Ristorante *</label>
+                                    <label htmlFor="restaurant-name" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Ristorante *</label>
                                     <input id="restaurant-name"
                                         {...register('name')}
                                         placeholder="es. Trattoria da Mario"
@@ -151,7 +151,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label htmlFor="restaurant-cuisine-type" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo di Cucina</label>
+                                    <label htmlFor="restaurant-cuisine-type" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo di Cucina</label>
                                     <select id="restaurant-cuisine-type"
                                         {...register('cuisine_type')}
                                         className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
@@ -162,7 +162,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label htmlFor="restaurant-address" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo</label>
+                                    <label htmlFor="restaurant-address" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo</label>
                                     <input id="restaurant-address"
                                         {...register('address')}
                                         placeholder="es. Via Roma, 42"
@@ -172,7 +172,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="restaurant-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
+                                        <label htmlFor="restaurant-date" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
                                         <input id="restaurant-date"
                                             {...register('date')}
                                             type="date"
@@ -182,7 +182,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="restaurant-time" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
+                                        <label htmlFor="restaurant-time" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
                                         <input id="restaurant-time"
                                             {...register('time')}
                                             type="time"
@@ -193,7 +193,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="restaurant-covers" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Coperti</label>
+                                        <label htmlFor="restaurant-covers" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Coperti</label>
                                         <input id="restaurant-covers"
                                             {...register('covers')}
                                             type="number"
@@ -202,7 +202,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="restaurant-phone" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Telefono</label>
+                                        <label htmlFor="restaurant-phone" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Telefono</label>
                                         <input id="restaurant-phone"
                                             {...register('phone')}
                                             type="tel"
@@ -213,7 +213,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label htmlFor="restaurant-currency" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo stimato</label>
+                                    <label htmlFor="restaurant-currency" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo stimato</label>
                                     <div className="flex gap-3">
                                         <select id="restaurant-currency"
                                             {...register('currency')}
@@ -241,7 +241,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label htmlFor="restaurant-booking-ref" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
+                                    <label htmlFor="restaurant-booking-ref" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
                                     <input id="restaurant-booking-ref"
                                         {...register('booking_ref')}
                                         placeholder="es. RES-12345"
@@ -250,7 +250,7 @@ export default function RestaurantDrawer({ tripId, open, onClose, onSaved, initi
                                 </div>
 
                                 <div>
-                                    <label htmlFor="restaurant-notes" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
+                                    <label htmlFor="restaurant-notes" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
                                     <textarea id="restaurant-notes"
                                         {...register('notes')}
                                         rows={2}

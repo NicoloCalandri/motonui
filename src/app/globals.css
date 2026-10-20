@@ -2,19 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens. Colors are RGB channels so Tailwind opacity modifiers work
+ * (bg-sidebar/90, text-ink/60): see tailwind.config.ts. The --color-* aliases
+ * keep var(--color-…) usages working.
+ */
 :root {
-  --color-sidebar: #121212;
-  --color-sidebar-rgb: 18 18 18;
-  --color-bg: #F4F4F6;
-  --color-surface: #FFFFFF;
-  --color-ink: #111111;
-  --color-ink-muted: #6B7280;
-  --color-accent: #111111;
+  --rgb-canvas: 244 244 246;      /* #F4F4F6 page background */
+  --rgb-surface: 255 255 255;     /* #FFFFFF cards */
+  --rgb-ink: 17 17 17;            /* #111111 text */
+  --rgb-ink-muted: 91 98 112;     /* #5B6270 secondary text: 5.6:1 on canvas */
+  --rgb-sidebar: 18 18 18;        /* #121212 desktop sidebar */
+  --rgb-sea: 14 42 51;            /* #0E2A33 chart background */
+  --rgb-isobath: 62 138 143;      /* #3E8A8F chart lines */
+  --rgb-beacon: 242 169 59;       /* #F2A93B fills only, never text */
+  --rgb-beacon-ink: 138 90 0;     /* #8A5A00 small amber text */
+  --rgb-beacon-tint: 253 243 225; /* #FDF3E1 badge background */
+
+  --color-sidebar-rgb: var(--rgb-sidebar);
+  --color-sidebar: rgb(var(--rgb-sidebar));
+  --color-bg: rgb(var(--rgb-canvas));
+  --color-surface: rgb(var(--rgb-surface));
+  --color-ink: rgb(var(--rgb-ink));
+  --color-ink-muted: rgb(var(--rgb-ink-muted));
+  --color-accent: rgb(var(--rgb-ink));
   --color-border: #E5E7EB;
+  --color-separator: rgb(17 17 17 / 0.08);
 
   --font-body: var(--font-figtree), system-ui, sans-serif;
   --font-display: var(--font-playfair), serif;
 
+  --radius-card: 24px;
+  --radius-control: 16px;
+  --radius-pill: 999px;
   --radius-panel: 32px;
   --radius-btn: 16px;
   --radius-sm: 8px;
@@ -22,6 +42,7 @@
   --shadow-soft: 0 4px 24px -1px rgba(0, 0, 0, 0.04);
   --shadow-panel: 0 10px 48px -12px rgba(0, 0, 0, 0.08);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-hero: 0 1px 2px rgb(17 17 17 / 0.04), 0 12px 40px -16px rgb(17 17 17 / 0.14);
 }
 
 @layer base {
@@ -35,6 +56,73 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+  }
+}
+
+/*
+ * Type scale: tracking and leading change with the size (tight and negative
+ * for large text, near zero for body). Sizes in rem so the user's text size
+ * setting scales them. Nothing below 12px.
+ */
+@layer components {
+  .type-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2.125rem;   /* 34px */
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+  @media (min-width: 768px) {
+    .type-display {
+      font-size: 3rem;     /* 48px */
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+  }
+  .type-title-1 { font-family: var(--font-display); font-weight: 700; font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.015em; }
+  .type-title-2 { font-family: var(--font-display); font-weight: 700; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.01em; }
+  .type-title-3 { font-family: var(--font-display); font-weight: 700; font-size: 1.375rem; line-height: 1.2; letter-spacing: -0.01em; }
+  .type-headline { font-family: var(--font-body); font-weight: 600; font-size: 1.0625rem; line-height: 1.3; letter-spacing: -0.005em; }
+  .type-body { font-family: var(--font-body); font-weight: 400; font-size: 0.9375rem; line-height: 1.5; letter-spacing: 0; }
+  .type-footnote { font-family: var(--font-body); font-weight: 500; font-size: 0.8125rem; line-height: 1.4; letter-spacing: 0.005em; }
+  .type-eyebrow { font-family: var(--font-body); font-weight: 600; font-size: 0.75rem; line-height: 1.3; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-300;
+  }
+  /* Only on links. No lift on hover: pressing gives the feedback (.pressable). */
+  .card-interactive:hover {
+    @apply shadow-md;
+  }
+
+  /* Instant feedback on press, on every clickable element of the shell and dashboard. */
+  .pressable {
+    transition: transform 100ms ease-out;
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+
+  /* Floating translucent chrome (mobile tab bar): content scrolls underneath. */
+  .material-bar {
+    background: rgb(255 255 255 / 0.72);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgb(255 255 255 / 0.6);
+    box-shadow: 0 0 0 0.5px rgb(17 17 17 / 0.08), 0 8px 32px -8px rgb(17 17 17 / 0.18);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .material-bar {
+      background: #fff;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+  @media (prefers-contrast: more) {
+    .material-bar {
+      background: #fff;
+      border-color: #111;
+    }
   }
 }
 
@@ -56,14 +144,19 @@
   .shadow-soft {
     box-shadow: var(--shadow-soft);
   }
+  .shadow-hero {
+    box-shadow: var(--shadow-hero);
+  }
 }
 
-@layer components {
-  .card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-300;
+@media (prefers-reduced-motion: reduce) {
+  .pressable,
+  .pressable:active {
+    transition: none;
+    transform: none;
   }
-  /* Only on links: a lift on a static card promises a click that does nothing. */
-  .card-interactive:hover {
-    @apply -translate-y-1 shadow-md;
+  .animate-float,
+  .animate-fade-in {
+    animation: none;
   }
 }
