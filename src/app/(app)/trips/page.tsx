@@ -4,25 +4,34 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { MapPin, Calendar, PlusCircle, ArrowRight, Plane } from 'lucide-react';
+import { MapPin, Calendar, PlusCircle, ArrowRight, Plane, SearchX } from 'lucide-react';
 import type { Trip } from '@/lib/types';
 import DeleteTripButton from '@/components/trip/DeleteTripButton';
+import TripCover from '@/components/trip/TripCover';
+import { normalizeTripQuery, tripSearchFilter } from './trip-search';
 
 export const metadata: Metadata = { title: 'I Tuoi Viaggi' };
 
+interface TripsPageProps {
+    searchParams?: Promise<{ q?: string | string[] }>;
+}
+
 /**
- * TripsPage — Full list of user's trips.
+ * TripsPage — Full list of user's trips, filtered by `?q=` (title or destination).
  */
-export default async function TripsPage() {
+export default async function TripsPage({ searchParams }: TripsPageProps = {}) {
+    const query = normalizeTripQuery((await searchParams)?.q);
     const supabase = await createClient();
     const user = await getAuthUser(supabase);
 
-   // Fetch all user's trips via trip_members join
-    const { data: memberRows } = await supabase
+    // Fetch the user's trips via trip_members join; with a query the inner
+    // join drops the memberships whose trip does not match.
+    let request = supabase
         .from('trip_members')
-        .select('trips(*)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .select(query ? 'trips!inner(*)' : 'trips(*)')
+        .eq('user_id', user.id);
+    if (query) request = request.or(tripSearchFilter(query), { referencedTable: 'trips' });
+    const { data: memberRows } = await request.order('created_at', { ascending: false });
 
     const trips: Trip[] = (memberRows ?? [])
         .map((row) => row.trips as unknown as Trip)
@@ -37,6 +46,9 @@ export default async function TripsPage() {
                     <p className="text-neutral-500 font-medium max-w-lg">
                         Tutte le vostre avventure passate, presenti e future raccolte in un unico posto.
                     </p>
+                    {query && trips.length > 0 && (
+                        <p className="mt-2 text-sm font-semibold text-neutral-700">Risultati per «{query}»</p>
+                    )}
                 </div>
                 <Link 
                     href="/trips/new"
@@ -57,10 +69,10 @@ export default async function TripsPage() {
                                 <div className="card card-interactive h-full flex flex-col overflow-hidden border-none shadow-soft hover:shadow-panel transition-all duration-500 rounded-[32px]">
                                     {/* Cover Image */}
                                     <div className="h-56 relative overflow-hidden">
-                                        <img
-                                            src={trip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'}
-                                            alt={trip.title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                        <TripCover
+                                            tripId={trip.id}
+                                            coverImage={trip.cover_image}
+                                            className="w-full h-full group-hover:scale-105 transition-transform duration-700"
                                         />
                                         <div className="absolute top-4 right-4">
                                             <div className="px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-wider text-white border border-white/20">
@@ -94,6 +106,17 @@ export default async function TripsPage() {
                             </Link>
                         </div>
                     ))}
+                </div>
+            ) : query ? (
+                <div className="card p-16 text-center flex flex-col items-center justify-center border-2 border-dashed border-neutral-100 bg-white/50 rounded-[48px]">
+                    <SearchX className="w-10 h-10 text-neutral-300 mb-6" aria-hidden="true" />
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-3">Nessun viaggio per «{query}»</h2>
+                    <p className="text-neutral-600 text-sm max-w-sm mx-auto mb-8">
+                        Provate con un&apos;altra parola: cerchiamo nel titolo e nella destinazione 🏝️
+                    </p>
+                    <Link href="/trips" className="px-6 py-3 bg-neutral-900 text-white rounded-2xl text-sm font-bold">
+                        Vedi tutti i viaggi
+                    </Link>
                 </div>
             ) : (
                 <div className="card p-20 text-center flex flex-col items-center justify-center border-2 border-dashed border-neutral-100 bg-white/50 min-h-[500px] rounded-[48px]">

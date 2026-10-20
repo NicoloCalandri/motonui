@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Map, PlusCircle, BookOpen, LayoutDashboard, User, LogOut } from 'lucide-react';
+import Form from 'next/form';
+import { Map, PlusCircle, BookOpen, LayoutDashboard, User, LogOut, Search } from 'lucide-react';
 import ImpersonationBanner from '@/components/admin/impersonation-banner';
 import { useProfile } from '@/lib/hooks/use-profile';
 
@@ -16,7 +17,7 @@ const NAV_ITEMS = [
     { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
     { href: '/trips', label: 'Viaggi', icon: Map },
     { href: '/blog', label: 'Blog', icon: BookOpen },
-    { href: '/profile', label: 'Impostazioni', icon: User },
+    { href: '/profile', label: 'Profilo', icon: User },
 ];
 
 /**
@@ -111,17 +112,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
                 {/* Top Cockpit Header */}
                 <header className="flex items-center justify-between mb-8">
-                    {/* Search Mockup */}
-                    <div className="flex-1 max-w-md relative group">
+                    {/* Trip search: submits to /trips?q=… with client-side navigation */}
+                    <Form action="/trips" role="search" className="flex-1 max-w-md relative group">
+                        <label htmlFor="trip-search" className="sr-only">Cerca un viaggio</label>
                         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                            <PlusCircle className="w-5 h-5 text-gray-400 group-focus-within:text-ink-900 transition-colors" />
+                            <Search className="w-5 h-5 text-gray-400 group-focus-within:text-ink-900 transition-colors" aria-hidden="true" />
                         </div>
-                        <input 
-                            type="text" 
-                            placeholder="Cerca il tuo viaggio..." 
+                        <input
+                            id="trip-search"
+                            type="search"
+                            name="q"
+                            maxLength={80}
+                            placeholder="Cerca un viaggio…"
                             className="w-full bg-white border-none py-3 pl-12 pr-4 rounded-2xl shadow-soft focus:ring-2 focus:ring-gray-200 transition-all text-sm font-medium"
                         />
-                    </div>
+                    </Form>
 
                     {/* Actions & Profile */}
                     <div className="flex items-center gap-6">
@@ -131,10 +136,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                                 className="flex items-center gap-3 focus:outline-none"
                                 aria-label="Menu utente"
                             >
-                                <div className="text-right hidden sm:block">
-                                    <p className="text-sm font-bold text-ink-900 leading-none">{userName}</p>
-                                    <p className="text-[10px] font-medium text-ink-muted mt-1 uppercase">Trip Explorer</p>
-                                </div>
+                                <p className="text-right hidden sm:block text-sm font-bold text-ink-900 leading-none">{userName}</p>
                                 <div className="w-10 h-10 rounded-full bg-white shadow-soft p-1 overflow-hidden border border-gray-100 flex items-center justify-center">
                                     {avatarUrl ? (
                                         <img src={avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
