@@ -45,7 +45,7 @@ export default async function BlogIndexPage() {
                             <Link
                                 key={post.id}
                                 href={`/blog/${post.slug}`}
-                                className={`group card overflow-hidden hover:shadow-card-hover transition-shadow ${i === 0 ? 'md:col-span-2' : ''
+                                className={`group card card-interactive overflow-hidden hover:shadow-card-hover transition-shadow ${i === 0 ? 'md:col-span-2' : ''
                                     }`}
                             >
                                 {post.cover_image ? (

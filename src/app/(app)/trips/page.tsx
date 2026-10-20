@@ -54,7 +54,7 @@ export default async function TripsPage() {
                         <div key={trip.id} className="relative group">
                             <DeleteTripButton tripId={trip.id} tripTitle={trip.title} />
                             <Link href={`/trips/${trip.id}`} className="block h-full">
-                                <div className="card h-full flex flex-col overflow-hidden border-none shadow-soft hover:shadow-panel transition-all duration-500 rounded-[32px]">
+                                <div className="card card-interactive h-full flex flex-col overflow-hidden border-none shadow-soft hover:shadow-panel transition-all duration-500 rounded-[32px]">
                                     {/* Cover Image */}
                                     <div className="h-56 relative overflow-hidden">
                                         <img

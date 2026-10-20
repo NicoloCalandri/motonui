@@ -1,11 +1,13 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage from './page';
 import { seriousA11yViolations } from '@/test/axe';
 
 // Mutable fixtures so individual tests can control data
 let mockUserEmail = 'test@example.com';
+let mockDisplayName: string | null = null;
 let mockMemberRows: { trips: object }[] = [];
+let mockExpenses: { amount_eur: number | null }[] = [];
 
 vi.mock('@/lib/supabase/server', () => ({
     createClient: () =>
@@ -19,7 +21,7 @@ vi.mock('@/lib/supabase/server', () => ({
                     return {
                         select: () => ({
                             eq: () => ({
-                                single: () => Promise.resolve({ data: { display_name: null } }),
+                                single: () => Promise.resolve({ data: { display_name: mockDisplayName } }),
                             }),
                         }),
                     };
@@ -27,7 +29,7 @@ vi.mock('@/lib/supabase/server', () => ({
                 if (table === 'expenses') {
                     return {
                         select: () => ({
-                            eq: () => Promise.resolve({ data: [] }),
+                            eq: () => Promise.resolve({ data: mockExpenses }),
                         }),
                     };
                 }
@@ -49,81 +51,108 @@ const makeTrip = (overrides: object = {}) => ({
     destination: 'Tokyo, Giappone',
     status: 'active',
     cover_image: null,
-    start_date: '2025-04-01',
-    end_date: '2025-04-15',
+    start_date: '2026-10-01',
+    end_date: '2026-10-25',
+    budget_eur: null,
     ...overrides,
 });
 
+async function renderPage() {
+    return render(await DashboardPage());
+}
+
 describe('DashboardPage', () => {
     beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-20T10:00:00'));
         mockUserEmail = 'test@example.com';
+        mockDisplayName = null;
         mockMemberRows = [];
+        mockExpenses = [];
     });
 
-    it('renders greeting with username derived from email', async () => {
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText(/Ciao test/i)).toBeDefined();
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
-    it('renders the "Inizia nuovo viaggio" CTA link', async () => {
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText(/Inizia nuovo viaggio/i)).toBeDefined();
+    describe('greeting', () => {
+        it('uses the email local part without a display name', async () => {
+            mockUserEmail = 'giorgia@example.com';
+            await renderPage();
+            expect(screen.getByText('Ciao giorgia')).toBeDefined();
+        });
+
+        it('uses only the first name of the display name', async () => {
+            mockDisplayName = 'Nicolò Calandri';
+            await renderPage();
+            expect(screen.getByText('Ciao Nicolò')).toBeDefined();
+            expect(screen.queryByText(/Calandri/)).toBeNull();
+        });
     });
 
-    it('renders "Viaggi totali" stats label', async () => {
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText(/Viaggi totali/i)).toBeDefined();
+    describe('hero', () => {
+        it('shows the active trip with its spending against the budget', async () => {
+            mockMemberRows = [{ trips: makeTrip({ title: 'Avventura in Giappone', budget_eur: 2000 }) }];
+            mockExpenses = [{ amount_eur: 300 }, { amount_eur: 200 }, { amount_eur: null }];
+            await renderPage();
+            expect(screen.getByText('Viaggio attivo')).toBeDefined();
+            expect(screen.getByText('Avventura in Giappone')).toBeDefined();
+            expect(screen.getByText('€500')).toBeDefined();
+            expect(screen.queryByText(/Pronti per una nuova avventura/i)).toBeNull();
+        });
+
+        it('shows the next planned trip with a countdown when nothing is active', async () => {
+            mockMemberRows = [
+                { trips: makeTrip({ id: 'far', title: 'Islanda', status: 'planning', start_date: '2027-02-01', end_date: null }) },
+                { trips: makeTrip({ id: 'next', title: 'Brasile 2026', status: 'planning', start_date: '2026-10-30', end_date: '2026-11-15' }) },
+            ];
+            await renderPage();
+            expect(screen.getAllByText('Prossimo viaggio').length).toBeGreaterThan(0);
+            expect(screen.getByRole('heading', { name: 'Brasile 2026' })).toBeDefined();
+            expect(screen.getByText(/Partite tra 10 giorni/)).toBeDefined();
+            expect(screen.getByRole('link', { name: 'Imposta budget' }).getAttribute('href')).toBe('/trips/next?tab=overview');
+            expect(screen.queryByText(/Pronti per una nuova avventura/i)).toBeNull();
+        });
+
+        it('shows the empty state, with a single create link, only without trips', async () => {
+            await renderPage();
+            expect(screen.getByText(/Pronti per una nuova avventura/i)).toBeDefined();
+            const createLinks = screen.getAllByRole('link').filter((a) => a.getAttribute('href') === '/trips/new');
+            expect(createLinks).toHaveLength(1);
+        });
     });
 
-    it('shows 0 when user has no trips', async () => {
-        mockMemberRows = [];
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText('0')).toBeDefined();
+    describe('recent trips', () => {
+        it('does not repeat the hero trip', async () => {
+            mockMemberRows = [
+                { trips: makeTrip({ id: 'hero', title: 'In corso' }) },
+                { trips: makeTrip({ id: 'past', title: 'Lisbona', status: 'completed', end_date: '2025-05-01' }) },
+            ];
+            await renderPage();
+            expect(screen.getAllByText('In corso')).toHaveLength(1);
+            expect(screen.getByText('Lisbona')).toBeDefined();
+        });
+
+        it('keeps the "Vedi tutti i viaggi" link', async () => {
+            await renderPage();
+            expect(screen.getByRole('link', { name: /Vedi tutti i viaggi/i })).toBeDefined();
+        });
     });
 
-    it('shows correct trip count when trips are present', async () => {
-        mockMemberRows = [
-            { trips: makeTrip({ id: 'trip-1' }) },
-            { trips: makeTrip({ id: 'trip-2', status: 'completed' }) },
-        ];
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText('2')).toBeDefined();
-    });
+    it('counts trips in the singular and plural', async () => {
+        mockMemberRows = [{ trips: makeTrip({ status: 'completed' }) }];
+        const { unmount } = await renderPage();
+        expect(screen.getByText('1 viaggio')).toBeDefined();
+        unmount();
 
-    it('shows the active trip title when there is an active trip', async () => {
-        mockMemberRows = [{ trips: makeTrip({ title: 'Avventura in Giappone', status: 'active' }) }];
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText('Avventura in Giappone')).toBeDefined();
-    });
-
-    it('shows the empty state when no active trip', async () => {
-        mockMemberRows = [];
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText(/Pronti per una nuova avventura/i)).toBeDefined();
-    });
-
-    it('uses email prefix as name when email is different', async () => {
-        mockUserEmail = 'giorgia@example.com';
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText(/Ciao giorgia/i)).toBeDefined();
-    });
-
-    it('renders the "Vedi tutti i viaggi" link', async () => {
-        const Result = await DashboardPage();
-        render(Result);
-        expect(screen.getByText(/Vedi tutti i viaggi/i)).toBeDefined();
+        mockMemberRows = [{ trips: makeTrip({ id: 'a' }) }, { trips: makeTrip({ id: 'b', status: 'completed' }) }];
+        await renderPage();
+        expect(screen.getByText('2 viaggi')).toBeDefined();
     });
 
     it('has no serious axe violations (T-3.9)', async () => {
-        const { container } = render(await DashboardPage());
+        mockMemberRows = [{ trips: makeTrip() }];
+        const { container } = await renderPage();
         expect(await seriousA11yViolations(container)).toEqual([]);
     });
 });
