@@ -20,7 +20,7 @@ function stubClient(token: string) {
     chain.maybeSingle = chain.single;
     chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve);
     return {
-        auth: { getUser: async () => ({ data: { user: token === GOOD ? USER : null } }) },
+        auth: { getUser: async () => ({ data: { user: token === GOOD || token.startsWith('eyJ') ? USER : null } }) },
         from: () => chain,
         rpc: async (fn: string) => {
             state.writes.push(fn);
@@ -73,14 +73,26 @@ describe('POST /api/session/cookie', () => {
         expect(res.headers.get('set-cookie') ?? '').toMatch(/Secure/i);
     });
 
-    it('does not outlive the token it copies', async () => {
-        const payload = Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 120 })).toString('base64url');
-        const shortLived = `h.${payload}.s`;
-        // The stub accepts only GOOD: this request is refused, which is enough to see no cookie is set for a bad token.
-        const res = await call('POST', '/api/session/cookie', { authorization: `Bearer ${shortLived}` });
+    /** A readable JWT (header.payload.signature) expiring `seconds` from now. */
+    const jwtExpiringIn = (seconds: number) => {
+        const part = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
+        return `eyJ.${part({ exp: Math.floor(Date.now() / 1000) + seconds })}.sig`;
+    };
+    const maxAgeOf = (res: Response) => Number(/Max-Age=(\d+)/i.exec(res.headers.get('set-cookie') ?? '')?.[1]);
 
-        expect(res.status).toBe(401);
-        expect(res.headers.get('set-cookie')).toBeNull();
+    it('does not outlive the token it copies', async () => {
+        const res = await call('POST', '/api/session/cookie', { authorization: `Bearer ${jwtExpiringIn(120)}` });
+
+        expect(res.status).toBe(200);
+        const maxAge = maxAgeOf(res);
+        expect(maxAge).toBeGreaterThan(0);
+        expect(maxAge).toBeLessThanOrEqual(120);
+    });
+
+    it('is capped at one hour even for a token that lives longer', async () => {
+        const res = await call('POST', '/api/session/cookie', { authorization: `Bearer ${jwtExpiringIn(86_400)}` });
+
+        expect(maxAgeOf(res)).toBe(3600);
     });
 
     it('cannot be renewed from the cookie alone', async () => {
@@ -103,10 +115,19 @@ describe('requests that carry only the cookie', () => {
         expect(await res.json()).toMatchObject({ id: USER.id });
     });
 
-    it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('are refused on %s: a write needs the bearer token', async (method) => {
-        const res = await call(method, '/api/trips', cookie(), '{"title":"Rapa Nui","destination":"Cile"}');
+    // One route that really exists for each method, so the refusal is requireUser's, not a 404.
+    const TRIP = '10000000-0000-4000-8000-00000000000a';
+    const WRITES: [string, string, string][] = [
+        ['POST', '/api/trips', '{"title":"Rapa Nui","destination":"Cile"}'],
+        ['PUT', `/api/trips/${TRIP}`, '{"title":"Rapa Nui"}'],
+        ['PATCH', `/api/trips/${TRIP}/posts/${TRIP}`, '{"title":"Bozza"}'],
+        ['DELETE', `/api/trips/${TRIP}`, ''],
+    ];
 
-        expect([401, 404]).toContain(res.status);
+    it.each(WRITES)('are refused on %s %s: a write needs the bearer token', async (method, path, body) => {
+        const res = await call(method, path, cookie(), body || undefined);
+
+        expect(res.status).toBe(401);
         expect(state.writes).toEqual([]);
         expect(state.tokens).toEqual([]);
     });
