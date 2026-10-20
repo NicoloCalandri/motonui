@@ -222,3 +222,8 @@ jobs:
       # Starts the build output under plain Node and probes it.
       - name: Smoke test of the build
         run: npm run smoke
+
+      # The image the cutover ships: catches the production-only install
+      # (sharp platform binaries, workspaces) that the steps above do not use.
+      - name: Docker image
+        run: docker build -t motonui-nextgen .

@@ -9,7 +9,7 @@ Nulla di quanto segue è stato eseguito: sono operazioni su servizi esterni (hos
 - `npm test` in `nextgen/`: suite dell'API e dell'app web verdi.
 - `npm run build && npm run smoke`: il build si avvia sotto Node e risponde (salute, shell dell'app, 404 dell'API, 401 senza sessione, rifiuto delle scritture da altri siti).
 - `docker build nextgen/` e avvio del container: verificati in locale con variabili fittizie.
-- Il job `nextgen` della CI ripete tutto questo a ogni PR.
+- Il job `nextgen` della CI ripete tutto questo a ogni PR, compreso `docker build` dell'immagine (senza avviarla).
 
 Non è verificato, perché richiede un progetto Supabase reale e un browser: accesso con Google, reset della password, invito del partner via email, caricamento di una foto, export Instagram, lettura di un documento con il cookie di sessione.
 
@@ -19,7 +19,7 @@ Non è verificato, perché richiede un progetto Supabase reale e un browser: acc
 2. **Correggere in `src/` i difetti ereditati** elencati nella roadmap (salvataggio automatico dell'editor, date, campi vuoti, pulsanti senza nome) e rieseguire `npm run port:lib` in `nextgen/`.
 3. **Scegliere l'hosting.** Serve un servizio che tenga acceso un processo Node (container): Fly.io, Railway, Render, Cloud Run con istanza minima 1, un VPS. **Non** funzioni serverless: l'export Instagram e i cron girano nel processo dopo la risposta.
 4. **Ambiente di prova.** Avviare l'immagine su un dominio di prova contro il progetto Supabase di produzione, o una sua copia, con:
-   - le variabili di `nextgen/apps/api/.env.example` (stessi valori di Vercel dove il nome coincide; `SUPABASE_URL` e `SUPABASE_ANON_KEY` prendono i valori di `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`);
+   - le variabili di `nextgen/apps/api/.env.example` (stessi valori di Vercel dove il nome coincide; `SUPABASE_URL` e `SUPABASE_ANON_KEY` prendono i valori di `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`). **Non impostare `WEB_DIST`**: la fornisce l'immagine. Una riga `WEB_DIST=` vuota nel file passato a `--env-file` la sovrascrive e il sito resta senza pagine, con l'health check verde (in produzione l'avvio lo segnala con un avviso `[motonui][api][startup]`);
    - `WEB_ORIGIN` e `NEXT_PUBLIC_APP_URL` uguali all'indirizzo pubblico;
    - `ENABLE_CRON=false` finché Vercel è ancora in funzione, per non inviare due volte i promemoria;
    - gli argomenti di build `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_MAPBOX_TOKEN`.

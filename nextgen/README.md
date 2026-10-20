@@ -65,4 +65,6 @@ docker build -t motonui \
 docker run -p 3001:3001 --env-file nextgen/apps/api/.env motonui
 ```
 
-The `VITE_*` values are public (they are in the JavaScript every visitor downloads). Everything else is a runtime variable of the API: see `apps/api/.env.example`. Set `ENABLE_CRON=true` on exactly one instance.
+The `VITE_*` values are public (they are in the JavaScript every visitor downloads). Everything else is a runtime variable of the API: see `apps/api/.env.example`. `WEB_DIST` comes from the image: do not set it in the env file (a blank `WEB_DIST=` would override it and serve no pages; the API warns at startup). Set `ENABLE_CRON=true` on exactly one instance.
+
+Outside the image, `npm start -w @motonui/api` loads `apps/api/.env` if it exists (`--env-file-if-exists`); to serve the web app from that process also set `WEB_DIST=../web/dist`.
