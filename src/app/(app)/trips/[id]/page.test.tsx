@@ -66,6 +66,19 @@ describe('TripPage', () => {
         expect(screen.getByText(/2 persone/i)).toBeDefined();
     });
 
+    it('counts a single traveller in the singular', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({ ...mockTrip, members: [{ id: 'u1', user_id: 'user-1', role: 'owner' }] }),
+        } as unknown as Response);
+
+        render(<TripPage />, { wrapper: SWRTestProvider });
+        await screen.findByText('Tour del Giappone');
+
+        expect(screen.getByText(/1 persona$/)).toBeDefined();
+        expect(screen.queryByText(/undefined/)).toBeNull();
+    });
+
     it('renders all 5 tab labels', async () => {
         render(<TripPage />, { wrapper: SWRTestProvider });
         await screen.findByText('Tour del Giappone');
