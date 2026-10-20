@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Form from 'next/form';
-import { Map, PlusCircle, BookOpen, LayoutDashboard, User, LogOut, Search } from 'lucide-react';
+import { Map, BookOpen, Sun, User, LogOut, Search, Plus } from 'lucide-react';
 import ImpersonationBanner from '@/components/admin/impersonation-banner';
 import { SWRConfig } from 'swr';
 import { useProfile, type ProfileResponse } from '@/lib/hooks/use-profile';
+import UserMenu from './UserMenu';
 
 interface AppShellProps {
     children: React.ReactNode;
@@ -16,15 +17,21 @@ interface AppShellProps {
     profile: ProfileResponse | null;
 }
 
-const NAV_ITEMS = [
-    { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+/** Destinations only, with specific labels. "Nuovo viaggio" is an action: it lives in the header. */
+export const NAV_ITEMS = [
+    { href: '/dashboard', label: 'Oggi', icon: Sun },
     { href: '/trips', label: 'Viaggi', icon: Map },
     { href: '/blog', label: 'Blog', icon: BookOpen },
     { href: '/profile', label: 'Profilo', icon: User },
 ];
 
+function isActive(href: string, pathname: string | null): boolean {
+    if (href === '/dashboard') return pathname === href;
+    return pathname === href || Boolean(pathname?.startsWith(href + '/'));
+}
+
 /**
- * Authenticated app shell with sidebar (desktop) and bottom navigation (mobile).
+ * Authenticated app shell: dark sidebar (desktop), floating translucent tab bar (mobile).
  */
 export default function AppShell({ children, profile }: AppShellProps) {
     return (
@@ -39,21 +46,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const supabase = createClient();
     const { data: profile, error: profileError } = useProfile();
-    const userEmail = profile?.email ?? null;
     const userName = profile ? profile.fullName || profile.email?.split('@')[0] || 'Viaggiatore' : null;
-    const avatarUrl = profile?.avatarUrl ?? null;
-    const [menuOpen, setMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-                setMenuOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     // No profile means no session: back to login (the public blog excepted).
     useEffect(() => {
@@ -66,156 +59,107 @@ function Shell({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[var(--color-bg)]">
+        <div className="flex flex-col min-h-screen bg-canvas text-ink">
             <ImpersonationBanner />
             <div className="flex flex-1">
-            {/* ─── Slim Sidebar (Image Reference) ─── */}
-            <aside className="hidden md:flex flex-col items-center w-20 min-h-screen bg-[var(--color-sidebar)] py-8 sticky top-0 h-screen">
-                <div className="mb-10">
-                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                        M
+                <aside className="hidden md:flex flex-col items-center w-[92px] shrink-0 bg-sidebar py-7 px-3 gap-7 sticky top-0 h-screen">
+                    <div aria-hidden="true" className="w-11 h-11 rounded-[14px] bg-white/10 flex items-center justify-center text-white font-display font-bold text-xl">
+                        m
                     </div>
-                </div>
-
-                <nav className="flex-1 w-full px-3 space-y-6 flex flex-col items-center">
-                    {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-                        const active = href === '/dashboard'
-                            ? pathname === href
-                            : pathname === href || pathname?.startsWith(href + '/');
-                        return (
-                            <Link
-                                key={href}
-                                href={href}
-                                title={label}
-                                aria-label={label}
-                                aria-current={active ? 'page' : undefined}
-                                className={`relative group p-3 rounded-2xl transition-all duration-300 hover:bg-white/10 ${
-                                    active ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'
-                                }`}
-                            >
-                                <Icon className="w-6 h-6" />
-                                <div className={`absolute left-[-12px] top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full transition-opacity ${
-                                    active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                }`} />
-                            </Link>
-                        );
-                    })}
-                    
-                    <Link
-                        href="/trips/new"
-                        className="p-3 rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all"
-                    >
-                        <PlusCircle className="w-6 h-6" />
-                    </Link>
-                </nav>
-
-                <button
-                    onClick={handleSignOut}
-                    title="Esci"
-                    aria-label="Esci"
-                    className="p-3 rounded-2xl text-gray-500 hover:text-white hover:bg-white/10 transition-all"
-                >
-                    <LogOut className="w-6 h-6" />
-                </button>
-            </aside>
-
-            {/* ─── Main Content Area ─── */}
-            <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
-                {/* Top Cockpit Header */}
-                <header className="flex items-center justify-between mb-8">
-                    {/* Trip search: submits to /trips?q=… with client-side navigation */}
-                    <Form action="/trips" role="search" className="flex-1 max-w-md relative group">
-                        <label htmlFor="trip-search" className="sr-only">Cerca un viaggio</label>
-                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                            <Search className="w-5 h-5 text-gray-400 group-focus-within:text-ink-900 transition-colors" aria-hidden="true" />
-                        </div>
-                        <input
-                            id="trip-search"
-                            type="search"
-                            name="q"
-                            maxLength={80}
-                            placeholder="Cerca un viaggio…"
-                            className="w-full bg-white border-none py-3 pl-12 pr-4 rounded-2xl shadow-soft focus:ring-2 focus:ring-gray-200 transition-all text-sm font-medium"
-                        />
-                    </Form>
-
-                    {/* Actions & Profile */}
-                    <div className="flex items-center gap-6">
-                        <div className="relative" ref={menuRef}>
-                            <button
-                                onClick={() => setMenuOpen(v => !v)}
-                                className="flex items-center gap-3 focus:outline-none"
-                                aria-label="Menu utente"
-                            >
-                                <p className="text-right hidden sm:block text-sm font-bold text-ink-900 leading-none">{userName}</p>
-                                <div className="w-10 h-10 rounded-full bg-white shadow-soft p-1 overflow-hidden border border-gray-100 flex items-center justify-center">
-                                    {avatarUrl ? (
-                                        <img src={avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-white text-xs font-bold">
-                                            {userName?.[0]?.toUpperCase()}
-                                        </div>
-                                    )}
-                                </div>
-                            </button>
-
-                            {menuOpen && (
-                                <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-gray-100">
-                                        <p className="text-xs font-semibold text-ink-900 truncate">{userName}</p>
-                                        <p className="text-xs text-ink-muted truncate">{userEmail}</p>
-                                    </div>
-                                    <Link
-                                        href="/profile"
-                                        onClick={() => setMenuOpen(false)}
-                                        className="flex items-center gap-2 px-4 py-2 text-sm text-ink-900 hover:bg-gray-50 transition-colors"
-                                    >
-                                        <User className="w-4 h-4" />
-                                        Profilo
-                                    </Link>
-                                    <button
-                                        onClick={() => { setMenuOpen(false); handleSignOut(); }}
-                                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                                    >
-                                        <LogOut className="w-4 h-4" />
-                                        Esci
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </header>
-
-                {/* Page Content */}
-                <div className="flex-1 overflow-y-auto scrollbar-hide">
-                    {children}
-                </div>
-
-                {/* Mobile Bottom Navigation (Still needed for small screens) */}
-                <nav className="md:hidden fixed bottom-6 inset-x-4 z-40 bg-sidebar/90 backdrop-blur-xl rounded-3xl shadow-2xl p-2 border border-white/10">
-                    <div className="flex items-center justify-around">
-                        {NAV_ITEMS.concat([{ href: '/trips/new', label: 'Nuovo', icon: PlusCircle }]).map(({ href, label, icon: Icon }) => {
-                            const active = href === '/dashboard'
-                                ? pathname === href
-                                : pathname === href || pathname?.startsWith(href + '/');
+                    <nav aria-label="Principale" className="flex-1 flex flex-col items-center gap-2">
+                        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+                            const active = isActive(href, pathname);
                             return (
-                            <Link
-                                key={href}
-                                href={href}
-                                aria-current={active ? 'page' : undefined}
-                                className={`flex flex-col items-center gap-1 py-2 px-3 transition-all ${
-                                    active ? 'text-white' : 'text-gray-400 hover:text-white'
-                                }`}
-                            >
-                                <Icon className="w-5 h-5" />
-                                <span className="text-xs font-bold uppercase">{label}</span>
-                            </Link>
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    aria-current={active ? 'page' : undefined}
+                                    className={`pressable w-[68px] min-h-[60px] rounded-control flex flex-col items-center justify-center gap-1 text-xs tracking-[0.01em] transition-colors ${
+                                        active ? 'bg-white/10 text-white font-semibold' : 'text-gray-400 font-medium hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    <Icon className="w-[22px] h-[22px]" strokeWidth={1.75} aria-hidden="true" />
+                                    <span>{label}</span>
+                                </Link>
                             );
                         })}
-                    </div>
-                </nav>
-            </main>
+                    </nav>
+                    <button
+                        type="button"
+                        onClick={handleSignOut}
+                        aria-label="Esci"
+                        title="Esci"
+                        className="pressable w-12 h-12 rounded-[14px] text-gray-400 hover:text-white hover:bg-white/5 flex items-center justify-center"
+                    >
+                        <LogOut className="w-[22px] h-[22px]" strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                </aside>
+
+                <main className="flex-1 min-w-0 flex flex-col px-4 pt-4 pb-32 md:px-10 md:pt-6 md:pb-14">
+                    <header className="flex items-center justify-between gap-3 mb-8 max-w-[1180px] w-full mx-auto">
+                        {/* Trip search: submits to /trips?q=… with client-side navigation */}
+                        <Form action="/trips" role="search" className="flex-1 max-w-[420px] relative group">
+                            <label htmlFor="trip-search" className="sr-only">Cerca un viaggio</label>
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink-muted pointer-events-none" aria-hidden="true" />
+                            <input
+                                id="trip-search"
+                                type="search"
+                                name="q"
+                                maxLength={80}
+                                placeholder="Cerca un viaggio"
+                                className="w-full h-11 bg-surface border border-separator rounded-[14px] pl-11 pr-4 type-body text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-ink/20"
+                            />
+                        </Form>
+                        <div className="flex items-center gap-2 md:gap-3">
+                            <Link
+                                href="/trips/new"
+                                aria-label="Nuovo viaggio"
+                                className="pressable h-11 w-11 md:w-auto md:pl-4 md:pr-5 rounded-pill bg-ink text-white flex items-center justify-center gap-2 type-body font-semibold tracking-[-0.005em]"
+                            >
+                                <Plus className="w-[18px] h-[18px]" strokeWidth={2} aria-hidden="true" />
+                                <span className="hidden md:inline">Nuovo viaggio</span>
+                            </Link>
+                            <UserMenu
+                                userName={userName}
+                                userEmail={profile?.email ?? null}
+                                avatarUrl={profile?.avatarUrl ?? null}
+                                onSignOut={handleSignOut}
+                            />
+                        </div>
+                    </header>
+
+                    <div className="flex-1 w-full max-w-[1180px] mx-auto">{children}</div>
+                </main>
             </div>
+
+            {/* Content scrolls under the bar: a 24px fade where it covers the page, no opaque strip. */}
+            <div
+                aria-hidden="true"
+                className="md:hidden fixed inset-x-0 bottom-0 z-30 pointer-events-none bg-gradient-to-b from-canvas/0 to-canvas/85"
+                style={{ height: 'calc(64px + 12px + 24px + env(safe-area-inset-bottom))' }}
+            />
+            <nav
+                aria-label="Principale"
+                className="material-bar md:hidden fixed inset-x-3 z-40 h-16 rounded-[28px] p-1 flex items-stretch"
+                style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}
+            >
+                {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+                    const active = isActive(href, pathname);
+                    return (
+                        <Link
+                            key={href}
+                            href={href}
+                            aria-current={active ? 'page' : undefined}
+                            className={`pressable flex-1 rounded-[22px] flex flex-col items-center justify-center gap-0.5 text-xs tracking-[0.01em] ${
+                                active ? 'text-ink font-semibold' : 'text-ink-muted font-medium'
+                            }`}
+                        >
+                            <Icon className="w-[22px] h-[22px]" strokeWidth={active ? 2 : 1.75} aria-hidden="true" />
+                            <span>{label}</span>
+                        </Link>
+                    );
+                })}
+            </nav>
         </div>
     );
 }
