@@ -88,6 +88,7 @@ export const EXCLUDED = {
     'auth/auth-error-message.ts': 'browser only: belongs to apps/web',
     'auth/get-user.ts': 'cookie session: Hono authenticates the bearer token in middleware/auth.ts and has its own lib/auth/get-user.ts',
     'auth/require-admin.ts': 'imports next/server: Hono uses middleware/admin.ts',
+    'blog/autosave.ts': 'browser only: copied to apps/web (WEB_COPIES), not to the API',
     'csp.ts': 'page headers: belongs to the hosting layer of apps/web',
     'errors.ts': 'imports next/server: Hono has lib/errors.ts (same AppError and Errors) and lib/http.ts',
     'fetcher.ts': 'browser only: copied to apps/web (WEB_COPIES), not to the API',
