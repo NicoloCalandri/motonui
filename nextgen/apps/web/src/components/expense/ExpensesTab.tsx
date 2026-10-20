@@ -237,7 +237,7 @@ export default function ExpensesTab({ tripId, tripStartDate, tripEndDate }: Expe
                                             <Cell key={i} fill={entry.color} />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={(val: number) => [`€${val.toFixed(2)}`, '']} />
+                                    <Tooltip formatter={(val) => [`€${Number(val ?? 0).toFixed(2)}`, '']} />
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="space-y-1 mt-2">

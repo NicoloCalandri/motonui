@@ -24,6 +24,7 @@ describe('origin policy', () => {
     });
     afterEach(() => {
         vi.unstubAllEnvs();
+        vi.unstubAllGlobals();
         vi.restoreAllMocks();
     });
 
@@ -108,6 +109,8 @@ describe('origin policy', () => {
         });
 
         it('leaves the public post route cacheable', async () => {
+            // No Supabase here: an unreachable one makes postgrest-js retry the read for ~7 s.
+            vi.stubGlobal('fetch', vi.fn(async () => Response.json([])));
             const res = await createApp().request('/api/posts/some-slug');
             expect(res.headers.get('cache-control')).not.toBe('private, no-store');
         });
