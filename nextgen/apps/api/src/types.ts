@@ -12,6 +12,7 @@ export interface AppVariables {
     user: AuthUser;
     profile: MiddlewareProfile | null;
     adminId: string;
+    requestId: string;
     impersonatedUserId?: string;
     impersonatingAdminId?: string;
 }

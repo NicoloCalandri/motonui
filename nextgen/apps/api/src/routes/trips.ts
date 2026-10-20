@@ -1,21 +1,21 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { createAdminClient } from '../lib/supabase/server';
-import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject, issueSummary } from '../lib/http';
 import { Errors } from '../lib/errors';
-import { requireTripMember } from '../lib/authz';
+import { log } from '../lib/log';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
 
+// Mounted at /api/trips. Membership of /:id is checked by tripGuard (app.ts).
+// Port of src/app/api/trips/route.ts and src/app/api/trips/[id]/route.ts.
 export const tripsRouter = new Hono<AppEnv>();
 
 const CreateTripSchema = z.object({
     title: z.string().min(1).max(200),
     destination: z.string().min(1).max(200),
-    start_date: z.string().optional(),
-    end_date: z.string().optional(),
+    start_date: z.string().date().optional().or(z.literal('')),
+    end_date: z.string().date().optional().or(z.literal('')),
     description: z.string().max(2000).optional(),
     cover_image: z.string().url().optional(),
 });
@@ -37,59 +37,48 @@ tripsRouter.get(
     requireUser,
     loadProfile,
     withErrorHandler(async (c) => {
-        const supabase = c.get('supabase');
-        const user = await getAuthUser(supabase);
-
-        const { data, error } = await (supabase.from('trip_members') as any)
+        const { data, error } = await c.get('supabase')
+            .from('trip_members')
             .select(`trip_id, trips (id, title, destination, cover_image, start_date, end_date, status, created_at)`)
-            .eq('user_id', user.id)
+            .eq('user_id', c.get('user').id)
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(`[motonui][trips][GET] ${error.message}`);
 
+        // Reshape to trip cards
         const trips = (data ?? [])
-            .map((row: any) => row.trips)
-            .filter(Boolean);
+            .map((row) => row.trips)
+            .filter((trip) => trip !== null);
 
         return ok(c, trips);
     }, 'trips GET')
 );
 
-/** POST /api/trips — create a new trip */
+/**
+ * POST /api/trips — create a new trip. create_trip() (migration 0021) inserts
+ * the trip and the owner membership in one transaction with the user's JWT:
+ * no service role, no trip left without its owner.
+ */
 tripsRouter.post(
     '/',
     requireUser,
     loadProfile,
     withErrorHandler(async (c) => {
-        const supabase = c.get('supabase');
-        const user = c.get('user');
-
-        // Use admin client for creation to ensure trip + owner member are created atomically
-        // and bypass any restrictive RLS during the initialization phase.
-        const adminSupabase = createAdminClient();
-
-        const body: unknown = await c.req.json();
-        const parsed = CreateTripSchema.safeParse(body);
-        if (!parsed.success) throw Errors.validation(parsed.error.message);
-
+        const parsed = CreateTripSchema.safeParse(await readJsonObject(c));
+        if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
         const input = parsed.data;
 
-        const { data: trip, error: tripError } = await (adminSupabase.from('trips') as any)
-            .insert({ ...input, owner_id: user.id })
-            .select()
-            .single();
-
-        if (tripError || !trip) throw new Error(`[motonui][trips][POST] ${tripError?.message}`);
-
-        const { error: memberError } = await (adminSupabase.from('trip_members') as any).insert({
-            trip_id: trip.id,
-            user_id: user.id,
-            role: 'owner',
+        const { data: trip, error } = await c.get('supabase').rpc('create_trip', {
+            p_title: input.title,
+            p_destination: input.destination,
+            // Optional RPC args: omitted when empty, the SQL defaults are null.
+            p_start_date: input.start_date || undefined,
+            p_end_date: input.end_date || undefined,
+            p_description: input.description,
+            p_cover_image: input.cover_image,
         });
 
-        if (memberError) {
-            console.error(`[motonui][trips][POST] Failed to add member: ${memberError.message}`);
-        }
+        if (error || !trip) throw new Error(`[motonui][trips][POST] ${error?.message}`);
 
         return created(c, trip);
     }, 'trips POST')
@@ -101,13 +90,8 @@ tripsRouter.get(
     requireUser,
     loadProfile,
     withErrorHandler(async (c) => {
-        const supabase = c.get('supabase');
-        const user = await getAuthUser(supabase);
-        const id = requireParam(c, 'id');
-
-        await requireTripMember(supabase, id, user.id);
-
-        const { data: trip, error } = await (supabase.from('trips') as any)
+        const { data: trip, error } = await c.get('supabase')
+            .from('trips')
             .select(`
       *,
       trip_members (
@@ -124,11 +108,12 @@ tripsRouter.get(
       media (count),
       expenses (amount_eur, amount)
     `)
-            .eq('id', id)
+            .eq('id', requireParam(c, 'id'))
             .single();
 
         if (error) {
-            console.error('Supabase GET trip error:', error);
+            // No row (PGRST116) or RLS: both answer 404; only the code is logged.
+            log.warn('[motonui][trips/:id GET] trip lookup failed', { code: error.code });
             throw Errors.notFound('Viaggio');
         }
 
@@ -142,17 +127,13 @@ tripsRouter.put(
     requireUser,
     loadProfile,
     withErrorHandler(async (c) => {
-        const supabase = c.get('supabase');
-        const user = await getAuthUser(supabase);
         const id = requireParam(c, 'id');
 
-        await requireTripMember(supabase, id, user.id);
+        const parsed = UpdateTripSchema.safeParse(await readJsonObject(c));
+        if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
 
-        const body: unknown = await c.req.json();
-        const parsed = UpdateTripSchema.safeParse(body);
-        if (!parsed.success) throw Errors.validation(parsed.error.message);
-
-        const { data: trip, error } = await (supabase.from('trips') as any)
+        const { data: trip, error } = await c.get('supabase')
+            .from('trips')
             .update(parsed.data)
             .eq('id', id)
             .select()
@@ -170,14 +151,11 @@ tripsRouter.delete(
     requireUser,
     loadProfile,
     withErrorHandler(async (c) => {
-        const supabase = c.get('supabase');
-        const user = c.get('user');
-        const id = requireParam(c, 'id');
-
-        const { error } = await (supabase.from('trips') as any)
+        const { error } = await c.get('supabase')
+            .from('trips')
             .update({ status: 'archived' })
-            .eq('id', id)
-            .eq('owner_id', user.id); // only owner can archive
+            .eq('id', requireParam(c, 'id'))
+            .eq('owner_id', c.get('user').id); // only owner can archive
 
         if (error) throw Errors.forbidden();
 

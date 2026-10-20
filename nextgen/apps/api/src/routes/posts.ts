@@ -9,7 +9,8 @@ export const postsRouter = new Hono<AppEnv>();
 /**
  * GET /api/posts/:slug — PUBLIC route, no auth required (matches the
  * isPublicRoute allowlist for /api/posts in the old root middleware.ts).
- * Uses the admin client since there's no user JWT to scope RLS with here.
+ * Uses the anon client: RLS shows only published posts, as it does to a
+ * visitor of the Next.js app. The per-IP limit is applied in app.ts.
  */
 postsRouter.get(
     '/:slug',

@@ -4,6 +4,8 @@ export default defineConfig({
     test: {
         environment: 'node',
         globals: false,
+        // Build output: the compiled copies of the tests must not run a second time.
+        exclude: ['dist/**', 'node_modules/**'],
         env: {
             SUPABASE_URL: 'http://127.0.0.1:54321',
             SUPABASE_ANON_KEY: 'test-anon-key',

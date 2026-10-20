@@ -85,7 +85,11 @@ npm run test:rls       # test SQL delle policy, su Supabase locale
 
 - **`src/`** è l'app Next.js in produzione: tutto questo file parla di lei, salvo dove indicato.
 - **`mobile/`** è un client Expo che parla direttamente con Supabase, senza passare dalle API route: per questo ogni invariante di sicurezza sta anche nella RLS. Ha il suo `package.json`; i suoi test girano dalla radice con `npm run test:mobile`.
-- **`nextgen/`** è la migrazione in corso verso Vite (SPA) + Hono (API), in workspace npm separati (`apps/web`, `apps/api`, `packages/shared-types`). Non è in produzione e la suite di radice la ignora: i comandi (`npm test`, `npm run type-check`, `npm run build`) si lanciano dentro `nextgen/`.
+- **`nextgen/`** è la migrazione in corso verso Vite (SPA) + Hono (API), in workspace npm separati (`apps/web`, `apps/api`, `packages/shared-types`). Non è in produzione e la suite di radice la ignora: i comandi (`npm test`, `npm run type-check`, `npm run build`) si lanciano dentro `nextgen/`. Gran parte del suo codice è una **copia controllata di `src/`**, quindi una modifica qui ha un seguito là:
+  - dopo aver cambiato un file di `src/lib` o un componente client copiato, esegui `npm run port:lib` in `nextgen/` e committa le copie: senza, il job `nextgen` della CI fallisce (`lib-parity.test.ts`). Le copie in `nextgen/` non si modificano mai a mano;
+  - dopo aver cambiato un gestore in `src/app/api` (schema, tabelle, RPC, messaggi), riporta la modifica nel gestore Hono corrispondente in `nextgen/apps/api/src/routes`: lo controllano `route-parity.test.ts` e `handler-drift.test.ts`;
+  - un nuovo modulo in `src/lib` va classificato in `nextgen/scripts/port-manifest.mjs`.
+  Dettagli in `nextgen/README.md`; decisioni in ADR-09; passaggio in produzione in `docs/nextgen-cutover.md`.
 
 ---
 
@@ -159,12 +163,12 @@ npm run test:rls       # test SQL delle policy, su Supabase locale
 - Gli errori inattesi passano da `withErrorHandler`/`withRoute` → `captureError` (`src/lib/monitoring.ts`): log + Sentry con tag `route` e `request_id`. La risposta porta l'header `x-request-id`
 - Le route pubbliche (es. `/api/posts/[slug]`) sono l'unica eccezione al requisito di auth
 - Il blog pubblico (`src/app/(public)/blog`, `sitemap.ts`, `robots.ts`) legge solo con `createPublicClient()` (`src/lib/supabase/public.ts`, anon key senza sessione) tramite `src/lib/blog/public-posts.ts`: niente client cookie-based né chiamate auth, colonne elencate esplicitamente
-- Il middleware risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `src/middleware.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`). Il middleware sta in `src/middleware.ts`: con `src/app` Next.js ignora un `middleware.ts` in radice (lo controlla `src/middleware-location.test.ts`)
+- Il proxy (ex middleware: da Next.js 16 la convenzione si chiama `proxy` e `middleware.ts` è deprecato) risponde 401 JSON alle API senza sessione e rifiuta le scritture su `/api/*` con `Origin` di un altro sito: per una nuova route chiamata server-to-server (cron, webhook) aggiungila a `CRON_ROUTES` in `src/proxy.ts` e verifica un segreto nella route (per i cron `isAuthorizedCronRequest`). Il proxy sta in `src/proxy.ts` ed esporta `proxy`: con `src/app` Next.js ignora un `proxy.ts` in radice, e non si torna a `middleware.ts` (lo controlla `src/proxy-location.test.ts`)
 - Le nuove route autenticate usano `withRoute` (`src/lib/api/with-route.ts`): auth, Zod su params/query/body, errori standard e `Cache-Control: private, no-store`
 - Le route sotto `/api/trips/**` usano tutte `withRoute` e quelle sotto `/api/trips/[id]/**` dichiarano `tripMember: true`: lo verifica `src/app/api/trips/route-authz.test.ts`. `route-contract.test.ts` genera dagli schemi (`handler.route`) tre richieste per handler: valida, non valida (400), non membro (403). Se un input valido non si ricava dallo schema (`refine`, path costruiti dal server) aggiungi un esempio in `VALID_BODIES`
 - Le route costose (upload, export, AI) dichiarano `rateLimit: '<bucket>'` in `withRoute`; le route pubbliche chiamano `enforceRateLimit(bucket, ipSubject(request))`. Bucket e soglie in `RATE_LIMITS` (`src/lib/rate-limit.ts`); oltre soglia 429 con `Retry-After`
 - I redirect verso URL presi da query string o input passano da `safeRedirectPath()` (`src/lib/redirect.ts`)
-- Header di sicurezza statici solo in `next.config.ts`; la CSP la costruisce `src/lib/csp.ts` con un nonce per richiesta nel middleware. Un nuovo host chiamato dal browser va aggiunto lì (`connect-src`, `img-src`…), mai `unsafe-eval` né `unsafe-inline` negli script; niente `<script>` inline senza nonce (`(await headers()).get('x-nonce')`)
+- Header di sicurezza statici solo in `next.config.ts`; la CSP la costruisce `src/lib/csp.ts` con un nonce per richiesta nel proxy (`src/proxy.ts`). Un nuovo host chiamato dal browser va aggiunto lì (`connect-src`, `img-src`…), mai `unsafe-eval` né `unsafe-inline` negli script; niente `<script>` inline senza nonce (`(await headers()).get('x-nonce')`)
 - Ogni `fetch` lato server verso un servizio esterno passa da `safeFetch()` (`src/lib/safe-fetch.ts`) con un'allowlist di host in `EXTERNAL_HOSTS`
 
 ---

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createAdminClient } from '../../lib/supabase/server';
-import { requireParam } from '../../lib/http';
+import { requireParam, readJsonObject } from '../../lib/http';
 import { requireUser } from '../../middleware/auth';
 import { loadProfile } from '../../middleware/profile';
 import { requireAdmin } from '../../middleware/admin';
@@ -17,7 +17,7 @@ const PatchSchema = z.object({
 adminTripsRouter.patch('/:id', requireUser, loadProfile, requireAdmin, async (c) => {
     const id = requireParam(c, 'id');
 
-    const body: unknown = await c.req.json();
+    const body: unknown = await readJsonObject(c);
     const parsed = PatchSchema.safeParse(body);
     if (!parsed.success) {
         return c.json({ error: 'Parametri non validi.', code: 'VALIDATION_ERROR', status: 400 }, 400);
@@ -32,7 +32,8 @@ adminTripsRouter.patch('/:id', requireUser, loadProfile, requireAdmin, async (c)
         .single();
 
     if (error) {
-        return c.json({ error: error.message, code: 'DB_ERROR', status: 500 }, 500);
+        // The database message goes to the log (app error handler), never to the client.
+        throw new Error(`[motonui][admin/trips][PATCH] ${error.message}`);
     }
 
     return c.json(data);

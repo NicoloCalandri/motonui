@@ -16,7 +16,7 @@ flowchart LR
     end
 
     subgraph Vercel["Vercel · fra1"]
-        MW["src/middleware.ts<br/>sessione · sospensione · admin · impersonazione"]
+        MW["src/proxy.ts<br/>sessione · sospensione · admin · impersonazione"]
         RSC["Server Components<br/>(app)/(admin)/(public)"]
         API["Route handler /api/**<br/>50 route"]
         CRON["Vercel Cron<br/>send-reminders 08:00"]
@@ -63,7 +63,7 @@ Punti chiave che la mappa rende visibili:
 
 | Livello | Dove | Stato |
 |---|---|---|
-| Routing e protezione | `src/middleware.ts`, `src/lib/supabase/middleware.ts` | Refresh sessione, redirect login, blocco sospesi, gate `/admin`, sola lettura in impersonazione. Reindirizza anche le API (vedi SR-AUTH-05). |
+| Routing e protezione | `src/proxy.ts`, `src/lib/supabase/middleware.ts` | Refresh sessione, redirect login, blocco sospesi, gate `/admin`, sola lettura in impersonazione. Reindirizza anche le API (vedi SR-AUTH-05). |
 | Pagine | `src/app/(app)`, `(admin)`, `(public)`, `auth/` | 16 pagine. Il blog pubblico sta in `(public)/blog` con un layout server proprio e legge con il client anonimo `createPublicClient()` (T-5.1). |
 | API | `src/app/api/**` | 50 route: `trips/**` (30), `admin/**` (12), `ai/*` (3), `profile/*` (3), `posts/[slug]`, `expenses/[id]`, `instagram/generate`. |
 | Dominio | `src/lib/*.ts` | `expenses.ts` (conversione e split), `trips.ts` (statistiche), `authz.ts`, `sanitize.ts`, `storage.ts`, `errors.ts`, `premium/access.ts`, `reminders.ts`, `weather.ts`, `email.ts`. |
@@ -213,3 +213,14 @@ flowchart LR
 **ADR-07 — Impersonazione: sola visualizzazione via API admin.** Oggi il token non cambia identità (gli header vengono impostati sulla risposta e nessuno li legge). Invece di completare un'impersonazione "vera", che richiederebbe di emettere sessioni per conto dell'utente, si mantiene una vista admin in sola lettura (`/api/admin/trips/[id]`) e il cookie serve solo per banner e blocco scritture, con revoca verificata tramite `jti`.
 
 **ADR-08 — Deploy: migration prima del codice, dopo CI verde.** Il workflow di produzione dipende dalla CI, applica le migration (retrocompatibili) e poi pubblica il codice. Supabase CLI e azioni sono fissati a versione/SHA.
+
+**ADR-09 — Migrazione a Vite SPA + API Hono (`nextgen/`). Stato: proposto (2026-10-10).** Il proprietario ha scelto di riprendere la migrazione avviata a settembre: una SPA Vite con TanStack Query (`nextgen/apps/web`) e un'API Hono (`nextgen/apps/api`) sostituiranno l'app Next.js. Questo ADR **sostituirà ADR-05** (Server Components + SWR) solo al passaggio in produzione: fino ad allora `src/` resta l'app di produzione, ADR-01–08 e le regole di `CLAUDE.md` restano in vigore, e ogni invariante di sicurezza dell'API Next.js deve avere il suo equivalente in Hono prima del passaggio. Gli equivalenti già presenti: guardia centrale su `/api/trips/:id/**` (al posto di `tripMember: true`), origini consentite e rifiuto delle scritture da altri siti, limiti di frequenza su Postgres, segreto dei cron, log strutturati con `request_id`, elenco degli host esterni. Un test (`nextgen/apps/api/src/routes/route-parity.test.ts`) fallisce se le due API si allontanano. Percorso e stato in `docs/superpowers/plans/2026-10-10-nextgen-realignment-roadmap.md`. **Decisioni prese il 2026-10-14**, su mandato del proprietario di scegliere la soluzione migliore:
+
+- **Hosting: un solo processo Node in un container** (`nextgen/Dockerfile`), che serve l'API e l'app web compilata dalla stessa origine. Non funzioni serverless: l'export Instagram e i cron proseguono nel processo dopo la risposta (`lib/background.ts`, `scheduler.ts`). La stessa origine è un requisito, non una comodità: da essa dipendono il token aggiunto alle chiamate `fetch('/api/…')` e il cookie di sessione.
+- **Sessione: token bearer, più un cookie di sola lettura.** Il browser tiene la sessione Supabase e la manda all'API come `Authorization: Bearer`. Per i file privati mostrati con `<img>` o link, che non possono mandare un header, l'API accetta anche il cookie `motonui_session` (httpOnly, `SameSite=Strict`, `Path=/api`), copia del token, valido solo su `GET` e `HEAD` e rilasciato solo a chi presenta il token. Le scritture richiedono sempre il token: una richiesta falsificata da un altro sito non può modificare nulla.
+- **Componenti copiati, non riscritti.** I componenti client e i moduli di libreria di `src/` vengono copiati in `nextgen/` da uno strumento che riscrive solo gli import, e confrontati con l'originale a ogni esecuzione dei test. La copia non si modifica: un difetto si corregge in `src/` e si ricopia. Costo: SWR accanto a TanStack Query nell'app web, finché `src/` esiste.
+- **Blog pubblico generato nel browser.** Stesse query e stessa sanificazione del server, ma titolo, descrizione, `sitemap.xml`, `robots.txt` e immagini Open Graph non sono nella prima risposta. È una perdita di SEO accettata per ora; il rimedio è un pre-rendering delle due pagine del blog.
+- **`src/` non è congelato.** Resta l'app di produzione e continua a ricevere correzioni; i test di parità di `nextgen/` falliscono finché la modifica non è riportata (`npm run port:lib`, o il gestore Hono corrispondente).
+- **Struttura del repository dopo il passaggio:** `nextgen/` resta dov'è; `src/` e la configurazione Next.js si rimuovono solo dopo una o due settimane di produzione stabile. Passi in `docs/nextgen-cutover.md`.
+
+Stato al 2026-10-14: API e app web complete e verificate dai test, dal build e da un avvio reale del container; **il passaggio in produzione non è stato eseguito** e richiede le operazioni manuali di `docs/nextgen-cutover.md`. L'ADR resta "proposto" fino ad allora.

@@ -1,11 +1,20 @@
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
-import { cors } from 'hono/cors';
 import { handleImpersonation } from './middleware/impersonation';
+import { corsPolicy, noStore, rejectCrossSiteWrites } from './middleware/origin';
+import { rateLimit, rateLimitByIp } from './middleware/rate-limit';
+import { handleAppError, handleNotFound, requestContext } from './middleware/request-context';
+import { requireUser } from './middleware/auth';
+import { tripGuard } from './middleware/trip-guard';
 import { tripsRouter } from './routes/trips';
 import { profileRouter } from './routes/profile';
+import { accountRouter } from './routes/account';
+import { sessionRouter } from './routes/session';
+import { invitesRouter } from './routes/invites';
+import { tripsInvitesRouter } from './routes/trips-invites';
 import { tripsDaysRouter } from './routes/trips-days';
 import { tripsLegsRouter, tripsDayLegsRouter } from './routes/trips-legs';
+import { tripsBoardingPassRouter } from './routes/trips-boarding-pass';
 import { tripsAccommodationsRouter, tripsDayAccommodationsRouter } from './routes/trips-accommodations';
 import { tripsRestaurantsRouter } from './routes/trips-restaurants';
 import { tripsActivitiesRouter } from './routes/trips-activities';
@@ -18,7 +27,8 @@ import { tripsBaggageRouter } from './routes/trips-baggage';
 import { tripsPackingRouter } from './routes/trips-packing';
 import { tripsStatsRouter } from './routes/trips-stats';
 import { aiRouter } from './routes/ai';
-import { instagramRouter } from './routes/instagram';
+import { tripsInstagramRouter } from './routes/trips-instagram';
+import { sentryTestRouter } from './routes/admin/sentry-test';
 import { postsRouter } from './routes/posts';
 import { cleanupRouter } from './routes/admin/cleanup';
 import { sendRemindersRouter } from './routes/admin/send-reminders';
@@ -28,11 +38,18 @@ import { featuresRouter } from './routes/admin/features';
 import { usersRouter as adminUsersRouter } from './routes/admin/users';
 import { adminTripsRouter } from './routes/admin/trips';
 import { impersonateExitRouter } from './routes/admin/impersonate';
-import { env } from './lib/env';
+import { webApp } from './web-app';
 import type { AppEnv } from './types';
 
-export function createApp() {
+export function createApp(options: { webDist?: string } = {}) {
     const app = new Hono<AppEnv>();
+    // Folder of the built web app; unset in development, where Vite serves it.
+    const webDist = 'webDist' in options ? options.webDist : process.env.WEB_DIST;
+
+    // First, so every log line and every response (errors included) carries the request id.
+    app.use('*', requestContext);
+    app.onError(handleAppError);
+    app.notFound(handleNotFound);
 
     // Direct port of the securityHeaders list in next.config.ts.
     app.use(
@@ -45,30 +62,44 @@ export function createApp() {
         })
     );
 
-    // Same-origin deploy is the target (see plan §Hosting); CORS is only
-    // relevant for local dev where apps/web runs on a different Vite port.
-    app.use(
-        '/api/*',
-        cors({
-            origin: env.NODE_ENV === 'development' ? 'http://localhost:5173' : (origin) => origin,
-            credentials: true,
-        })
-    );
+    // Only the web app's origins (WEB_ORIGIN) may read responses or send writes.
+    app.use('/api/*', corsPolicy);
+    app.use('/api/*', rejectCrossSiteWrites);
+    app.use('/api/*', noStore);
 
     app.use('/api/*', handleImpersonation);
 
     app.get('/api/health', (c) => c.json({ ok: true }));
 
     // ── Trips + nested resources ────────────────────────────────────────────
+    // Membership is checked here for everything under a trip, before any router.
+    app.use('/api/trips/:id', ...tripGuard);
+    app.use('/api/trips/:id/*', ...tripGuard);
+
+    // Abuse limits (lib/rate-limit.ts), declared here like the trip guard so a
+    // router cannot forget them. Buckets mirror the Next.js routes.
+    app.use('/api/trips/:id/media/uploads', rateLimit('mediaUpload'));
+    app.use('/api/trips/:id/media/confirm', rateLimit('mediaUpload'));
+    app.use('/api/trips/:id/documents', rateLimit('fileUpload'));
+    app.use('/api/trips/:id/days/:dayId/legs/:legId/boarding-pass', rateLimit('fileUpload'));
+    app.use('/api/trips/:id/packing', rateLimit('ai'));
+    app.use('/api/trips/:id/instagram/exports', rateLimit('instagramExport'));
+    app.use('/api/profile/avatar', requireUser, rateLimit('fileUpload'));
+    app.use('/api/ai/*', requireUser, rateLimit('ai'));
+    app.use('/api/posts/:slug', rateLimitByIp('publicPost'));
+
     app.route('/api/trips', tripsRouter);
     app.route('/api/trips/:id/days', tripsDaysRouter);
     app.route('/api/trips/:id/legs', tripsLegsRouter);
     app.route('/api/trips/:id/days/:dayId/legs', tripsDayLegsRouter);
+    app.route('/api/trips/:id/days/:dayId/legs', tripsBoardingPassRouter);
     app.route('/api/trips/:id/accommodations', tripsAccommodationsRouter);
     app.route('/api/trips/:id/days/:dayId/accommodations', tripsDayAccommodationsRouter);
     app.route('/api/trips/:id/restaurants', tripsRestaurantsRouter);
     app.route('/api/trips/:id/activities', tripsActivitiesRouter);
     app.route('/api/trips/:id/documents', tripsDocumentsRouter);
+    app.route('/api/trips/:id/invites', tripsInvitesRouter);
+    app.route('/api/trips/:id/instagram', tripsInstagramRouter);
     app.route('/api/trips/:id/expenses', tripsExpensesRouter);
     app.route('/api/trips/:id/media', tripsMediaRouter);
     app.route('/api/trips/:id/posts', tripsPostsRouter);
@@ -79,19 +110,25 @@ export function createApp() {
     // ── Top-level resources ─────────────────────────────────────────────────
     app.route('/api/expenses', expensesRouter);
     app.route('/api/profile', profileRouter);
+    app.route('/api/account', accountRouter);
+    app.route('/api/session', sessionRouter);
+    app.route('/api/invites', invitesRouter);
     app.route('/api/posts', postsRouter);
     app.route('/api/ai', aiRouter);
-    app.route('/api/instagram', instagramRouter);
 
     // ── Admin ────────────────────────────────────────────────────────────────
     app.route('/api/admin/cleanup', cleanupRouter);
     app.route('/api/admin/send-reminders', sendRemindersRouter);
     app.route('/api/admin/stats', adminStatsRouter);
+    app.route('/api/admin/sentry-test', sentryTestRouter);
     app.route('/api/admin/audit-log', auditLogRouter);
     app.route('/api/admin/features', featuresRouter);
     app.route('/api/admin/users', adminUsersRouter);
     app.route('/api/admin/trips', adminTripsRouter);
     app.route('/api/admin/impersonate', impersonateExitRouter);
+
+    // Last: everything that is not the API is the web app, when its build is here.
+    if (webDist) app.on(['GET', 'HEAD'], '*', webApp(webDist));
 
     return app;
 }

@@ -1,9 +1,16 @@
+import type { Sharp } from 'sharp';
 import type { ResponsiveImageSet, TextOverlayOptions, ImageFilter, AspectRatio } from '@motonui/shared-types';
-import sharp from 'sharp';
+
+// ─── Sharp lazy import ────────────────────────────────────────────────────────
+// ─── Sharp lazy import ────────────────────────────────────────────────────────
+async function getSharp() {
+    const sharpModule = await import('sharp');
+    return sharpModule.default || sharpModule;
+}
 
 // ─── Filter Definitions ────────────────────────────────────────────────────────
 
-const FILTER_PIPELINES: Record<ImageFilter, (img: any) => any> = {
+const FILTER_PIPELINES: Record<ImageFilter, (img: Sharp) => Sharp> = {
     none: (img) => img,
     warm: (img) =>
         img.modulate({ brightness: 1.05, saturation: 1.1 }).tint({ r: 255, g: 230, b: 190 }),
@@ -28,6 +35,7 @@ const FILTER_PIPELINES: Record<ImageFilter, (img: any) => any> = {
  * @param filter - Filter type to apply
  */
 export async function applyFilter(buffer: Buffer, filter: ImageFilter): Promise<Buffer> {
+    const sharp = await getSharp();
     const img = sharp(buffer).rotate();
     const pipeline = FILTER_PIPELINES[filter] ?? FILTER_PIPELINES.none;
     return (pipeline(img) as ReturnType<typeof sharp>).jpeg({ quality: 92 }).toBuffer() as Promise<Buffer>;
@@ -40,6 +48,8 @@ export async function applyFilter(buffer: Buffer, filter: ImageFilter): Promise<
  * @param ratio - Target aspect ratio
  */
 export async function cropToAspect(buffer: Buffer, ratio: AspectRatio): Promise<Buffer> {
+    const sharp = await getSharp();
+
     const RATIO_MAP: Record<AspectRatio, { width: number; height: number }> = {
         '1:1': { width: 1080, height: 1080 },
         '4:5': { width: 1080, height: 1350 },
@@ -64,10 +74,17 @@ export async function cropToAspect(buffer: Buffer, ratio: AspectRatio): Promise<
  * @param options - Text, position, font, color
  */
 export async function overlayText(buffer: Buffer, options: TextOverlayOptions): Promise<Buffer> {
+    const sharp = await getSharp();
+
     const img = sharp(buffer).rotate();
     const { width = 1080, height = 1080 } = await img.metadata();
 
-    const { text, position, fontSize = 36, color = '#FFFFFF', backgroundColor } = options;
+    // Everything below lands in an SVG rendered by librsvg: only hex colors and
+    // a bounded integer size, whatever the caller validated (T-2.7).
+    const { text, position } = options;
+    const fontSize = Math.min(120, Math.max(12, Math.round(Number(options.fontSize) || 36)));
+    const color = safeHexColor(options.color) ?? '#FFFFFF';
+    const backgroundColor = safeHexColor(options.backgroundColor);
     const padding = 24;
 
     const bgRect = backgroundColor
@@ -84,7 +101,7 @@ export async function overlayText(buffer: Buffer, options: TextOverlayOptions): 
         x="${position.includes('right') ? width - padding : padding}"
         y="${position.includes('top') ? fontSize + padding : height - padding}"
         text-anchor="${position.includes('right') ? 'end' : 'start'}"
-      >${escapeXml(text)}</text>
+      >${escapeXml(String(text).slice(0, 120))}</text>
     </svg>`;
 
     return img
@@ -98,6 +115,8 @@ export async function overlayText(buffer: Buffer, options: TextOverlayOptions): 
  * Returns sm (640px), md (1080px), lg (1920px), and a LQIP placeholder.
  */
 export async function generateResponsiveSizes(buffer: Buffer): Promise<ResponsiveImageSet> {
+    const sharp = await getSharp();
+
     const [sm, md, lg, placeholder] = await Promise.all([
         sharp(buffer).rotate().resize(640).webp({ quality: 80 }).toBuffer(),
         sharp(buffer).rotate().resize(1080).webp({ quality: 85 }).toBuffer(),
@@ -121,5 +140,13 @@ function escapeXml(str: string) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/** The color if it is a #RRGGBB hex value, otherwise undefined. */
+export function safeHexColor(value: unknown): string | undefined {
+    return typeof value === 'string' && HEX_COLOR.test(value) ? value : undefined;
 }

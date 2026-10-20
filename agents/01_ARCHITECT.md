@@ -75,7 +75,7 @@ Generate:
 - `src/lib/supabase/client.ts` — browser Supabase client
 - `src/lib/supabase/server.ts` — server Supabase client
 - `src/lib/supabase/middleware.ts` — auth middleware
-- `middleware.ts` — route protection
+- `src/proxy.ts` — route protection (Next.js 16 `proxy` convention, ex `middleware`)
 
 ### 5. Document Architecture Decisions
 

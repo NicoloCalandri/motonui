@@ -17,4 +17,11 @@ export default defineConfig({
     build: {
         outDir: 'dist',
     },
+    test: {
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: ['./src/vitest.setup.ts'],
+        // Pages render whole trees (Tiptap, charts, axe): 5 seconds is not enough on a busy machine.
+        testTimeout: 30_000,
+    },
 });

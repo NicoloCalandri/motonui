@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { env } from './lib/env';
 import { runSendReminders } from './lib/cron/send-reminders';
 import { runCleanup } from './lib/cron/cleanup';
+import { captureError } from './lib/monitoring';
 
 /**
  * In-process replacement for Vercel Cron (vercel.json's `crons` entry).
@@ -14,7 +15,7 @@ export function startScheduler() {
     cron.schedule(
         '0 8 * * *',
         () => {
-            runSendReminders().catch((err) => console.error('[motonui][cron] send-reminders failed', err));
+            runSendReminders().catch((err: unknown) => captureError(err, { route: 'cron:send-reminders' }));
         },
         { timezone: 'Europe/Rome' }
     );
@@ -22,7 +23,7 @@ export function startScheduler() {
     cron.schedule(
         '0 3 * * *',
         () => {
-            runCleanup().catch((err) => console.error('[motonui][cron] cleanup failed', err));
+            runCleanup().catch((err: unknown) => captureError(err, { route: 'cron:cleanup' }));
         },
         { timezone: 'Europe/Rome' }
     );

@@ -46,7 +46,7 @@ motonui/
 │   │   └── (public)/     # Blog pubblico
 │   ├── components/       # Componenti UI
 │   ├── lib/              # Logica di dominio, client Supabase, AI, media, tipi
-│   └── middleware.ts     # Sessione, CSP con nonce, controllo Origin
+│   └── proxy.ts          # Sessione, CSP con nonce, controllo Origin
 ├── supabase/             # Migration, seed e test SQL
 ├── mobile/               # App Expo
 ├── nextgen/              # Prototipo Vite + Hono (fuori dalla CI)

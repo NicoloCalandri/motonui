@@ -5,6 +5,8 @@ import { requireUser } from '../../middleware/auth';
 import { loadProfile } from '../../middleware/profile';
 import { requireAdmin } from '../../middleware/admin';
 import type { AppEnv } from '../../types';
+import { readJsonObject } from '../../lib/http';
+import { Errors } from '../../lib/errors';
 
 export const featuresRouter = new Hono<AppEnv>();
 
@@ -26,7 +28,7 @@ featuresRouter.get('/', requireUser, loadProfile, requireAdmin, async (c) => {
         .order('feature_key', { ascending: true });
 
     if (error) {
-        return c.json({ error: 'Errore nel recupero feature controls.' }, 500);
+        throw new Error(`[motonui][admin/features][GET] ${error.message}`);
     }
 
     return c.json({
@@ -46,10 +48,10 @@ featuresRouter.get('/', requireUser, loadProfile, requireAdmin, async (c) => {
 featuresRouter.put('/', requireUser, loadProfile, requireAdmin, async (c) => {
     const adminId = c.get('adminId');
 
-    const body: unknown = await c.req.json();
+    const body: unknown = await readJsonObject(c);
     const parsed = UpdateSchema.safeParse(body);
     if (!parsed.success) {
-        return c.json({ error: 'Payload non valido.' }, 400);
+        throw Errors.validation('payload non valido');
     }
 
     const supabase = createAdminClient();
@@ -69,7 +71,7 @@ featuresRouter.put('/', requireUser, loadProfile, requireAdmin, async (c) => {
         .eq('feature_key', payload.featureKey);
 
     if (error) {
-        return c.json({ error: 'Errore durante aggiornamento feature control.' }, 500);
+        throw new Error(`[motonui][admin/features][PUT] ${error.message}`);
     }
 
     await (supabase as any).from('admin_audit_log').insert({

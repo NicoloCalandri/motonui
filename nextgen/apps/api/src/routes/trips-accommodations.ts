@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { convertCurrency } from '../lib/expenses';
@@ -52,7 +52,7 @@ tripsDayAccommodationsRouter.post(
         const id = requireParam(c, 'id');
         const dayId = requireParam(c, 'dayId');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateDayAccommodationSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -69,7 +69,7 @@ tripsDayAccommodationsRouter.post(
         if (error) throw new Error(`[motonui][accommodations][POST] ${error.message}`);
 
         if (parsed.data.cost && parsed.data.cost > 0) {
-            const amount_eur = await convertCurrency(parsed.data.cost, parsed.data.currency, 'EUR');
+            const amount_eur = await convertCurrency(parsed.data.cost, parsed.data.currency, 'EUR', { supabase });
             const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
 
             await supabase.from('expenses').insert({
@@ -113,7 +113,7 @@ tripsDayAccommodationsRouter.put(
         const dayId = requireParam(c, 'dayId');
         const accId = requireParam(c, 'accId');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdateDayAccommodationSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -130,7 +130,9 @@ tripsDayAccommodationsRouter.put(
 
         const expDesc = `Alloggio: ${acc.name}`;
         if (acc.cost && acc.cost > 0) {
-            const amount_eur = await convertCurrency(acc.cost, acc.currency, 'EUR');
+            // legs/accommodations.currency is nullable, expenses.currency is not.
+            const currency = acc.currency ?? 'EUR';
+            const amount_eur = await convertCurrency(acc.cost, currency, 'EUR', { supabase });
             const { data: existing } = await supabase
                 .from('expenses')
                 .select('id')
@@ -141,7 +143,7 @@ tripsDayAccommodationsRouter.put(
             if (existing) {
                 await supabase
                     .from('expenses')
-                    .update({ description: expDesc, amount: acc.cost, currency: acc.currency, amount_eur, category: 'accommodation' })
+                    .update({ description: expDesc, amount: acc.cost, currency, amount_eur, category: 'accommodation' })
                     .eq('id', existing.id);
             } else {
                 const { data: day } = await supabase.from('days').select('date').eq('id', dayId).single();
@@ -150,7 +152,7 @@ tripsDayAccommodationsRouter.put(
                     day_id: dayId,
                     description: expDesc,
                     amount: acc.cost,
-                    currency: acc.currency,
+                    currency,
                     amount_eur,
                     category: 'accommodation',
                     paid_by: user.id,
@@ -253,7 +255,7 @@ tripsAccommodationsRouter.post(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = TopLevelCreateAccommodationSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -275,7 +277,7 @@ tripsAccommodationsRouter.post(
         if (error) throw new Error(`[motonui][accommodations][POST] ${error.message}`);
 
         if (data.cost && data.cost > 0) {
-            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR');
+            const amount_eur = await convertCurrency(data.cost, data.currency, 'EUR', { supabase });
             await supabase.from('expenses').insert({
                 trip_id: id,
                 description: `Alloggio: ${data.name}`,
@@ -330,7 +332,7 @@ tripsAccommodationsRouter.put(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = TopLevelUpdateAccommodationSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
