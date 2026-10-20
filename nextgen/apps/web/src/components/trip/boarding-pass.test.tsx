@@ -37,7 +37,8 @@ beforeEach(() => {
     fetchMock.mockReset();
     createObjectURL.mockClear();
     revokeObjectURL.mockClear();
-    fetchMock.mockResolvedValue(new Response(new Blob(['png']), { status: 200, headers: { 'content-type': 'image/png' } }));
+    // Bytes, not a jsdom Blob: Node 22's Response cannot read the body of jsdom's Blob.
+    fetchMock.mockResolvedValue(new Response(new TextEncoder().encode('png'), { status: 200, headers: { 'content-type': 'image/png' } }));
     vi.stubGlobal('fetch', fetchMock);
     URL.createObjectURL = createObjectURL;
     URL.revokeObjectURL = revokeObjectURL;
