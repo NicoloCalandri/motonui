@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember, requireDayInTrip, requireTripPayer } from '../lib/authz';
 import { getTripExpenseSummary, convertCurrency, splitExpenses } from '../lib/expenses';
@@ -78,7 +78,7 @@ tripsExpensesRouter.get(
             .eq('trip_id', id);
 
         const memberIds = (members ?? []).map((m: { user_id: string }) => m.user_id);
-        const summary = await getTripExpenseSummary(id);
+        const summary = await getTripExpenseSummary(id, { supabase });
         const split = splitExpenses(expenses as Expense[], memberIds);
 
         return ok(c, { expenses, summary, split });
@@ -96,7 +96,7 @@ tripsExpensesRouter.post(
         const id = requireParam(c, 'id');
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateExpenseSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -105,7 +105,7 @@ tripsExpensesRouter.post(
         await requireDayInTrip(supabase, id, input.day_id);
         await requireTripPayer(supabase, id, payerId);
 
-        const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR');
+        const amount_eur = await convertCurrency(input.amount, input.currency, 'EUR', { supabase });
 
         const { data: expense, error } = await supabase
             .from('expenses')

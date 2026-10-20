@@ -1,8 +1,8 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { Errors } from './errors';
+import type { Database } from '@motonui/shared-types';
 
-interface SupabaseLike {
-  from: (table: string) => any;
-}
+export type SupabaseLike = Pick<SupabaseClient<Database>, 'from'>;
 
 /**
  * Confirms that the current user belongs to the requested trip.

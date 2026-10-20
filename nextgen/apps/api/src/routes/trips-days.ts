@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { requireUser } from '../middleware/auth';
@@ -60,7 +60,7 @@ tripsDaysRouter.post(
         await getAuthUser(supabase);
         const id = requireParam(c, 'id');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreateDaySchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -89,7 +89,7 @@ tripsDaysRouter.put(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = UpdateDaySchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

@@ -1,0 +1,255 @@
+import { useState, useEffect, type BaseSyntheticEvent } from 'react';
+import { useDialogA11y } from '../ui/use-dialog-a11y';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { X, Loader2 } from 'lucide-react';
+import type { Accommodation } from '@motonui/shared-types';
+import { useAuth } from '../../lib/auth-context';
+import { dayItemPath, emptyToNull } from '../../lib/form-payload';
+import { apiFetch } from '../../lib/api-client';
+import CurrencyCostField from './CurrencyCostField';
+
+const Schema = z.object({
+    name: z.string().min(1, 'Nome struttura richiesto').max(200),
+    address: z.string().optional(),
+    check_in: z.string().optional(),
+    check_out: z.string().optional(),
+    cost: z.coerce.number().optional().nullable(),
+    currency: z.string().default('EUR'),
+    booking_ref: z.string().optional().nullable(),
+    payment_deadline: z.string().optional().nullable(),
+    cancellation_deadline: z.string().optional().nullable(),
+});
+
+type FormValues = z.infer<typeof Schema>;
+
+interface AccommodationDrawerProps {
+    tripId: string;
+    dayId?: string | null;
+    open: boolean;
+    onClose: () => void;
+    onSaved: () => void;
+    dayDate?: string;
+    initialData?: Accommodation;
+    tripStartDate?: string | null;
+    tripEndDate?: string | null;
+}
+
+/**
+ * Add/edit-accommodation drawer. Ported from
+ * src/components/trip/AccommodationDrawer.tsx.
+ *
+ * Touchpoint changes from the old component:
+ * - No `'use client'` directive.
+ * - `Accommodation` type from `@motonui/shared-types` instead of `@/lib/types`.
+ * - Raw `fetch(...)` + manual `res.ok` check -> `apiFetch(..., token)` with
+ *   the auth token from `useAuth()`. The old component already wrapped its
+ *   save in `try`/`catch`/`finally`, so this touchpoint carries no stuck-
+ *   loading-state risk.
+ * - The currency-select + cost-input block is shared with LegDrawer via the
+ *   new `CurrencyCostField` component (not a 1:1 port — see that file).
+ */
+export default function AccommodationDrawer({ tripId, dayId, open, onClose, onSaved, dayDate, initialData, tripStartDate, tripEndDate }: AccommodationDrawerProps) {
+    const { session } = useAuth();
+    const token = session?.access_token;
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const isEditing = !!initialData;
+
+    const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
+        resolver: zodResolver(Schema),
+        defaultValues: {
+            currency: 'EUR',
+            check_in: dayDate || undefined,
+            check_out: dayDate || undefined,
+        },
+    });
+
+    useEffect(() => {
+        if (open) {
+            if (initialData) {
+                reset({
+                    name: initialData.name,
+                    address: initialData.address ?? undefined,
+                    check_in: initialData.check_in ?? undefined,
+                    check_out: initialData.check_out ?? undefined,
+                    cost: initialData.cost ?? undefined,
+                    currency: initialData.currency,
+                    booking_ref: initialData.booking_ref ?? undefined,
+                    payment_deadline: initialData.payment_deadline ?? undefined,
+                    cancellation_deadline: initialData.cancellation_deadline ?? undefined,
+                });
+            } else {
+                reset({ currency: 'EUR', check_in: dayDate || undefined, check_out: dayDate || undefined });
+            }
+        }
+    }, [open, initialData, dayDate, reset]);
+
+    const onSubmit = async (values: FormValues, event?: BaseSyntheticEvent) => {
+        setSaving(true);
+        setError(null);
+
+        const nativeEvent = event?.nativeEvent as SubmitEvent | undefined;
+        const submitter = nativeEvent?.submitter as HTMLButtonElement | null;
+        const submitMode = submitter?.getAttribute('data-submit-mode') === 'add-another' ? 'add-another' : 'save';
+
+        try {
+            // Opened from a list without days (bookings): the accommodation's own day, or the day-less route.
+            const url = dayItemPath(tripId, 'accommodations', dayId ?? initialData?.day_id, initialData?.id);
+
+            await apiFetch(url, { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(emptyToNull(values)) }, token);
+
+            onSaved();
+
+            if (isEditing || submitMode === 'save') {
+                reset();
+                onClose();
+                return;
+            }
+
+            reset({ currency: values.currency || 'EUR', check_in: dayDate || undefined, check_out: dayDate || undefined });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Ops! Qualcosa è andato storto 🏝️');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const panelRef = useDialogA11y<HTMLDivElement>(open, onClose);
+
+    if (!open) return null;
+
+    return (
+        <div className="relative z-50">
+            <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+            <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+                <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
+                    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="accommodation-drawer-title" tabIndex={-1} className="pointer-events-auto w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[48px] shadow-2xl animate-slide-up sm:animate-fade-in flex flex-col relative max-h-[90vh]">
+                        <div className="p-6 sm:p-10 overflow-y-auto">
+                            <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8 sm:hidden" />
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 id="accommodation-drawer-title" className="text-3xl font-bold tracking-tight text-neutral-900">{isEditing ? 'Modifica alloggio' : 'Nuovo alloggio'}</h2>
+                                <button type="button" onClick={onClose} aria-label="Chiudi" className="p-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 rounded-full transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {error && (
+                                <div className="mb-8 p-5 bg-red-50 text-red-600 rounded-2xl text-sm font-bold tracking-wide">
+                                    {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                <div>
+                                    <label htmlFor="accommodation-name" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Struttura *</label>
+                                    <input
+                                        id="accommodation-name"
+                                        {...register('name')}
+                                        placeholder="es. Grand Hotel Plaza"
+                                        className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
+                                    />
+                                    {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+                                </div>
+                                <div>
+                                    <label htmlFor="accommodation-address" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo o Zona</label>
+                                    <input
+                                        id="accommodation-address"
+                                        {...register('address')}
+                                        placeholder="es. Via del Corso, 1"
+                                        className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold text-lg"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="accommodation-check-in" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Check-in (Data)</label>
+                                        <input
+                                            id="accommodation-check-in"
+                                            {...register('check_in')}
+                                            type="date"
+                                            min={tripStartDate || undefined}
+                                            max={tripEndDate || undefined}
+                                            className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="accommodation-check-out" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Check-out (Data)</label>
+                                        <input
+                                            id="accommodation-check-out"
+                                            {...register('check_out')}
+                                            type="date"
+                                            min={watch('check_in') || tripStartDate || undefined}
+                                            max={tripEndDate || undefined}
+                                            className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                        />
+                                    </div>
+                                </div>
+
+                                <CurrencyCostField
+                                    label="Costo stimato"
+                                    currencyProps={register('currency')}
+                                    costProps={register('cost')}
+                                />
+
+                                <div>
+                                    <label htmlFor="accommodation-booking-ref" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione (es. Booking.com)</label>
+                                    <input
+                                        id="accommodation-booking-ref"
+                                        {...register('booking_ref')}
+                                        placeholder="es. 4082.563.821"
+                                        className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="accommodation-payment-deadline" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Scadenza pagamento</label>
+                                        <input
+                                            id="accommodation-payment-deadline"
+                                            {...register('payment_deadline')}
+                                            type="date"
+                                            className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="accommodation-cancellation-deadline" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Cancellazione gratuita entro</label>
+                                        <input
+                                            id="accommodation-cancellation-deadline"
+                                            {...register('cancellation_deadline')}
+                                            type="date"
+                                            className="w-full px-5 py-4 rounded-2xl bg-neutral-50/80 border-none text-neutral-900 focus:ring-2 focus:ring-neutral-200 transition-all font-bold"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="submit"
+                                        data-submit-mode="save"
+                                        disabled={saving}
+                                        className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-900 hover:bg-black text-white rounded-[24px] font-bold text-lg transition-all duration-300 hover:shadow-panel active:scale-95 disabled:opacity-50"
+                                    >
+                                        {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : null}
+                                        {saving ? 'Salvataggio...' : isEditing ? 'Salva modifiche' : 'Aggiungi alloggio'}
+                                    </button>
+                                    {!isEditing && (
+                                        <button
+                                            type="submit"
+                                            data-submit-mode="add-another"
+                                            disabled={saving}
+                                            className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 rounded-[24px] font-bold text-lg transition-all duration-300 active:scale-95 disabled:opacity-50"
+                                        >
+                                            Salva e aggiungi un altro
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

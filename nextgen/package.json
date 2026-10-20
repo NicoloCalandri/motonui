@@ -11,6 +11,10 @@
     "build": "npm run build -w packages/shared-types && npm run build -w apps/api && npm run build -w apps/web",
     "test": "npm test -w apps/api && npm test -w apps/web",
     "lint": "npm run lint -w apps/web && npm run lint -w apps/api",
-    "type-check": "npm run type-check -w apps/web && npm run type-check -w apps/api"
+    "type-check": "npm run type-check -w apps/web && npm run type-check -w apps/api",
+    "port:lib": "node scripts/port-lib.mjs",
+    "port:check": "node scripts/port-lib.mjs --check",
+    "handlers:check": "node scripts/handler-drift.mjs",
+    "smoke": "node scripts/smoke-start.mjs"
   }
 }

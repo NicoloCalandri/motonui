@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, requireParam } from '../lib/http';
+import { withErrorHandler, ok, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { requireFeatureAccess } from '../lib/premium/access';
@@ -188,7 +188,7 @@ tripsPackingRouter.patch(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = ToggleSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

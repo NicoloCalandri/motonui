@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, created, requireParam } from '../lib/http';
+import { withErrorHandler, ok, created, requireParam, readJsonObject, issueSummary } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
-import { sanitizeTiptapDocument } from '../lib/sanitize';
+import { postContentSchema } from '../lib/blog/content-schema';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
@@ -15,7 +15,7 @@ export const tripsPostsRouter = new Hono<AppEnv>();
 const CreatePostSchema = z.object({
     title: z.string().min(1).max(300),
     slug: z.string().min(1).max(300).regex(/^[a-z0-9-]+$/),
-    content_json: z.record(z.unknown()).optional(),
+    content_json: postContentSchema.optional(),
     cover_image: z.string().url().optional(),
     status: z.enum(['draft', 'published']).default('draft'),
 });
@@ -24,7 +24,8 @@ const UpdatePostSchema = z.object({
     title: z.string().min(1).optional(),
     slug: z.string().min(1).optional(),
     status: z.enum(['draft', 'published']).optional(),
-    content_json: z.any().optional(),
+    // Sanitized on every save: the autosave of the editor goes through here.
+    content_json: postContentSchema.optional(),
     published_at: z.string().nullable().optional(),
     seo_title: z.string().max(60).nullable().optional(),
     seo_description: z.string().max(160).nullable().optional(),
@@ -64,17 +65,15 @@ tripsPostsRouter.post(
         const id = requireParam(c, 'id');
         await requireTripMember(supabase, id, user.id);
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = CreatePostSchema.safeParse(body);
-        if (!parsed.success) throw Errors.validation(parsed.error.message);
-
-        const contentJson = parsed.data.content_json ? sanitizeTiptapDocument(parsed.data.content_json) : null;
+        if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
 
         const { data: post, error } = await supabase
             .from('posts')
             .insert({
                 ...parsed.data,
-                content_json: contentJson,
+                content_json: parsed.data.content_json ?? null,
                 trip_id: id,
                 author_id: user.id,
                 published_at: parsed.data.status === 'published' ? new Date().toISOString() : null,
@@ -117,8 +116,15 @@ tripsPostsRouter.get(
     }, 'trips/:id/posts/:postId GET')
 );
 
-/** PUT /api/trips/:id/posts/:postId — update a blog post */
-tripsPostsRouter.put(
+/**
+ * PUT|PATCH /api/trips/:id/posts/:postId — update a blog post.
+ *
+ * PATCH is what the editor's autosave sends (components/blog/PostEditor.tsx).
+ * The Next.js route has no PATCH handler, so there the autosave is answered
+ * 405 and nothing is saved; here both methods run the same handler.
+ */
+tripsPostsRouter.on(
+    ['PUT', 'PATCH'],
     '/:postId',
     requireUser,
     loadProfile,
@@ -128,9 +134,9 @@ tripsPostsRouter.put(
         const id = requireParam(c, 'id');
         const postId = requireParam(c, 'postId');
 
-        const body: unknown = await c.req.json();
+        const body: unknown = await readJsonObject(c);
         const parsed = UpdatePostSchema.safeParse(body);
-        if (!parsed.success) throw Errors.validation(parsed.error.message);
+        if (!parsed.success) throw Errors.validation(issueSummary(parsed.error));
 
         const { data: post, error } = await supabase
             .from('posts')

@@ -1,22 +1,13 @@
 import { Hono } from 'hono';
 import { runCleanup } from '../../lib/cron/cleanup';
-import { env } from '../../lib/env';
+import { requireCronSecret } from '../../middleware/cron';
 import type { AppEnv } from '../../types';
 
 export const cleanupRouter = new Hono<AppEnv>();
 
 /**
- * POST /api/admin/cleanup — runs scheduled cleanup tasks.
- * Protected by a static secret header (not requireUser/requireAdmin);
- * intended to be called manually or as a fallback if the in-process
- * scheduler (src/scheduler.ts) is ever disabled.
+ * GET|POST /api/admin/cleanup — runs the scheduled cleanup tasks.
+ * Called by a scheduler (Vercel Cron sends GET) with the cron secret, not by
+ * a signed-in user: see middleware/cron.ts.
  */
-cleanupRouter.post('/', async (c) => {
-    const authHeader = c.req.header('x-admin-secret');
-    if (!env.ADMIN_CLEANUP_SECRET || authHeader !== env.ADMIN_CLEANUP_SECRET) {
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
-    const result = await runCleanup();
-    return c.json(result);
-});
+cleanupRouter.on(['GET', 'POST'], '/', requireCronSecret, async (c) => c.json(await runCleanup()));

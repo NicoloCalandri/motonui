@@ -3,6 +3,8 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Note on task shape:** Phases 1–3 below are already shipped (documented here for continuity). Phases 4–6 are a *port*, not greenfield development — the source behavior already exists and is verified in `src/`. Tasks therefore follow the same pattern the shipped phases used: read the Next.js source at the given path, port it verbatim except for the listed framework touchpoints, verify with type-check/tests/manual smoke, commit. This is intentionally not red/green TDD — there is no new behavior to specify, only a runtime to swap out from under existing, working behavior.
+>
+> **Status (2026-10-10): superseded from Task 4.9.3 onward.** `main` moved 164 commits after the API port, so "port verbatim, the API is done" no longer holds. The task order is now in `2026-10-10-nextgen-realignment-roadmap.md`; the tasks below remain as the record of what was done (4.1–4.9.2) and as input for its sub-plans C and D.
 
 **Goal:** Finish moving motonui off Next.js onto the `nextgen/` monorepo (Vite + React SPA in `apps/web`, Hono on `@hono/node-server` in `apps/api`) without ever breaking the production app, then decommission the Next.js app.
 
@@ -50,7 +52,7 @@ These carry over from `docs/CLAUDE.md` and apply to every task below:
 
 ## Phase 4 — Web SPA: Foundations
 
-### Task 4.1: API client + TanStack Query setup
+### Task 4.1: API client + TanStack Query setup ✅ DONE (commits bb7c0fd..9d33297)
 
 **Files:**
 - Create: `nextgen/apps/web/src/lib/api-client.ts`
@@ -61,7 +63,7 @@ These carry over from `docs/CLAUDE.md` and apply to every task below:
 - Produces: `apiFetch<T>(path: string, init?: RequestInit): Promise<T>` — throws a typed `ApiError { message, code, status }` matching `apps/api/src/lib/errors.ts`'s response shape on non-2xx.
 - Produces: `queryClient` singleton exported for use in `main.tsx` and tests.
 
-- [ ] **Step 1: Write the failing test for error-shape parsing**
+- [x] **Step 1: Write the failing test for error-shape parsing**
 
 ```typescript
 // nextgen/apps/web/src/lib/api-client.test.ts
@@ -100,12 +102,12 @@ describe('apiFetch', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd nextgen/apps/web && npm test -- api-client`
 Expected: FAIL — `api-client.ts` does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```typescript
 // nextgen/apps/web/src/lib/api-client.ts
@@ -152,19 +154,21 @@ export const queryClient = new QueryClient({
 // wrap <App /> in <QueryClientProvider client={queryClient}>
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd nextgen/apps/web && npm test -- api-client`
-Expected: PASS, 3/3.
+Expected: PASS, 3/3. (Landed as 5/5 after fix round 1 added case-insensitive-header and array-form-header coverage — see ledger.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add nextgen/apps/web/src/lib/api-client.ts nextgen/apps/web/src/lib/api-client.test.ts nextgen/apps/web/src/main.tsx
 git commit -m "feat(nextgen): add typed API client and TanStack Query provider"
 ```
 
-### Task 4.2: Supabase browser client + AuthProvider
+### Task 4.2: Supabase browser client + AuthProvider ✅ DONE (commits 0476f32..28387e0)
+
+**Post-completion amendment (from Task 4.3's fix round, commit 759d2ae):** `auth-context.tsx` was reopened and extended with a `profileLoading: boolean` field on `AuthValue` — `true` while the profile-fetch effect is in flight, `false` once it settles (success, error, or the `session === null` short-circuit). This exists because `isLoading` alone (session-loading only) let `RequireAdmin`/`RequireNotSuspended` (Task 4.3) evaluate `profile?.role`/`profile?.suspended_at` before the profile fetch had actually resolved. Any task reading `useAuth()`'s shape from this point on should treat it as `{ user, session, profile, isLoading, profileLoading, signOut }`, not the 5-field shape originally specified above.
 
 **Files:**
 - Create: `nextgen/apps/web/src/lib/supabase-client.ts`
@@ -177,7 +181,7 @@ git commit -m "feat(nextgen): add typed API client and TanStack Query provider"
 - Produces: `useAuth(): { user: User | null, session: Session | null, profile: Profile | null, isLoading: boolean, signOut: () => Promise<void> }`, consumed by every protected page and by the router guard in Task 4.3.
 - Produces: `<AuthProvider>` wrapping the app in `main.tsx`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // nextgen/apps/web/src/lib/auth-context.test.tsx
@@ -207,12 +211,12 @@ it('resolves the initial session on mount', async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd nextgen/apps/web && npm test -- auth-context`
 Expected: FAIL — module does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```typescript
 // nextgen/apps/web/src/lib/supabase-client.ts
@@ -279,12 +283,12 @@ export function useAuth(): AuthValue {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd nextgen/apps/web && npm test -- auth-context`
-Expected: PASS.
+Expected: PASS. (Landed as 6/6 after fix round 1 added getSession rejection handling + 5 more test cases — see ledger. Also required `vitest.setup.ts` + jsdom `test` config in `vite.config.ts`, not anticipated by this task's original file list but verified necessary by review.)
 
-- [ ] **Step 5: Add `.env.example` entries and commit**
+- [x] **Step 5: Add `.env.example` entries and commit**
 
 Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to `nextgen/apps/web/.env.example` (create the file), same values as the old `NEXT_PUBLIC_SUPABASE_*` vars.
 
@@ -293,7 +297,9 @@ git add nextgen/apps/web/src/lib/supabase-client.ts nextgen/apps/web/src/lib/aut
 git commit -m "feat(nextgen): add Supabase browser client and AuthProvider"
 ```
 
-### Task 4.3: Router shell + route guards (replaces `middleware.ts`)
+### Task 4.3: Router shell + route guards (replaces `middleware.ts`) ✅ DONE (commits d4c96ca..759d2ae)
+
+**Post-review amendment:** the code blocks below are the original Step 3 reference (what was drafted before implementation). The task review found this reference itself dropped two of the five "port exactly" behaviors (auth-page redirect-when-logged-in; suspension check on public routes) and had a profile-loading race in `RequireAdmin`/`RequireNotSuspended`. All three were fixed in commit 759d2ae. The **actual, correct** shape adds a fourth guard (`RedirectIfAuthenticated`), restructures the router so `RequireNotSuspended` wraps the public routes too, and gates `RequireAdmin`/`RequireNotSuspended` on `isLoading || profileLoading` (see Task 4.2's post-completion amendment above for `profileLoading`). Read the actual files (`nextgen/apps/web/src/components/RequireAuth.tsx`, `nextgen/apps/web/src/router.tsx`) rather than trusting the code blocks below verbatim — they're kept for historical/TDD-step record, not as the current source of truth.
 
 **Files:**
 - Create: `nextgen/apps/web/src/router.tsx`
@@ -304,7 +310,7 @@ git commit -m "feat(nextgen): add Supabase browser client and AuthProvider"
 
 **Interfaces:**
 - Consumes: `useAuth()` from Task 4.2.
-- Produces: `<RequireAuth>` (redirects to `/auth/login?redirect=<path>` if unauthenticated, mirrors `middleware.ts:66-70`), `<RequireAdmin>` (redirects to `/dashboard` if `profile.role !== 'admin'`, mirrors `middleware.ts:80-82`), `<RequireNotSuspended>` (redirects to `/suspended` if `profile.suspended_at` set, mirrors `middleware.ts:75-77`).
+- Produces: `<RequireAuth>` (redirects to `/auth/login?redirect=<path>` if unauthenticated, mirrors `middleware.ts:66-70`), `<RequireAdmin>` (redirects to `/dashboard` if `profile.role !== 'admin'`, mirrors `middleware.ts:80-82`), `<RequireNotSuspended>` (redirects to `/suspended` if `profile.suspended_at` set, mirrors `middleware.ts:75-77`), and — added post-review — `<RedirectIfAuthenticated>` (redirects to `/dashboard` if `user` is set, mirrors `middleware.ts:94-96`, wraps the `/auth/*` routes).
 
 **Behavior to preserve from `middleware.ts` (do not reinterpret — port exactly):**
 1. Public, no-auth-required paths: `/`, `/suspended`, `/auth/*`, `/blog*` (public blog stays reachable without login).
@@ -313,7 +319,7 @@ git commit -m "feat(nextgen): add Supabase browser client and AuthProvider"
 4. `/admin/*` requires `profile.role === 'admin'`, else redirect to `/dashboard` (`middleware.ts:80-82`).
 5. Impersonation read-only enforcement (`middleware.ts:32-63`) is **already implemented API-side** in `apps/api/src/middleware/impersonation.ts` — do not duplicate it in the SPA; the API will 403 write requests during impersonation regardless of what the UI allows, so the UI only needs to *display* the impersonation banner (Task 4.4/5.x), not re-enforce it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // nextgen/apps/web/src/components/RequireAuth.test.tsx
@@ -351,12 +357,12 @@ it('renders the protected route when authenticated', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd nextgen/apps/web && npm test -- RequireAuth`
 Expected: FAIL — module does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement** (see post-review amendment above — final implementation differs from this reference)
 
 ```tsx
 // nextgen/apps/web/src/components/RequireAuth.tsx
@@ -429,12 +435,12 @@ export const router = createBrowserRouter([
 ]);
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd nextgen/apps/web && npm test -- RequireAuth`
-Expected: PASS.
+Expected: PASS. (Landed as 4 RequireAuth tests after the fix round added RedirectIfAuthenticated + profileLoading-gate coverage — see ledger.)
 
-- [ ] **Step 5: Wire into `main.tsx` and commit**
+- [x] **Step 5: Wire into `main.tsx` and commit**
 
 ```tsx
 // nextgen/apps/web/src/main.tsx
@@ -448,19 +454,21 @@ git add nextgen/apps/web/src/router.tsx nextgen/apps/web/src/components/RequireA
 git commit -m "feat(nextgen): add router shell and auth/admin/suspended route guards"
 ```
 
-### Task 4.4: App shell layout (nav)
+### Task 4.4: App shell layout (nav) ✅ DONE (commits 1996d91..1c0dfe1)
+
+**Post-completion notes:** also ported `ImpersonationBanner.tsx` (correctly in-brief — the old layout renders it unconditionally) and added 3 CSS variables to `index.css` (verified necessary, not creep). Two design notes surfaced for later tasks, not blockers: Task 4.14 (admin pages) will render inside this same consumer-facing shell rather than a dedicated admin layout like the old Next.js `(admin)` route group had — acceptable for a personal 2-user app unless it looks wrong once built; Task 4.11 (public blog) sits outside this shell entirely by design (public route, no auth required) — consider a lightweight header of its own for visual consistency.
 
 **Files:**
 - Create: `nextgen/apps/web/src/components/AppShell.tsx`
 - Reference: `src/app/(app)/layout.tsx` (source of the nav structure — bottom tabs on mobile ≤768px, sidebar on desktop, per `docs/ARCHITECTURE.md`'s "Mobile Strategy" section)
 
 **Steps:**
-- [ ] **Step 1:** Read `src/app/(app)/layout.tsx` in full and list every nav item and every piece of chrome it renders (avatar, sign-out, impersonation banner if active).
-- [ ] **Step 2:** Port it to `AppShell.tsx` as a plain React component (no Server Component data fetching — pull `user`/`profile` from `useAuth()`), using `<Outlet />` from `react-router-dom` for the child route content instead of Next's `children` prop.
-- [ ] **Step 3:** Wire `AppShell` as a layout route wrapping the authenticated routes in `router.tsx` (the block under `RequireAuth` from Task 4.3).
-- [ ] **Step 4:** `cd nextgen/apps/web && npm run type-check` — must be clean.
-- [ ] **Step 5:** Manual smoke test: `npm run dev:web` (from `nextgen/`) + `npm run dev:api` in a second terminal, log in, confirm nav renders and links navigate without a full page reload.
-- [ ] **Step 6: Commit**
+- [x] **Step 1:** Read `src/app/(app)/layout.tsx` in full and list every nav item and every piece of chrome it renders (avatar, sign-out, impersonation banner if active).
+- [x] **Step 2:** Port it to `AppShell.tsx` as a plain React component (no Server Component data fetching — pull `user`/`profile` from `useAuth()`), using `<Outlet />` from `react-router-dom` for the child route content instead of Next's `children` prop.
+- [x] **Step 3:** Wire `AppShell` as a layout route wrapping the authenticated routes in `router.tsx` (the block under `RequireAuth` from Task 4.3).
+- [x] **Step 4:** `cd nextgen/apps/web && npm run type-check` — must be clean.
+- [x] **Step 5:** Manual smoke test — NOT run (no Supabase credentials in the execution sandbox); honestly reported as unrun rather than fabricated. Real smoke test deferred to Task 5.1's full verification pass. Added 2 automated render tests (mocked `useAuth()`, `MemoryRouter`) as a partial substitute.
+- [x] **Step 6: Commit**
 
 ```bash
 git add nextgen/apps/web/src/components/AppShell.tsx nextgen/apps/web/src/router.tsx
@@ -483,58 +491,178 @@ Each task below follows the same shape: read the listed Next.js source files, po
 - `revalidatePath`/`router.refresh()` → `queryClient.invalidateQueries()`.
 - Any `cookies()`/`headers()` read for auth → already handled globally by `AuthProvider` (Task 4.2); should not appear in ported page logic at all.
 
-### Task 4.5: Auth pages
+### Task 4.5: Auth pages ✅ DONE (commits 61f9f7b..b8bc3c7)
+
+**Post-review correction:** the controller's own dispatch to the implementer incorrectly said to preserve a "Google OAuth button" from the old login page. The old page defined a `handleGoogle` function but never rendered a button for it (dead code) — the first pass ported a real, working Google button that never existed in the old app's actual behavior, which also exposed a real bug (shared `loading` state across buttons meant a dev-mode OAuth failure could brick the whole form). Fixed in commit `b8bc3c7`: both the button and the function are removed entirely, restoring true behavioral parity. Preserved correctly: email/password login, the dev-only bypass button (`import.meta.env.DEV`, Vite's equivalent of the old `NODE_ENV === 'development'` check), forgot-password, reset-password.
 
 **Files:**
 - Create: `nextgen/apps/web/src/pages/auth/LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`
 - Port from: `src/app/auth/login/page.tsx`, `src/app/auth/forgot-password/page.tsx`, `src/app/auth/reset-password/page.tsx`
 - Wire routes: `/auth/login`, `/auth/forgot-password`, `/auth/reset-password` in `router.tsx`
 
-- [ ] Port each page applying the standard touchpoint checklist. Login calls `supabase.auth.signInWithPassword` directly (client-side Supabase call, not an API route — confirm this matches `src/app/auth/login/page.tsx`'s actual flow before assuming).
-- [ ] `npm run type-check` clean.
-- [ ] Manual smoke test: log in with a real dev-environment account, confirm redirect to `/dashboard` and that the `redirect` query param round-trips (part of `RequireAuth`'s contract from Task 4.3).
-- [ ] Commit: `git commit -m "feat(nextgen): port auth pages (login, forgot/reset password)"`
+- [x] Port each page applying the standard touchpoint checklist. Login calls `supabase.auth.signInWithPassword` directly (client-side Supabase call, not an API route — confirm this matches `src/app/auth/login/page.tsx`'s actual flow before assuming).
+- [x] `npm run type-check` clean.
+- [x] Manual smoke test: NOT run (no Supabase credentials in the execution sandbox, same as Task 4.4) — honestly reported as unrun. Automated tests cover the `redirect` query param round-trip and error paths with a mocked Supabase client instead. Real smoke test deferred to Task 5.1.
+- [x] Commit: `git commit -m "feat(nextgen): port auth pages (login, forgot/reset password)"`
 
-### Task 4.6: Landing page
+### Task 4.6: Landing page ✅ DONE (commits 5f8923d..0dc7346)
+
+**Post-review correction:** the source path in this plan (`src/app/(app)/landing-client.tsx`) was wrong — the real file is `src/components/landing-client.tsx` (confirmed via glob, only one `landing-client.tsx` exists in the repo). Review also confirmed `src/app/page.tsx` server-redirects already-authenticated users to `/dashboard` (`if (user) redirect('/dashboard')`), which the first pass correctly declined to replicate (dispatch forbade router.tsx guard changes) and a fix round then added: `/` is now nested `RequireNotSuspended → RedirectIfAuthenticated → LandingPage`. The two Google OAuth buttons in the old landing page ARE genuinely rendered/reachable (unlike Task 4.5's login page) — ported correctly as live buttons.
 
 **Files:**
 - Create: `nextgen/apps/web/src/pages/LandingPage.tsx`
-- Port from: `src/app/page.tsx` and `src/app/(app)/landing-client.tsx`
+- Port from: `src/app/page.tsx` and `src/components/landing-client.tsx` (not `src/app/(app)/landing-client.tsx` — see correction above)
 - Wire route: `/` in `router.tsx`
 
-- [ ] Port, apply touchpoint checklist, type-check, smoke test (unauthenticated view), commit.
+- [x] Port, apply touchpoint checklist, type-check, smoke test (unauthenticated view — real browser smoke test not possible in the execution sandbox, covered by automated tests instead, same as prior tasks), commit.
 
-### Task 4.7: Dashboard
+### Task 4.7: Dashboard ✅ DONE (commits edc4176..ffed78a)
+
+**Post-review notes (both deferred to Task 5.1, not fixed here):** (1) no query-error state exists anywhere yet in `apps/web` — a failed `GET /api/trips` would silently render as "0 trips" rather than an error; this is a cross-cutting gap, not unique to this page, best fixed once as a shared convention. (2) `GET /api/trips` (`apps/api/src/routes/trips.ts:44`) doesn't select `budget_eur`, so the dashboard needs a second request to `/api/trips/:id/stats` for the active trip's budget, causing a brief "Imposta un budget" flicker even when a budget is set — trivial one-line API fix, deferred since it touches already-reviewed Phase 3 code outside this task's scope.
 
 **Files:**
 - Create: `nextgen/apps/web/src/pages/DashboardPage.tsx`
-- Port from: `src/app/(app)/dashboard/page.tsx`
-- Likely consumes: `apps/api/src/routes/trips.ts` (list), `apps/api/src/routes/profile.ts` (stats) — confirm against actual imports
+- Port from: `src/app/(app)/dashboard/page.tsx` (confirmed correct path)
+- Consumes: `GET /api/trips` (list) and `GET /api/trips/:id/stats` (active trip's budget/spend — `apps/api/src/routes/trips.ts` and `trips-stats.ts`, not `profile.ts` as originally guessed)
 - Wire route: `/dashboard`
 
-- [ ] Port, apply touchpoint checklist, type-check, smoke test with a real trip in the DB, commit.
+- [x] Port, apply touchpoint checklist, type-check, smoke test with a real trip in the DB — NOT run (no Supabase credentials in the execution sandbox); covered by 4 automated tests (loading/empty/populated/no-budget states) instead, commit.
 
-### Task 4.8: Trips list + new trip
+### Task 4.8: Trips list + new trip ✅ DONE (commits d7a2a71..59cc78a)
+
+**Post-review note:** confirmed the old app's fire-and-forget `POST /api/trips/invite` call (swallowed with `.catch(() => {})`) was already dead/nonexistent in the Hono API before this task — inherited, not introduced, and genuinely inert (nothing downstream depends on it). Also confirmed (2nd occurrence, see Task 4.8a below) that `.card`/`.shadow-panel`/`--color-ink` are used but not yet defined in `index.css`.
 
 **Files:**
 - Create: `nextgen/apps/web/src/pages/TripsListPage.tsx`, `NewTripPage.tsx`
 - Port from: `src/app/(app)/trips/page.tsx`, `src/app/(app)/trips/new/page.tsx`
 - Wire routes: `/trips`, `/trips/new`
 
-- [ ] Port, apply touchpoint checklist (new-trip form: `react-hook-form` + Zod resolver, submit via `apiFetch` POST to `/api/trips`, `navigate()` to the created trip on success), type-check, smoke test (create a trip end-to-end), commit.
+- [x] Port, apply touchpoint checklist (new-trip form: `react-hook-form` + Zod resolver, submit via `apiFetch` POST to `/api/trips`, `navigate()` to the created trip on success), type-check, smoke test (create a trip end-to-end) — NOT run (no Supabase credentials in the execution sandbox); covered by 9 automated tests instead, commit.
 
-### Task 4.9: Trip detail (largest task — split further if it exceeds ~300 lines per `docs/CLAUDE.md`'s file-size rule)
+### Task 4.8a: CSS token parity (added mid-execution — see ledger ruling after Task 4.8's review) ✅ DONE (commits 57fa83a..06c44a1)
+
+**Why:** `.card`, `.shadow-panel`, and `--color-ink` (plus possibly other design tokens) are used by ported pages (`DashboardPage.tsx` from Task 4.7, `TripsListPage.tsx`/`NewTripPage.tsx` from Task 4.8) but were never ported into `nextgen/apps/web/src/index.css` — confirmed missing, purely cosmetic (unstyled, not broken) by two independent task reviews. Fixing once now prevents every remaining Phase 4 page task from re-discovering and re-flagging the same gap.
 
 **Files:**
-- Create: `nextgen/apps/web/src/pages/TripDetailPage.tsx` plus one file per tab under `nextgen/apps/web/src/components/trip/` (mirror the tab structure found in the source)
-- Port from: `src/app/(app)/trips/[id]/page.tsx` and, per current inventory, the 11 files under `src/components/trip/`, plus whichever of `src/components/booking/` (3 files), `src/components/calendar/` (1), `src/components/expense/` (2), `src/components/map/` (2), `src/components/media/` (1), `src/components/wallet/` (1) that page actually imports (confirm via grep before starting — this is the largest single unknown in the plan)
+- Modify: `nextgen/apps/web/src/index.css`
+- Reference: `src/app/globals.css` (old app's full design-token source — Task 4.4 already ported `--color-bg`/`--color-sidebar`/`--shadow-soft` from here; this task ports whatever's still missing)
+
+- [x] Read `src/app/globals.css` in full and `nextgen/apps/web/src/index.css`'s current contents. Diff which CSS custom properties and utility classes (at minimum `.card`, `.shadow-panel`, `--color-ink`) exist in the old file but not the new one.
+- [x] Port every missing token/class verbatim (values must match exactly — these are shared design tokens, not free to reinterpret).
+- [x] `npm run type-check` clean (should be unaffected — this is a CSS-only change). Run the full test suite to confirm no test depends on the absence of these classes (unlikely, but verify).
+- [x] Commit: `git commit -m "fix(nextgen): port missing CSS design tokens (.card, .shadow-panel, --color-ink)"`
+
+### Task 4.9.0–4.9.9: Trip detail (split from the original single "Task 4.9" — see ledger ruling 2026-09-21)
+
+**Ruling (recorded during execution):** the source component graph, traced via `grep`/`Glob` against the actual repo, is much larger than the plan's original inventory assumed: the trip detail page has **9 tabs**, not 5, and their components range from 120 to 592 lines each (~3,200 lines total across tabs, before sub-drawers). A single task porting all of this would badly violate both `docs/CLAUDE.md`'s 300-line-per-file rule and this plan's own task-right-sizing goal (one task = one independently reviewable, revertable unit). Splitting into one task per tab — each with its own commit and its own review gate — mirrors exactly how Phase 1–3 was actually executed (one commit per route group, not one commit for the whole API). Confirmed full source inventory:
+
+| Tab | Source component(s) | Lines |
+|---|---|---|
+| Page shell | `src/app/(app)/trips/[id]/page.tsx`, `src/components/trip/DeleteTripButton.tsx` | 157 + small |
+| Overview | `src/components/trip/OverviewTab.tsx`, `src/components/trip/TripStatsCard.tsx`, `src/components/map/TripMap.tsx` | 239 |
+| Itinerary | `src/components/trip/ItineraryTab.tsx`, `DayDrawer.tsx`, `LegDrawer.tsx`, `AccommodationDrawer.tsx`, `AirportSearch.tsx`, `CarrierSearch.tsx`, `BoardingPassViewer.tsx`, `src/components/map/LocationSearch.tsx` | 491 + drawers |
+| Bookings | `src/components/booking/BookingsTab.tsx`, `ActivityDrawer.tsx`, `RestaurantDrawer.tsx` | 592 |
+| Wallet | `src/components/wallet/TravelWallet.tsx` | 472 |
+| Calendar | `src/components/calendar/TripCalendar.tsx` | 347 |
+| Packing | `src/components/trip/PackingTab.tsx` | 474 |
+| Expenses | `src/components/expense/ExpensesTab.tsx`, `ExpenseDrawer.tsx` | 270 |
+| Media | `src/components/media/MediaTab.tsx` | 191 |
+| Blog (in-trip list) | `src/components/blog/BlogTab.tsx` (confirmed read: a plain post list + links to `/trips/:id/posts/:postId/edit`, no Tiptap editor embedded — `PostEditor.tsx` belongs solely to Task 4.10) | 120 |
+
+**Sequencing:** 4.9.0 must land first (it establishes the route and a placeholder per tab). 4.9.1–4.9.9 can then proceed in any order — each only touches its own tab's placeholder line in `TripDetailPage.tsx` plus its own new files, so they don't conflict with each other.
+
+#### Task 4.9.0: Trip detail page shell ✅ DONE (commits 0785b1e..9d78a6c)
+
+**Post-review notes:** `DeleteTripButton` was correctly NOT duplicated here — the old trip detail page never renders it; it belongs solely to `TripsListPage` (already ported in Task 4.8 at `nextgen/apps/web/src/components/DeleteTripButton.tsx`, no `trip/` subdirectory). Confirmed pre-existing, inherited bug ported as-is (out of scope to fix): `trip.members?.length` reads a `members` field the type declares but the API only returns nested `trip_members` — always renders 0/undefined, same in the old app.
+
+**Files:**
+- Create: `nextgen/apps/web/src/pages/TripDetailPage.tsx`
+- Port from: `src/app/(app)/trips/[id]/page.tsx` (hero image/header, 9-tab tab-bar exactly as listed in the table above, tab-switching state, trip fetch)
+- Modify: `nextgen/apps/web/src/router.tsx` (fill in the `/trips/:id` route)
 - Wire route: `/trips/:id`
 
-- [ ] **Step 1:** `grep -rn "from '@/components" src/app/\(app\)/trips/\[id\]/page.tsx src/components/trip/*.tsx` to get the exact, complete component dependency graph for this page.
-- [ ] **Step 2:** Port `TripDetailPage.tsx` (tab shell, uses `useParams()` for `:id`) and each dependency component one at a time, applying the standard touchpoint checklist to each. Map view (`src/components/map/`) needs a Mapbox token — confirm `VITE_MAPBOX_TOKEN` is in `apps/web/.env.example` before porting it.
-- [ ] **Step 3:** `npm run type-check` clean after every 2–3 components ported (don't let type errors accumulate across the whole task).
-- [ ] **Step 4:** Manual smoke test covering the acceptance criteria in `docs/CLAUDE.md`: add a day/leg/accommodation, add an expense and see the split, upload a photo and see it in the media grid, generate an Instagram export.
-- [ ] **Step 5:** Commit — split into multiple commits per tab (itinerary, expenses, media, etc.) rather than one giant commit, matching this repo's existing granularity.
+- [x] Port the page shell. Apply the standard touchpoint checklist (Task 4 Phase intro): `useParams()` for `:id`, trip fetch via a TanStack Query `useQuery` calling `apiFetch` against the already-ported `GET /api/trips/:id`, `Link`/`useNavigate` swaps.
+- [x] For each of the 9 tabs, render a `<div>Tab in arrivo — Task 4.9.N</div>` placeholder (Italian per Global Constraints) instead of the real component — Tasks 4.9.1–4.9.9 each replace exactly one placeholder.
+- [x] `npm run type-check` clean.
+- [x] Manual smoke test — NOT run (no Supabase credentials in the execution sandbox); covered by 5 automated tests (loading/not-found/hero-data/all-9-tabs-switching/query-param-init) instead.
+- [x] Commit: `git commit -m "feat(nextgen): port trip detail page shell with tab placeholders"`
+
+#### Task 4.9.1: Overview tab ✅ DONE (commits 1fc2346..3217357)
+
+**Post-review notes:** `VITE_MAPBOX_TOKEN` added to `.env.example` (placeholder value, not the real-looking token from the root `.env.example`). `saveBudget` now also calls `onTripUpdate` (old app's `saveBudget` never did, only `saveDates` did) — kept as an intentional, tested consistency improvement, not strict port fidelity. Fix round added `try/catch/finally` around both `saveDates`/`saveBudget`'s `apiFetch` calls after review found the old bare-`fetch` code silently no-op'd on HTTP errors, while unguarded `apiFetch` would throw and leave the Save button permanently stuck — a real regression from the touchpoint swap, now fixed. Two pre-existing gaps ported as-is (confirmed inherited, not introduced): `trip.members` dead field (see Task 4.9.0), no user-facing error message on failed saves (explicitly out of scope). `mapbox-gl` adds ~772KB/221KB gzip to the single JS bundle since no route-level code-splitting exists anywhere yet in `router.tsx` — a pre-existing architectural gap, flagged for awareness, not fixed here.
+
+**Files:** Create `nextgen/apps/web/src/components/trip/OverviewTab.tsx`, `TripStatsCard.tsx`, `nextgen/apps/web/src/components/map/TripMap.tsx`. Port from the three source files in the table above (239 lines total for the tab itself).
+- [x] Port, apply touchpoint checklist. `TripMap` needs a Mapbox token — confirm `VITE_MAPBOX_TOKEN` exists in `apps/web/.env.example` (add it if Task 4.9.2, which also needs Mapbox via `LocationSearch`, hasn't already).
+- [x] Replace the Overview placeholder in `TripDetailPage.tsx` with the real component.
+- [x] `npm run type-check` clean. Manual smoke test — NOT run (no Supabase/Mapbox credentials in the execution sandbox); Mapbox rendering itself remains unverified by any automated test (mocked in tests). Real smoke test deferred to Task 5.1.
+- [x] Commit: `git commit -m "feat(nextgen): port trip overview tab"`
+
+#### Task 4.9.2: Itinerary tab ✅ DONE (commits a6e7166..bafad65)
+
+**Post-review notes:** was interrupted mid-work once by a session rate limit (recovered cleanly — nothing committed by the killed attempt, uncommitted files verified and kept in the recovery dispatch). `LegDrawer.tsx` needed a second split round (493→222 lines) after the first pass didn't go far enough; final structure: `LegDrawer.tsx` (JSX shell) + `useLegDrawerForm.ts` (form/mutation logic, try/catch/finally preserved) + `LegDetailsFields.tsx` + `LegLocationFields.tsx`. **Activities were intentionally NOT ported here**: the old `ItineraryTab.tsx` imports `ActivityDrawer` from `components/booking/` for per-day "Aggiungi Attività," but `ActivityDrawer` belongs to Task 4.9.3 (not yet built at the time). This is disclosed in `ItineraryTab.tsx`'s doc comment. **Task 4.9.3 must, after building `ActivityDrawer`, check whether it needs wiring back into `ItineraryTab.tsx`'s per-day view** (not just the Bookings tab) to match the old app's actual behavior — added as an explicit step below.
+
+**Files:** Create `nextgen/apps/web/src/components/trip/ItineraryTab.tsx`, `DayDrawer.tsx`, `LegDrawer.tsx`, `AccommodationDrawer.tsx`, `AirportSearch.tsx`, `CarrierSearch.tsx`, `BoardingPassViewer.tsx`, `nextgen/apps/web/src/components/map/LocationSearch.tsx`. Port from the source files in the table above (491-line tab plus its drawers — this is the largest single tab; if the ported result exceeds ~300 lines per file, split drawers into their own files as `docs/CLAUDE.md` requires, which the source already mostly does).
+- [x] Port, apply touchpoint checklist. Confirm `VITE_MAPBOX_TOKEN` is set (see 4.9.1).
+- [x] Replace the Itinerary placeholder in `TripDetailPage.tsx`.
+- [x] `npm run type-check` clean after every 2–3 files ported. Manual smoke test — NOT run (no Supabase/Mapbox credentials in the execution sandbox); covered by 5 automated tests (render, add-day, add-flight-leg-with-search, add-accommodation, failure-path) instead.
+- [x] Commit: `git commit -m "feat(nextgen): port trip itinerary tab"`
+
+#### Task 4.9.3: Bookings tab
+
+**Files:** Create `nextgen/apps/web/src/components/booking/BookingsTab.tsx`, `ActivityDrawer.tsx`, `RestaurantDrawer.tsx`. Port from the source files in the table above (592 lines — split into smaller files per `docs/CLAUDE.md`'s 300-line rule if the direct port would exceed it; the source doesn't already split this one, so use judgment on a natural boundary, e.g. activities vs. restaurants).
+- [ ] Port, apply touchpoint checklist. **Also apply the mutation-safety rule established in Tasks 4.9.1/4.9.2: any `apiFetch` call driving a loading/saving state MUST be wrapped in `try`/`catch`/`finally`.**
+- [ ] Replace the Bookings placeholder in `TripDetailPage.tsx`.
+- [ ] **New step (added after Task 4.9.2's review):** read `src/components/trip/ItineraryTab.tsx`'s per-day "Aggiungi Attività" section (it imports `ActivityDrawer` from `components/booking/` — confirmed present in old source) and decide whether `ItineraryTab.tsx` (already ported, Task 4.9.2) needs a follow-up wiring of the now-available `ActivityDrawer` to match old-app behavior, or whether that's better left as a deliberate, disclosed scope boundary. If wiring it back in, that's a small edit to `nextgen/apps/web/src/components/trip/ItineraryTab.tsx` — note it clearly in this task's report either way.
+- [ ] `npm run type-check` clean. Manual smoke test: add an activity and a restaurant booking, confirm they render and persist.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip bookings tab"`
+
+#### Task 4.9.4: Wallet tab
+
+**Files:** Create `nextgen/apps/web/src/components/wallet/TravelWallet.tsx`. Port from the source file in the table above (472 lines — split per the 300-line rule if a direct port would exceed it; read the source first to find a natural boundary, e.g. document list vs. document viewer).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Wallet placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test against real trip documents.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip wallet tab"`
+
+#### Task 4.9.5: Calendar tab
+
+**Files:** Create `nextgen/apps/web/src/components/calendar/TripCalendar.tsx`. Port from the source file in the table above (347 lines — split per the 300-line rule if needed).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Calendar placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip calendar tab"`
+
+#### Task 4.9.6: Packing tab
+
+**Files:** Create `nextgen/apps/web/src/components/trip/PackingTab.tsx`. Port from the source file in the table above (474 lines — split per the 300-line rule if needed).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Packing placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: add packing items, mark them packed.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip packing tab"`
+
+#### Task 4.9.7: Expenses tab
+
+**Files:** Create `nextgen/apps/web/src/components/expense/ExpensesTab.tsx`, `ExpenseDrawer.tsx`. Port from the source files in the table above (270 lines).
+- [ ] Port, apply touchpoint checklist.
+- [ ] Replace the Expenses placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: add an expense in a foreign currency, confirm the EUR conversion and split calculation match the old app (per `docs/ARCHITECTURE.md`'s "Currency Strategy").
+- [ ] Commit: `git commit -m "feat(nextgen): port trip expenses tab"`
+
+#### Task 4.9.8: Media tab
+
+**Files:** Create `nextgen/apps/web/src/components/media/MediaTab.tsx`. Port from the source file in the table above (191 lines).
+- [ ] Port, apply touchpoint checklist. Photo upload calls the already-ported media routes in `apps/api/src/routes/trips-media.ts`.
+- [ ] Replace the Media placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: upload a photo, confirm it appears in the grid, generate an Instagram export.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip media tab"`
+
+#### Task 4.9.9: Blog tab (in-trip post list)
+
+**Files:** Create `nextgen/apps/web/src/components/blog/BlogTab.tsx`. Port from `src/components/blog/BlogTab.tsx` (120 lines — confirmed to be a plain post list with `Link`s to the edit route, no Tiptap editor embedded; no dependency on Task 4.10's `PostEditor.tsx`, so these two tasks can run in either order or in parallel without conflict).
+- [ ] Port `BlogTab.tsx`: post list, delete button (calls the already-ported `DELETE /api/trips/:id/posts/:postId`), links to `/trips/:id/posts/new/edit` (new post) and `/trips/:id/posts/:postId/edit` (edit existing) — both handled by Task 4.10's single route (`postId === 'new'` is the create case).
+- [ ] Replace the Blog placeholder in `TripDetailPage.tsx`.
+- [ ] `npm run type-check` clean. Manual smoke test: see the trip's post list, navigate to edit one.
+- [ ] Commit: `git commit -m "feat(nextgen): port trip blog tab"`
 
 ### Task 4.10: Blog post editor (Tiptap)
 
@@ -652,8 +780,6 @@ Each task below follows the same shape: read the listed Next.js source files, po
 1. **Task 5.3 / hosting for `apps/api`:** Vercel serverless functions vs. a separate Node host vs. Edge (constrained by `sharp`). Not answerable from repo inspection alone.
 2. **Task 4.11 / Task 6.1, public blog SEO:** accept client-rendered blog as a regression, or build out `apps/blog-ssg` (currently empty) before cutover. This affects whether Task 4.11 is the final state of the public blog or an interim one.
 3. **Task 6.2, monorepo layout:** collapse `nextgen/*` into the repo root, or keep the `nextgen/` prefix permanently. Affects every CI/deploy config touched in Task 6.
-
----
 
 ## Self-review notes
 

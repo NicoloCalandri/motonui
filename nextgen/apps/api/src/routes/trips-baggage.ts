@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getAuthUser } from '../lib/auth/get-user';
-import { withErrorHandler, ok, requireParam } from '../lib/http';
+import { withErrorHandler, ok, requireParam, readJsonObject } from '../lib/http';
 import { Errors } from '../lib/errors';
 import { requireTripMember, requireLegInTrip } from '../lib/authz';
 import { requireUser } from '../middleware/auth';
@@ -58,7 +58,7 @@ tripsBaggageRouter.post(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = CreateBaggageItemSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 
@@ -99,7 +99,7 @@ tripsBaggageRouter.put(
 
         await requireTripMember(supabase, id, user.id);
 
-        const body = await c.req.json();
+        const body = await readJsonObject(c);
         const parsed = UpdateBaggageItemSchema.safeParse(body);
         if (!parsed.success) throw Errors.validation(parsed.error.message);
 

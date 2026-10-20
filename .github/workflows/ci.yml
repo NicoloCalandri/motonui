@@ -181,3 +181,49 @@ jobs:
           name: nextjs-build
           path: .next/
           retention-days: 1
+
+  # The migration to Vite + Hono (nextgen/). Not deployed yet: this job keeps it
+  # buildable and in step with src/ (library copies, handler drift, the routes
+  # the web app calls) until the cutover.
+  nextgen:
+    name: Nextgen (Vite + Hono)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: nextgen
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: nextgen/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      # Copies of src/ in apps/api and apps/web must equal their source.
+      - name: Library parity
+        run: npm run port:check
+
+      - name: Tests (API, web)
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Starts the build output under plain Node and probes it.
+      - name: Smoke test of the build
+        run: npm run smoke
+
+      # The image the cutover ships: catches the production-only install
+      # (sharp platform binaries, workspaces) that the steps above do not use.
+      - name: Docker image
+        run: docker build -t motonui-nextgen .

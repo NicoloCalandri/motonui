@@ -5,6 +5,7 @@
  */
 
 import { escapeFields } from './html';
+import { log } from './log';
 
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'motonui <reminders@motonui.app>';
 
@@ -31,8 +32,8 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
-        // The subject carries trip content (hotels, routes): never logged (T-4.3). nextgen has no structured logger yet.
-        console.warn('[motonui][email] RESEND_API_KEY not set — email skipped');
+        // The subject carries trip content (hotels, routes): never logged (T-4.3).
+        log.warn('[motonui][email] RESEND_API_KEY not set — email skipped');
         return;
     }
 
