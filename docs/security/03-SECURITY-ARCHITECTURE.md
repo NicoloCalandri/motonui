@@ -15,7 +15,7 @@ flowchart TB
     end
 
     subgraph V["Vercel — Server Bridge (semi-fidato: esegue codice nostro con segreti)"]
-        MW["src/middleware.ts"]
+        MW["src/proxy.ts"]
         RH["Route handler /api/**"]
         SC["Server Components"]
         CR["Cron"]
@@ -91,7 +91,7 @@ flowchart TB
 | Livello | Dove | Cosa decide | Oggi |
 |---|---|---|---|
 | L0 — Edge/Header | `next.config.ts` | Politiche del browser (CSP, frame, HSTS) | ✅ con CSP da stringere |
-| L1 — Middleware | `src/middleware.ts` | Autenticato? Sospeso? Admin per `/admin`? Impersonazione in sola lettura? | 🟡 Reindirizza anche le API; niente controllo `Origin` |
+| L1 — Middleware | `src/proxy.ts` | Autenticato? Sospeso? Admin per `/admin`? Impersonazione in sola lettura? | 🟡 Reindirizza anche le API; niente controllo `Origin` |
 | L2 — Wrapper route | `withErrorHandler` → futuro `withRoute` | Utente, validazione di params/query/body, formato errori | 🟡 Applicato a mano, non ovunque |
 | L3 — Autorizzazione applicativa | `src/lib/authz.ts`, `requireAdmin`, `requireFeatureAccess` | Membro del viaggio? Giorno/tratta/pagatore del viaggio giusto? Admin? Premium e quota? | 🟡 19 route su 30 per la membership |
 | L4 — RLS | policy Postgres | Riga visibile/modificabile dall'utente del JWT | 🟡 Presente ovunque, ma senza `WITH CHECK` e con i buchi su `profiles` e viste |
@@ -165,7 +165,7 @@ Non si introduce crittografia applicativa a livello di campo: per documenti e ca
 
 ## 6. Header HTTP
 
-Due posti, ciascuno con un compito (T-4.4): gli header statici in `next.config.ts` (`headers()`), la CSP nel middleware (`src/middleware.ts` + `src/lib/csp.ts`) perché ha un nonce nuovo a ogni richiesta. `vercel.json` non ne definisce più.
+Due posti, ciascuno con un compito (T-4.4): gli header statici in `next.config.ts` (`headers()`), la CSP nel middleware (`src/proxy.ts` + `src/lib/csp.ts`) perché ha un nonce nuovo a ogni richiesta. `vercel.json` non ne definisce più.
 
 | Header | Valore | Stato |
 |---|---|---|

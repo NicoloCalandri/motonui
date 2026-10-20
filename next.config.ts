@@ -9,7 +9,7 @@ const isDev = process.env.NODE_ENV === 'development';
 /**
  * Static security headers: the only place they are set (T-4.4). The
  * Content-Security-Policy needs a per-request nonce and is set in
- * middleware.ts (src/lib/csp.ts).
+ * src/proxy.ts (src/lib/csp.ts).
  */
 const securityHeaders = [
     { key: 'X-Content-Type-Options', value: 'nosniff' },

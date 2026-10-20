@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 /**
  * Reading the request headers makes every page render per request, so
- * Next.js can stamp the CSP nonce set by middleware.ts on its scripts
+ * Next.js can stamp the CSP nonce set by src/proxy.ts on its scripts
  * (T-4.4): a prerendered page would carry no nonce and be blocked.
  */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

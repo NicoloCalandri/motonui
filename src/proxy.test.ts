@@ -58,14 +58,14 @@ function session(user: { id: string } | null, profile: { role: string; suspended
     return supabaseResponse;
 }
 
-describe('middleware', () => {
+describe('proxy', () => {
     let fetchSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         vi.clearAllMocks();
         fetchSpy = vi
             .spyOn(global, 'fetch')
-            .mockRejectedValue(new Error('middleware must not make its own network calls'));
+            .mockRejectedValue(new Error('proxy must not make its own network calls'));
     });
 
     afterEach(() => {
@@ -79,8 +79,8 @@ describe('middleware', () => {
             profile: { role: 'user', suspended_at: '2024-01-01T00:00:00Z' },
         });
 
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/dashboard'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/dashboard'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBe('http://localhost/suspended');
         expect(fetchSpy).not.toHaveBeenCalled();
@@ -93,8 +93,8 @@ describe('middleware', () => {
             profile: { role: 'user', suspended_at: '2024-01-01T00:00:00Z' },
         });
 
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/suspended'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/suspended'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBeUndefined();
     });
@@ -106,8 +106,8 @@ describe('middleware', () => {
             profile: { role: 'user', suspended_at: null },
         });
 
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/admin/users'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/admin/users'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBe('http://localhost/dashboard');
     });
@@ -119,8 +119,8 @@ describe('middleware', () => {
             profile: { role: 'admin', suspended_at: null },
         });
 
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/admin/users'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/admin/users'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBeUndefined();
     });
@@ -132,8 +132,8 @@ describe('middleware', () => {
             profile: null,
         });
 
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/dashboard'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/dashboard'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBe('http://localhost/auth/login?redirect=%2Fdashboard');
     });
@@ -145,16 +145,16 @@ describe('middleware', () => {
             profile: null,
         });
 
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/'))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBeUndefined();
     });
 
     it.each(['/blog', '/blog/rapa-nui', '/sitemap.xml', '/robots.txt'])('serves %s to anonymous visitors (T-5.1, T-5.2)', async (path) => {
         session(null);
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest(path))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest(path))) as unknown as MockNextResponse;
 
         expect(result.redirectUrl).toBeUndefined();
         expect(result.status).not.toBe(401);
@@ -164,8 +164,8 @@ describe('middleware', () => {
 
     it('answers 401 JSON (not a redirect) for unauthenticated API calls', async () => {
         session(null);
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/api/trips'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/api/trips'))) as unknown as MockNextResponse;
 
         expect(result.status).toBe(401);
         expect(result.redirectUrl).toBeUndefined();
@@ -174,8 +174,8 @@ describe('middleware', () => {
 
     it('answers 403 JSON for a suspended user on the API', async () => {
         session({ id: 'user-1' }, { role: 'user', suspended_at: '2024-01-01T00:00:00Z' });
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/api/trips'))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/api/trips'))) as unknown as MockNextResponse;
 
         expect(result.status).toBe(403);
         expect(result.body).toMatchObject({ code: 'ACCOUNT_SUSPENDED' });
@@ -187,8 +187,8 @@ describe('middleware', () => {
         ['Sec-Fetch-Site: cross-site', { 'sec-fetch-site': 'cross-site' }],
     ])('rejects API writes with %s before touching the session', async (_label, headers) => {
         session({ id: 'user-1' }, { role: 'user', suspended_at: null });
-        const { middleware } = await import('./middleware');
-        const result = (await middleware(makeRequest('/api/trips', { method: 'POST', headers }))) as unknown as MockNextResponse;
+        const { proxy } = await import('./proxy');
+        const result = (await proxy(makeRequest('/api/trips', { method: 'POST', headers }))) as unknown as MockNextResponse;
 
         expect(result.status).toBe(403);
         expect(result.body).toMatchObject({ code: 'CROSS_SITE_REQUEST' });
@@ -201,16 +201,16 @@ describe('middleware', () => {
         ['no Origin (server to server)', {}],
     ])('lets API writes through with %s', async (_label, headers) => {
         const next = session({ id: 'user-1' }, { role: 'user', suspended_at: null });
-        const { middleware } = await import('./middleware');
-        const result = await middleware(makeRequest('/api/trips', { method: 'POST', headers }));
+        const { proxy } = await import('./proxy');
+        const result = await proxy(makeRequest('/api/trips', { method: 'POST', headers }));
 
         expect(result).toBe(next);
     });
 
     it('does not require a session nor an Origin on cron routes', async () => {
         const next = session(null);
-        const { middleware } = await import('./middleware');
-        const result = await middleware(
+        const { proxy } = await import('./proxy');
+        const result = await proxy(
             makeRequest('/api/admin/send-reminders', { method: 'POST', headers: { origin: 'https://vercel.example' } }),
         );
 
@@ -223,16 +223,16 @@ describe('middleware', () => {
         session({ id: 'admin-1' }, { role: 'admin', suspended_at: null });
         mockVerifyToken.mockResolvedValue({ adminId: 'admin-1', targetId: 'u-2', jti: 'jti-1' });
         mockIsTokenActive.mockResolvedValue(true);
-        const { middleware } = await import('./middleware');
+        const { proxy } = await import('./proxy');
 
-        const blocked = (await middleware(
+        const blocked = (await proxy(
             makeRequest('/api/trips', { method: 'POST', cookies: { impersonation_token: 't' } }),
         )) as unknown as MockNextResponse;
         expect(blocked.status).toBe(403);
         expect(blocked.body).toMatchObject({ code: 'IMPERSONATION_READ_ONLY' });
         expect(mockIsTokenActive).toHaveBeenCalledWith('jti-1');
 
-        const exit = (await middleware(
+        const exit = (await proxy(
             makeRequest('/api/admin/impersonate/exit', { method: 'POST', cookies: { impersonation_token: 't' } }),
         )) as unknown as MockNextResponse;
         expect(exit.status).toBe(200);
@@ -242,9 +242,9 @@ describe('middleware', () => {
         const next = session({ id: 'admin-1' }, { role: 'admin', suspended_at: null });
         mockVerifyToken.mockResolvedValue({ adminId: 'admin-1', targetId: 'u-2', jti: 'jti-revoked' });
         mockIsTokenActive.mockResolvedValue(false);
-        const { middleware } = await import('./middleware');
+        const { proxy } = await import('./proxy');
 
-        const result = (await middleware(
+        const result = (await proxy(
             makeRequest('/api/trips', { method: 'POST', cookies: { impersonation_token: 't' } }),
         )) as unknown as MockNextResponse;
 
@@ -256,21 +256,21 @@ describe('middleware', () => {
     it('does not check revocation for a token that fails verification', async () => {
         const next = session({ id: 'admin-1' }, { role: 'admin', suspended_at: null });
         mockVerifyToken.mockResolvedValue(null);
-        const { middleware } = await import('./middleware');
+        const { proxy } = await import('./proxy');
 
-        await middleware(makeRequest('/dashboard', { cookies: { impersonation_token: 'forged' } }));
+        await proxy(makeRequest('/dashboard', { cookies: { impersonation_token: 'forged' } }));
 
         expect(mockIsTokenActive).not.toHaveBeenCalled();
         expect(next.cookies.delete).toHaveBeenCalledWith('impersonation_token');
     });
 });
 
-describe('middleware CSP (T-4.4)', () => {
+describe('proxy CSP (T-4.4)', () => {
     it('sends a nonce-based CSP on the response and the nonce on the request', async () => {
         mockUpdateSession.mockResolvedValue({ supabaseResponse: MockNextResponse.next(), user: null, profile: null });
-        const { middleware } = await import('./middleware');
+        const { proxy } = await import('./proxy');
         const request = makeRequest('/');
-        const result = (await middleware(request)) as unknown as MockNextResponse;
+        const result = (await proxy(request)) as unknown as MockNextResponse;
 
         const nonce = request.headers.get('x-nonce');
         expect(nonce).toBeTruthy();
@@ -282,11 +282,11 @@ describe('middleware CSP (T-4.4)', () => {
 
     it('uses a different nonce for every request', async () => {
         mockUpdateSession.mockResolvedValue({ supabaseResponse: MockNextResponse.next(), user: null, profile: null });
-        const { middleware } = await import('./middleware');
+        const { proxy } = await import('./proxy');
         const a = makeRequest('/');
         const b = makeRequest('/');
-        await middleware(a);
-        await middleware(b);
+        await proxy(a);
+        await proxy(b);
         expect(a.headers.get('x-nonce')).not.toBe(b.headers.get('x-nonce'));
     });
 });
