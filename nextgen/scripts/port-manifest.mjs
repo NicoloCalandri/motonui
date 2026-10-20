@@ -150,6 +150,8 @@ export const WEB_COPIES = [
     'lib/auth/auth-error-message.ts',
     'lib/auth/password.test.ts',
     'lib/auth/password.ts',
+    'lib/blog/autosave.test.ts',
+    'lib/blog/autosave.ts',
     'lib/blog/editor-config.test.ts',
     'lib/blog/editor-config.ts',
     'lib/blog/public-posts.test.ts',
