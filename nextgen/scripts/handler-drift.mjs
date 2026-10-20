@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Compares what the Next.js route handlers and their Hono counterparts do,
  * resource by resource: tables, RPCs, schema fields, library functions and

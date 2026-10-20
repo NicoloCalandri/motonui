@@ -227,22 +227,8 @@ describe('OverviewTab', () => {
     renderOverview(
       makeTrip({
         members: [
-          {
-            id: 'm1',
-            created_at: '2025-01-01T00:00:00Z',
-            trip_id: 'trip-1',
-            user_id: 'user-1',
-            role: 'owner',
-            profile: { id: 'user-1', email: 'a@example.com', full_name: null, avatar_url: null },
-          },
-          {
-            id: 'm2',
-            created_at: '2025-01-01T00:00:00Z',
-            trip_id: 'trip-1',
-            user_id: 'user-2',
-            role: 'member',
-            profile: { id: 'user-2', email: 'b@example.com', full_name: null, avatar_url: null },
-          },
+          { id: 'm1', user_id: 'user-1', role: 'owner' },
+          { id: 'm2', user_id: 'user-2', role: 'member' },
         ],
       })
     );

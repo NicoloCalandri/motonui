@@ -32,6 +32,8 @@ export default function DeleteAccountSection() {
             setError(body.error ?? 'Ops! Qualcosa è andato storto 🏝️');
             return;
         }
+        // A full reload, not a client navigation: no state of the deleted account survives.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign('/auth/login');
     };
 

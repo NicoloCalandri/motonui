@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Ports library modules from the Next.js app (src/lib) to nextgen.
  *
