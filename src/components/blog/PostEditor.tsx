@@ -9,6 +9,7 @@ import { Bold, Italic, Quote, Link as LinkIcon, Image as ImageIcon, Heading1, He
 import { STARTER_KIT_OPTIONS } from '@/lib/blog/editor-config';
 import type { TiptapDoc } from '@/lib/types';
 import { readSseText } from '@/lib/ai/sse';
+import { autoSavePost } from '@/lib/blog/autosave';
 import { AiSuggestionPanel, ToolbarButton } from './editor-parts';
 
 interface PostEditorProps {
@@ -66,14 +67,7 @@ export default function PostEditor({ initialContent, onChange, tripId, postId }:
     });
 
     const triggerAutoSave = useCallback(async (content: TiptapDoc) => {
-        try {
-            await fetch(`/api/trips/${tripId}/posts/${postId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content_json: content }),
-            });
-            console.info('[motonui][PostEditor] Auto-saved');
-        } catch {
+        if (!(await autoSavePost(tripId, postId, content))) {
             console.warn('[motonui][PostEditor] Auto-save failed');
         }
     }, [tripId, postId]);
