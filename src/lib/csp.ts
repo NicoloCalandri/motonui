@@ -1,6 +1,6 @@
 /**
  * Content-Security-Policy (T-4.4, SR-WEB-01/02). Built per request in the
- * middleware with a fresh nonce: Next.js adds it to its own scripts, and
+ * proxy (src/proxy.ts) with a fresh nonce: Next.js adds it to its own scripts, and
  * 'strict-dynamic' lets those load their chunks. No 'unsafe-inline' or
  * 'unsafe-eval' for scripts in production (dev needs eval for React refresh).
  * The browser never talks to api.anthropic.com: AI calls are server-side.

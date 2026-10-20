@@ -173,7 +173,7 @@ export type PlatformStats = {
 
 ### 2.1 Aggiornamento middleware
 
-In `src/middleware.ts`, aggiungi la protezione del prefisso `/admin`:
+In `src/proxy.ts`, aggiungi la protezione del prefisso `/admin`:
 
 ```typescript
 // Dopo aver verificato la sessione Supabase...
@@ -354,7 +354,7 @@ Lista paginata dell'audit log, filtrabile per `adminId`, `action`, `targetId`, r
 
 ## Fase 4 — Middleware per Impersonazione
 
-Aggiorna `src/middleware.ts` per gestire la modalità impersonazione:
+Aggiorna `src/proxy.ts` per gestire la modalità impersonazione:
 
 ```typescript
 const impersonationToken = request.cookies.get('impersonation_token')?.value

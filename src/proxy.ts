@@ -44,7 +44,7 @@ function isCrossSiteWrite(request: NextRequest): boolean {
  * header Next.js reads to tag its own scripts); static security headers live
  * in next.config.ts.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const nonce = createNonce();
     const csp = buildCsp({ nonce, dev: process.env.NODE_ENV === 'development' });
     request.headers.set('x-nonce', nonce);
