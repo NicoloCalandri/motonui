@@ -1,5 +1,8 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 
+/** Columns the dashboard reads from `trips`: keep in sync with DashboardTrip. */
+export const DASHBOARD_TRIP_COLUMNS = 'id, title, destination, cover_image, start_date, end_date, status, budget_eur';
+
 /** Columns the dashboard reads from `trips`. */
 export type DashboardTrip = {
     id: string;

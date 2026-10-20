@@ -11,6 +11,7 @@ import {
     pickHeroTrip,
     recentTrips,
     tripCountLabel,
+    DASHBOARD_TRIP_COLUMNS,
     type DashboardTrip,
     type HeroTrip,
 } from './dashboard-trips';
@@ -92,12 +93,15 @@ export default async function DashboardPage() {
     const supabase = await createClient();
     const user = await getAuthUser(supabase);
 
-    // Fetch all user's trips via trip_members join
-    const { data: memberRows } = await supabase
-        .from('trip_members')
-        .select('trips(*)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+    // Trips and profile do not depend on each other: one round trip instead of two.
+    const [{ data: memberRows }, { data: profile }] = await Promise.all([
+        supabase
+            .from('trip_members')
+            .select(`trips(${DASHBOARD_TRIP_COLUMNS})`)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false }),
+        supabase.from('profiles').select('display_name').eq('id', user.id).single(),
+    ]);
 
     const trips: DashboardTrip[] = (memberRows ?? [])
         .map((row) => row.trips as unknown as DashboardTrip)
@@ -118,11 +122,6 @@ export default async function DashboardPage() {
 
     const today = format(now, 'EEEE d MMMM yyyy', { locale: it });
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', user.id)
-        .single();
     const firstName = greetingName(profile?.display_name, user.email);
 
     return (
