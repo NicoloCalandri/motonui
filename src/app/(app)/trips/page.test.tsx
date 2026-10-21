@@ -43,6 +43,18 @@ describe('TripsPage', () => {
         delete calls.or;
     });
 
+    it('labels each trip with its own status', async () => {
+        mockRows = [
+            { trips: { ...defaultRows[0].trips, id: 'a', status: 'planning' } },
+            { trips: { ...defaultRows[0].trips, id: 'b', status: 'active' } },
+            { trips: { ...defaultRows[0].trips, id: 'c', status: 'completed' } },
+        ];
+        render(await TripsPage());
+        expect(screen.getByText('In programmazione')).toBeDefined();
+        expect(screen.getByText('In corso')).toBeDefined();
+        expect(screen.getByText('Completato')).toBeDefined();
+    });
+
     it('filters on title and destination with the q param', async () => {
         render(await TripsPage({ searchParams: Promise.resolve({ q: 'Parigi' }) }));
         expect(calls.select).toBe('trips!inner(*)');

@@ -10,6 +10,13 @@ import DeleteTripButton from '@/components/trip/DeleteTripButton';
 import TripCover from '@/components/trip/TripCover';
 import { normalizeTripQuery, tripSearchFilter } from './trip-search';
 
+/** Badge on the cover. Archived trips are not listed. */
+const STATUS_LABELS: Record<string, string> = {
+    planning: 'In programmazione',
+    active: 'In corso',
+    completed: 'Completato',
+};
+
 export const metadata: Metadata = { title: 'I Tuoi Viaggi' };
 
 interface TripsPageProps {
@@ -76,7 +83,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps = {}) {
                                         />
                                         <div className="absolute top-4 right-4">
                                             <div className="px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-white border border-white/20">
-                                                {trip.status === 'active' ? '🌍 In corso' : '✅ Completato'}
+                                                {STATUS_LABELS[trip.status] ?? 'In programmazione'}
                                             </div>
                                         </div>
                                     </div>
