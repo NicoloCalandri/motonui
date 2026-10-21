@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
+import { mapboxToken } from './mapbox-token';
 
 export interface LocationResult {
     name: string;
@@ -51,7 +52,7 @@ export default function LocationSearch({
         debounceRef.current = setTimeout(async () => {
             try {
                 setLoading(true);
-                const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+                const token = mapboxToken();
                 if (!token) return;
 
                 const res = await fetch(

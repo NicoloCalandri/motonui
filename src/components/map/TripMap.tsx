@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Leg } from '@/lib/types';
+import { isMapboxAuthError, mapboxToken } from './mapbox-token';
+
+const MAP_UNAVAILABLE = 'La mappa non è disponibile al momento 🏝️';
 
 interface TripMapProps {
     legs: Leg[];
@@ -20,9 +23,9 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
     useEffect(() => {
         if (!containerRef.current) return;
 
-        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        const token = mapboxToken();
         if (!token) {
-            setError('Mapbox token non configurato');
+            setError(MAP_UNAVAILABLE);
             return;
         }
 
@@ -45,6 +48,16 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
                 style: 'mapbox://styles/mapbox/outdoors-v12',
                 center: [12.4964, 41.9028], // default: Rome
                 zoom: 4,
+            });
+
+            // A listener stops Mapbox from logging every failure to the console.
+            // A refused token makes the map unusable: show the fallback. Other
+            // failures (a tile, a sprite) leave the map working.
+            map.on('error', (event) => {
+                if (!isMapboxAuthError(event.error)) return;
+                setError(MAP_UNAVAILABLE);
+                map?.remove();
+                map = undefined;
             });
 
             map.on('load', () => {
@@ -142,7 +155,7 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
 
         initMap().catch((err) => {
             console.error('[motonui][TripMap]', err);
-            setError('Impossibile caricare la mappa');
+            setError(MAP_UNAVAILABLE);
         });
 
         return () => {
