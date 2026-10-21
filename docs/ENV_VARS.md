@@ -15,12 +15,13 @@
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox GL token for trip maps | [mapbox.com](https://mapbox.com) → Account → Access tokens |
 | `ANTHROPIC_API_KEY` | Claude API key for AI features | [console.anthropic.com](https://console.anthropic.com) |
 | `EXCHANGE_RATE_API_KEY` | Currency conversion API key | [exchangerate-api.com](https://exchangerate-api.com) |
-| `SENTRY_DSN` | Sentry error tracker DSN | [sentry.io](https://sentry.io) → Project → Client Keys |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry error tracker DSN | [sentry.io](https://sentry.io) → Project → Client Keys |
 
 ## Admin / Cron
 
 | Variable | Description |
 |----------|-------------|
+| `ADMIN_IMPERSONATION_SECRET` | Random string ≥ 32 characters, signs impersonation tokens. Different value per environment |
 | `CRON_SECRET` | Random string ≥ 32 characters (`openssl rand -base64 32`). Vercel Cron sends it as `Authorization: Bearer …` to `/api/admin/cleanup` and `/api/admin/send-reminders` (GET); the routes compare it in constant time |
 | `RESEND_API_KEY` | Resend API key for email reminders — [resend.com](https://resend.com) → Dashboard → API Keys |
 | `RESEND_FROM_EMAIL` | Sender address, e.g. `motonui <reminders@motonui.app>` |
@@ -29,7 +30,16 @@
 
 | Variable | Example | Description |
 |----------|---------|-------------|
-| `NEXT_PUBLIC_APP_URL` | `https://motonui.vercel.app` | Used for auth redirects and metadata |
+| `NEXT_PUBLIC_APP_URL` | `https://motonui.app` | Used for auth redirects and metadata |
+
+## Mobile (EAS environment variables)
+
+| Variable | Description |
+|----------|-------------|
+| `EXPO_PUBLIC_SUPABASE_URL` | Same value as `NEXT_PUBLIC_SUPABASE_URL` |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Same value as `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+
+Set them on expo.dev → Project → Environment variables (`production`, `preview`); the profiles in `mobile/eas.json` pick them up.
 
 ## Setting up for local development
 
