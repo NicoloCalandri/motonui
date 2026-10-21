@@ -30,7 +30,7 @@ const QUICK_ACTIONS = [
 ];
 
 export const formatEuro = (value: number) =>
-    new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+    new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, useGrouping: 'always' }).format(value);
 
 function tripDates(trip: TripHeroTrip): string | null {
     if (!trip.start_date) return null;

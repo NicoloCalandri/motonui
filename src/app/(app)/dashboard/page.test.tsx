@@ -114,6 +114,7 @@ describe('DashboardPage', () => {
             expect(screen.getByText('In viaggio')).toBeDefined();
             expect(screen.getByRole('heading', { name: /Avventura in Giappone/ })).toBeDefined();
             expect(screen.getByText(/^500\s€$/)).toBeDefined();
+            expect(screen.getByText(/su 2\.000\s€/)).toBeDefined();
             expect(screen.queryByText(/Pronti per una nuova avventura/i)).toBeNull();
         });
 
