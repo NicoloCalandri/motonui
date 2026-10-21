@@ -122,12 +122,13 @@ Salti di versione maggiore che non sono semplici aggiornamenti: provati il 2026-
 |---|---|---|---|
 | D-1 | Zod 4 | `errorMap` rimosso, `src/test/zod-sample.ts` usa interni di Zod 3, 39 test e la build falliscono | type-check, lint, test e build verdi; `route-contract.test.ts` invariato |
 | D-2 | **Fatto il 2026-10-09.** Tiptap 3 (tutti i pacchetti `@tiptap/*` insieme) | aggiornare due pacchetti su cinque rompe `npm ci`; l'editor e `lib/blog/render.ts` usano le estensioni | editor e rendering dei post invariati; test di `render.ts` verdi |
-| D-3 | Tailwind 4 | configurazione spostata in CSS: la build fallisce su `globals.css` | build verde e controllo visivo delle pagine principali |
+| D-3 | Tailwind 4 | configurazione spostata in CSS: la build fallisce su `globals.css`. Vale anche per `nextgen/apps/web`: un aggiornamento di sicurezza (#175) l'aveva portato a 4 e la build si è rotta; tornato a 3.4 il 2026-10-21 | build verde e controllo visivo delle pagine principali |
 | D-4 | ESLint 10 | `eslint-config-next` 15 supporta solo ESLint ≤ 9: dopo Next 16 | `npm run lint` a zero warning |
 | D-5 | Mobile: allineare a Expo SDK 57 | `main` ha `expo` 57 ma React Native 0.76 e React 18 (SDK 57 richiede 0.86 e 19.2): il type-check del mobile fallisce già oggi | `npx expo install --fix`, type-check verde e prova su dispositivo; in alternativa tornare a SDK 52 |
 | D-6 | Next 16 (PR Dependabot #127) | type-check, lint, test e build passano; manca la prova a runtime (cache, middleware, immagini) | deploy di anteprima verificato a mano, poi merge |
 | D-7 | TypeScript 7 | `typescript-eslint` (via `eslint-config-next`) rifiuta TS 7.0 e il lint si ferma; tornati a 5.9 il 2026-10-21 | `typescript-eslint` con supporto a TS 7; type-check e lint verdi |
 | D-8 | Regole React Compiler di `eslint-plugin-react-hooks` 7 | caricando `eslint-config-next` senza `FlatCompat` si accendono `refs`, `set-state-in-effect`, `static-components`, `incompatible-library`: 19 segnalazioni, spente in `eslint.config.mjs` | regole attive e `npm run lint` a zero warning |
+| D-9 | happy-dom 21 | `@tiptap/html` 3.32 dichiara il peer `happy-dom@^20`: con la 21 `npm ci` fallisce (ERESOLVE); tornati a 20 il 2026-10-21 | `@tiptap/html` con peer compatibile; `npm ci`, test e build verdi |
 
 ---
 

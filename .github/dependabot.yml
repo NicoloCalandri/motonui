@@ -29,6 +29,9 @@ updates:
       # typescript-eslint (through eslint-config-next) refuses TypeScript 7.
       - dependency-name: typescript
         update-types: [version-update:semver-major]
+      # @tiptap/html declares a peer of happy-dom ^20: version 21 breaks npm ci.
+      - dependency-name: happy-dom
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /mobile
