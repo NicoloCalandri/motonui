@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  # jsdom 30 (test environment) requires Node ^22.22.2; Node 20 is end-of-life.
+  NODE_VERSION: '22'
 
 jobs:
   secrets-scan:
