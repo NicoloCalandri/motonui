@@ -1,384 +1,274 @@
-# 🚀 Guida al Deploy in Produzione di Motonui
+# Deploy in produzione
 
-> **Per chi è questa guida?**  
-> Questa guida è scritta per chi non è un esperto tecnico. Ogni passaggio è spiegato con parole semplici e include screenshot testuali di dove cliccare. Segui i passaggi nell'ordine indicato.
+Piano per portare motonui in produzione su **`motonui.app`**: app web (Vercel + Supabase cloud) e app mobile (App Store e Google Play), pubblicate insieme. Si seguono le sezioni in ordine; ogni sezione dice cosa serve prima di cominciare.
 
----
+Scelte fatte:
 
-## 📋 Indice
+| Decisione | Valore |
+|---|---|
+| Dominio | `motonui.app` (registrar consigliato: Cloudflare, ~12–15 €/anno) |
+| Piano Supabase | **Free** (limiti e compensazioni in §2.6) |
+| Regione | Supabase: Frankfurt (`eu-central-1`); Vercel: `fra1` (già in `vercel.json`) |
+| Deploy web | GitHub Actions (`deploy-production.yml`): il deploy automatico di Vercel da Git su `main` è disattivato in `vercel.json` |
+| Mobile | Build e invio agli store con EAS (`mobile/eas.json`) |
 
-1. [Prima di tutto: cosa ci serve](#1-prima-di-tutto-cosa-ci-serve)
-2. [🔴 URGENTE: Sicurezza — cambia le chiavi esposte](#2--urgente-sicurezza--cambia-le-chiavi-esposte)
-3. [Configura Supabase (il database)](#3-configura-supabase-il-database)
-4. [Configura i servizi esterni](#4-configura-i-servizi-esterni)
-5. [Pubblica il sito su Vercel](#5-pubblica-il-sito-su-vercel)
-6. [Collega il tuo dominio](#6-collega-il-tuo-dominio)
-7. [Test finali prima di andare live](#7-test-finali-prima-di-andare-live)
-8. [Dopo il lancio: monitoraggio](#8-dopo-il-lancio-monitoraggio)
+Documenti collegati: `docs/ENV_VARS.md` (variabili una per una), `docs/security/04-SECURITY-CHECKLIST.md` §B (checklist di rilascio), `docs/security/05-OPS-RUNBOOK.md` (Auth, backup, rotazione segreti), `docs/ADMIN_SETUP.md`.
 
 ---
 
-## 1. Prima di tutto: cosa ci serve
+## 1. Account da creare
 
-**Cos'è un "servizio"?** Ogni funzione del tuo sito usa un servizio esterno (come un fornitore). Devi creare un account gratuito per ciascuno.
-
-| Servizio | A cosa serve | Costo |
+| Servizio | Serve per | Costo |
 |---|---|---|
-| [Supabase](https://supabase.com) | Database e autenticazione utenti | Gratis fino a 50.000 utenti |
-| [Vercel](https://vercel.com) | Ospita il sito web | Gratis per iniziare |
-| [Mapbox](https://mapbox.com) | Mappe interattive | Gratis fino a 50.000 visite/mese |
-| [Anthropic](https://console.anthropic.com) | Intelligenza Artificiale (Claude) | Pay-per-use ~$5/mese per iniziare |
-| [Resend](https://resend.com) | Invio email (promemoria) | Gratis fino a 3.000 email/mese |
-| [ExchangeRate-API](https://exchangerate-api.com) | Conversione valute | Gratis per 1.500 richieste/mese |
-| [Sentry](https://sentry.io) | Monitoraggio errori (opzionale) | Gratis per iniziare |
+| Cloudflare (o altro registrar) | Dominio `motonui.app` e DNS | ~12–15 €/anno |
+| Supabase | DB, Auth, Storage | Free |
+| Vercel | Hosting web, cron | Free (Hobby) |
+| GitHub | CI, deploy, secret | già presente |
+| Mapbox | Mappe | Free fino a 50.000 caricamenti/mese |
+| Google Cloud | Login con Google (OAuth) | Free |
+| Resend | Email dell'app **e** SMTP di Supabase Auth | Free fino a 3.000 email/mese |
+| Anthropic | Funzioni AI (opzionale) | a consumo: imposta un budget limit |
+| ExchangeRate-API | Cambi valuta (opzionale) | Free |
+| Sentry | Errori (opzionale, ma serve per il check B12) | Free |
+| Expo (EAS) | Build mobile | Free con build limitate |
+| Apple Developer Program | App Store e TestFlight | 99 $/anno |
+| Google Play Console | Play Store | 25 $ una tantum |
 
-> 💡 **Suggerimento:** Crea tutti gli account prima di iniziare. Ci vogliono circa 30 minuti in totale.
-
----
-
-## 2. 🔴 URGENTE: Sicurezza — cambia le chiavi esposte
-
-> ⚠️ **QUESTO È IL PASSAGGIO PIÙ IMPORTANTE.** Il file `.env.example` nel repository contiene delle chiavi reali che non dovrebbero essere pubbliche. Chi le ha può accedere al tuo database. Segui questi passaggi SUBITO.
-
-### Cosa sono le "chiavi API"?
-Immagina le chiavi API come delle password speciali che permettono al tuo sito di comunicare con i servizi esterni. Se qualcuno le ruba, può usare i tuoi servizi (e farli pagare a te, o leggere i dati degli utenti).
-
-### Passaggio 2.1 — Rigenera le chiavi Supabase
-
-1. Vai su [app.supabase.com](https://app.supabase.com) → accedi
-2. Clicca sul tuo progetto
-3. Nel menu a sinistra → **Project Settings** (l'icona dell'ingranaggio)
-4. Clicca su **API**
-5. Trova il campo **`service_role` key** → clicca **Reveal** per vederla
-6. Cerca il pulsante **Regenerate** o contatta il supporto Supabase per revocarla
-7. **Copia la nuova chiave** e salvala in un posto sicuro (es. un password manager)
-
-> 🚨 La `service_role` key è la più pericolosa: bypassa tutte le protezioni del database.
-
-### Passaggio 2.2 — Rigenera il token Mapbox
-
-1. Vai su [account.mapbox.com/access-tokens](https://account.mapbox.com/access-tokens)
-2. Trova il token che inizia con `pk.eyJ1IjoibmNhbGFuZHJpIi...`
-3. Clicca su **Delete** (cancella il vecchio)
-4. Clicca **+ Create a token**
-5. Dai un nome: `motonui-production`
-6. In **URL restrictions** aggiungi il tuo dominio (es. `https://motonui.app`)
-7. Clicca **Create token** e copia la nuova chiave
-
-### Passaggio 2.3 — Rigenera il segreto Admin
-
-Questo segreto protegge la funzione di "impersonation" (quando un admin vede il profilo di un utente). Per generarne uno nuovo, apri il terminale sul tuo computer e scrivi:
-
-```bash
-openssl rand -base64 32
-```
-
-Copia il risultato. Lo userai dopo come `ADMIN_IMPERSONATION_SECRET`.
-
-### Passaggio 2.4 — Aggiorna il file `.env.example`
-
-Apri il file `.env.example` nel repository e sostituisci tutti i valori reali con dei placeholder:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://IL-TUO-PROGETTO.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=la-tua-anon-key
-SUPABASE_SERVICE_ROLE_KEY=la-tua-service-role-key
-NEXT_PUBLIC_MAPBOX_TOKEN=il-tuo-token-mapbox
-ADMIN_IMPERSONATION_SECRET=il-tuo-segreto-generato
-ADMIN_EMAIL=la-tua-email@esempio.com
-```
+Tutti i segreti vanno nel password manager condiviso, mai in chat, issue o file del repo.
 
 ---
 
-## 3. Configura Supabase (il database)
+## 2. Supabase (progetto di produzione)
 
-### Cos'è Supabase?
-Supabase è il "cervello" dell'app: salva tutti i dati (utenti, viaggi, spese, foto). È come un foglio Excel super potente e sicuro nel cloud.
+### 2.1 Progetto
 
-### Passaggio 3.1 — Crea un progetto di produzione
+1. Supabase → **New project**, nome `motonui-production`, regione **Frankfurt**, password del DB generata e salvata.
+2. Dal dashboard annota:
+   - Project Settings → API: **Project URL**, **anon key**, **service role key**;
+   - Database → Connect → **Session pooler**: la connection string (diventa `SUPABASE_DB_URL` su GitHub).
 
-1. Vai su [app.supabase.com](https://app.supabase.com) → **New Project**
-2. Scegli la tua **organizzazione** (o creane una nuova)
-3. Nome progetto: `motonui-production`
-4. Password database: genera una password forte e salvala → clicca sull'icona 🔄 per generarla
-5. Regione: **West EU (Frankfurt)** — siamo in Europa, i dati devono restare in EU per il GDPR
-6. Clicca **Create new project** → aspetta 2-3 minuti
+### 2.2 Schema
 
-### Passaggio 3.2 — Esegui le migrazioni (crea le tabelle)
+Le migration le applica la GitHub Action a ogni deploy (§4). Per il primo allineamento puoi farlo a mano:
 
-Le "migrazioni" sono dei file che creano la struttura del database. Devi eseguirle una volta sola.
-
-**Opzione A — Da terminale (consigliata):**
 ```bash
-# Prima installa Supabase CLI se non ce l'hai
-npm install -g supabase
-
-# Collega il tuo progetto (trova il Project ID su Supabase → Settings → General)
-supabase link --project-ref IL-TUO-PROJECT-ID
-
-# Esegui le migrazioni
+supabase link --project-ref <PROJECT_REF>
 supabase db push
 ```
 
-**Opzione B — Manuale via browser:**
-1. Vai su Supabase → il tuo progetto → **SQL Editor**
-2. Apri ogni file nella cartella `supabase/migrations/` (in ordine numerico)
-3. Copia il contenuto e incollalo nell'editor SQL → clicca **Run**
+Poi Storage: devono esistere `trip-media`, `trip-documents`, `instagram-exports` (privati) e `avatars` (pubblico). Li creano le migration: non crearli a mano.
 
-### Passaggio 3.3 — Configura l'autenticazione
+### 2.3 Auth
 
-1. Supabase → il tuo progetto → **Authentication** → **URL Configuration**
-2. **Site URL**: inserisci `https://motonui.app` (o il tuo dominio)
-3. **Redirect URLs**: aggiungi:
-   - `https://motonui.app/auth/callback`
-   - `https://motonui.app/**`
-4. Clicca **Save**
+Authentication → **URL Configuration**:
 
-### Passaggio 3.4 — Configura lo Storage (per le foto)
+- Site URL: `https://motonui.app`
+- Redirect URLs: `https://motonui.app/**`, `https://*-<team-vercel>.vercel.app/**` (solo i preview del progetto), `motonui://**` (app mobile). Niente `*` generici.
 
-1. Supabase → **Storage**
-2. Verifica che esistano i bucket: `avatars`, `trip-photos` (li crea automaticamente la migration)
-3. Se non ci sono, clicca **New bucket** e creali con **Public** = false
+Poi replica la tabella di parità di `docs/security/05-OPS-RUNBOOK.md` §1: conferma email, cambio email con doppia conferma, riautenticazione per il cambio password, JWT 3600 s, rotazione refresh token, password ≥ 10 con lettere e numeri.
 
-### Passaggio 3.5 — Copia le tue chiavi API
+### 2.4 Login con Google
 
-1. Supabase → **Project Settings** → **API**
-2. Copia e salva:
-   - **Project URL** → sarà `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon public** key → sarà `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **service_role** key → sarà `SUPABASE_SERVICE_ROLE_KEY` (tienila segreta!)
+1. Google Cloud Console → nuovo progetto `motonui` → **OAuth consent screen**: tipo *External*, nome motonui, dominio `motonui.app`, link a privacy policy e termini (§7.3). Scope: solo `email`, `profile`, `openid`.
+2. **Credentials → Create OAuth client ID** → *Web application*:
+   - Authorized JavaScript origins: `https://motonui.app`
+   - Authorized redirect URIs: `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+3. Supabase → Authentication → Providers → **Google**: attiva, incolla Client ID e Client Secret.
+4. Pubblica l'app OAuth (*Publish app*): finché è in *Testing* entrano solo gli utenti di test elencati.
 
----
+L'app web manda già l'utente su `/auth/callback` dopo il login (`src/app/auth/login/page.tsx`). L'app mobile oggi ha solo email e password: Google sul mobile è un lavoro a parte (client OAuth iOS/Android e redirect `motonui://`).
 
-## 4. Configura i servizi esterni
+### 2.5 SMTP (obbligatorio sul piano Free)
 
-### 4.1 Mapbox (Mappe)
+L'SMTP integrato di Supabase invia pochissime email l'ora: conferme e reset si bloccherebbero. Authentication → **SMTP Settings** → custom SMTP con Resend:
 
-1. Vai su [account.mapbox.com](https://account.mapbox.com) → crea account
-2. Dashboard → **Tokens** → **Create a token**
-3. Nome: `motonui-production`
-4. In **Allowed URLs**: aggiungi `https://motonui.app`
-5. Copia il token → sarà `NEXT_PUBLIC_MAPBOX_TOKEN`
+- Host `smtp.resend.com`, porta `465`, utente `resend`, password = una API key Resend dedicata
+- Mittente: `motonui <noreply@motonui.app>` (dominio verificato in Resend, §3.3)
 
-### 4.2 Anthropic (AI)
+### 2.6 Cosa comporta il piano Free
 
-1. Vai su [console.anthropic.com](https://console.anthropic.com) → crea account
-2. **API Keys** → **Create Key**
-3. Nome: `motonui-production`
-4. Copia la chiave (inizia con `sk-ant-`) → sarà `ANTHROPIC_API_KEY`
-5. Aggiungi un metodo di pagamento (si paga solo per quello che si usa)
+| Limite | Compensazione |
+|---|---|
+| Il progetto va **in pausa dopo 7 giorni senza attività** | I cron giornalieri di Vercel (§4.2) interrogano il DB; nella prima settimana controlla che il progetto resti *Active* |
+| Nessun backup scaricabile né PITR | Dump cifrato **settimanale** come in `05-OPS-RUNBOOK.md` §2.2; restore di prova trimestrale |
+| Niente *leaked password protection* | Registrala come eccezione in `04-SECURITY-CHECKLIST.md` (tabella *Eccezioni accettate*): SR-AUTH-07 resta 🟡 |
+| DB 500 MB, Storage 1 GB | Per due utenti basta; controlla l'uso mensilmente (video e ZIP Instagram sono i più pesanti, gli ZIP si cancellano dopo 24 h) |
 
-> 💡 Per iniziare, $10 di credito bastano per settimane di utilizzo normale.
-
-### 4.3 Resend (Email)
-
-1. Vai su [resend.com](https://resend.com) → crea account
-2. **API Keys** → **Create API Key**
-3. Nome: `motonui-production`
-4. Copia la chiave → sarà `RESEND_API_KEY`
-5. **Domains** → aggiungi il tuo dominio per inviare email dal tuo indirizzo
-
-### 4.4 ExchangeRate-API (Valute)
-
-1. Vai su [exchangerate-api.com](https://exchangerate-api.com) → **Get Free Key**
-2. Crea account gratuito
-3. Copia la chiave API → sarà `EXCHANGE_RATE_API_KEY`
-
-### 4.5 Sentry (Monitoraggio errori — opzionale ma consigliato)
-
-1. Vai su [sentry.io](https://sentry.io) → crea account gratuito
-2. **New Project** → seleziona **Next.js**
-3. Nome: `motonui`
-4. Copia il **DSN** (sembra un URL) → sarà `NEXT_PUBLIC_SENTRY_DSN`
-5. Vai su **Settings** → **Auth Tokens** → crea un token → sarà `SENTRY_AUTH_TOKEN`
+Si passa a Pro quando ci sono utenti oltre a voi due.
 
 ---
 
-## 5. Pubblica il sito su Vercel
+## 3. Servizi esterni
 
-### Cos'è Vercel?
-Vercel è la piattaforma che "ospita" il tuo sito web, rendendolo accessibile a tutti su internet. È come affittare uno spazio su un server ultra-veloce, già configurato per Next.js.
+### 3.1 Dominio
 
-### Passaggio 5.1 — Crea account Vercel
+1. Compra `motonui.app` su Cloudflare Registrar.
+2. Vercel → progetto → Settings → **Domains** → aggiungi `motonui.app` e `www.motonui.app` (redirect su `motonui.app`); copia i record DNS proposti in Cloudflare (proxy **disattivato**, nuvola grigia).
 
-1. Vai su [vercel.com](https://vercel.com) → **Sign Up**
-2. Scegli **Continue with GitHub** (accedi con il tuo account GitHub)
+### 3.2 Mapbox
 
-### Passaggio 5.2 — Importa il progetto
+Nuovo token pubblico `motonui-production` con URL restriction `https://motonui.app` e gli URL dei preview. Se un vecchio token è finito nel repo, cancellalo.
 
-1. Vercel Dashboard → **Add New** → **Project**
-2. Trova il repository `NicoloCalandri/motonui` → clicca **Import**
-3. Nella pagina di configurazione:
-   - **Framework Preset**: Next.js (rilevato automaticamente ✅)
-   - **Root Directory**: `.` (lascia il default)
-   - **Build Command**: `npm run build` (default ✅)
-   - **Output Directory**: `.next` (default ✅)
+### 3.3 Resend
 
-### Passaggio 5.3 — Aggiungi le variabili d'ambiente
+1. Domains → aggiungi `motonui.app` → copia i record SPF/DKIM (e DMARC consigliato) in Cloudflare → attendi *Verified*.
+2. Due API key separate: una per l'app (`RESEND_API_KEY` su Vercel), una per lo SMTP di Supabase (§2.5). Così si ruotano indipendentemente.
 
-Questa è la parte più importante: devi inserire tutte le chiavi che hai raccolto nei passaggi precedenti.
+### 3.4 Anthropic, ExchangeRate-API, Sentry
 
-1. Nella stessa pagina di configurazione, apri la sezione **Environment Variables**
-2. Aggiungi una per una tutte queste variabili (nome = valore):
+- Anthropic: API key `motonui-production` e un **budget limit mensile** in console.
+- ExchangeRate-API: chiave gratuita.
+- Sentry: progetto Next.js, copia il DSN.
 
-```
-NEXT_PUBLIC_SUPABASE_URL          = https://IL-TUO-PROGETTO.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY     = la-tua-anon-key-supabase
-SUPABASE_SERVICE_ROLE_KEY         = la-tua-service-role-key-supabase
-NEXT_PUBLIC_MAPBOX_TOKEN          = il-tuo-token-mapbox
-ANTHROPIC_API_KEY                 = sk-ant-la-tua-chiave
-EXCHANGE_RATE_API_KEY             = la-tua-chiave-exchangerate
-RESEND_API_KEY                    = la-tua-chiave-resend
-NEXT_PUBLIC_SENTRY_DSN            = https://...@sentry.io/...
-SENTRY_AUTH_TOKEN                 = il-tuo-token-sentry
-NEXT_PUBLIC_APP_URL               = https://motonui.app
-NEXT_PUBLIC_APP_NAME              = motonui
-ADMIN_IMPERSONATION_SECRET        = il-segreto-generato-con-openssl
-ADMIN_EMAIL                       = la-tua-email@esempio.com
+---
+
+## 4. Vercel e GitHub
+
+### 4.1 Progetto Vercel
+
+1. Vercel → Add New → Project → importa il repo (framework Next.js, il resto dal `vercel.json`).
+2. Settings → **Environment Variables**, ambiente **Production** (valori diversi in Preview):
+
+```text
+NEXT_PUBLIC_SUPABASE_URL        https://<PROJECT_REF>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY   anon key
+SUPABASE_SERVICE_ROLE_KEY       service role key
+NEXT_PUBLIC_MAPBOX_TOKEN        pk.…
+NEXT_PUBLIC_APP_URL             https://motonui.app
+NEXT_PUBLIC_APP_NAME            motonui
+ADMIN_IMPERSONATION_SECRET      openssl rand -base64 48
+CRON_SECRET                     openssl rand -base64 48
+RESEND_API_KEY                  re_…
+RESEND_FROM_EMAIL               motonui <noreply@motonui.app>
+ANTHROPIC_API_KEY               sk-ant-…            (opzionale)
+EXCHANGE_RATE_API_KEY           …                   (opzionale)
+NEXT_PUBLIC_SENTRY_DSN          https://…@sentry.io/… (opzionale)
 ```
 
-> 💡 Per le variabili che non iniziano con `NEXT_PUBLIC_`, assicurati di selezionare **Production** come ambiente (non esporre al client).
+`ADMIN_AUTH_BYPASS` non si imposta mai fuori dal locale (la build la rifiuta).
 
-3. Clicca **Deploy** → aspetta 2-3 minuti
+3. Account → **Tokens**: crea un token con scope sul solo team del progetto. Da `.vercel/project.json` (dopo `npx vercel link`) prendi `orgId` e `projectId`.
 
-Se tutto va bene, vedrai una schermata verde con **"Your project has been successfully deployed!"** 🎉
+### 4.2 Cron
 
-Il sito sarà raggiungibile su un URL del tipo: `motonui-abc123.vercel.app`
+`vercel.json` pianifica `send-reminders` (08:00 UTC) e `cleanup` (03:00 UTC); Vercel invia `Authorization: Bearer $CRON_SECRET` da solo. Il piano Hobby permette cron giornalieri: non aumentarne la frequenza.
 
-### Passaggio 5.4 — Promuovi il primo admin
+### 4.3 GitHub
 
-Dopo il deploy, devi impostare te stesso come admin nel database:
+Settings → **Environments**:
 
-1. Vai su Supabase → il tuo progetto → **SQL Editor**
-2. Incolla ed esegui questa query (sostituisci con la tua email):
+| Environment | Secret |
+|---|---|
+| `production` | `SUPABASE_DB_URL`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` |
+| `staging` | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (preview) |
 
-```sql
-UPDATE public.profiles
-SET role = 'admin'
-WHERE id = (
-  SELECT id FROM auth.users WHERE email = 'la-tua-email@esempio.com'
-);
+Facoltativi: variabile `SLACK_WEBHOOK_URL` per le notifiche del deploy, `CODECOV_TOKEN`.
+
+Su `production` attiva *Required reviewers* (uno di voi due) se volete approvare ogni deploy. Branch protection su `main` con i check della CI obbligatori (checklist B16).
+
+### 4.4 Come avviene un deploy
+
+Merge di una PR su `main` → CI verde → `deploy-production.yml`: applica le migration (`supabase db push`), poi build e deploy su Vercel dello stesso commit testato. Se le migration falliscono il codice non parte.
+
+---
+
+## 5. Primo avvio
+
+1. **Primo admin.** L'app non ha registrazione libera con email: gli account si creano dal pannello admin o entrando con Google. Per il primo:
+   - entra su `https://motonui.app/auth/login` con Google, **oppure** Supabase → Authentication → Users → *Add user* (con *Auto confirm*);
+   - promuovilo con la query di `docs/ADMIN_SETUP.md` nello SQL Editor;
+   - rientra e apri `/admin`.
+2. **Dati vecchi**: solo se il progetto di produzione contiene dati precedenti, esegui `npm run storage:migrate-boarding-passes -- --apply` (T-0.9).
+3. **Segreti esposti in passato** (T-0.1): ruotali tutti come in `05-OPS-RUNBOOK.md` §3 prima di aprire l'app.
+
+---
+
+## 6. App mobile
+
+### 6.1 Preparazione
+
+```bash
+cd mobile
+npm install -g eas-cli
+eas login
+eas init                  # collega il progetto Expo e scrive l'id in app.json
 ```
 
-3. Prima però devi registrarti sull'app (vai su `motonui-abc123.vercel.app/auth/register`)
+Il bundle id è `com.motonui.app` su iOS e Android (`mobile/app.json`): **non cambia più** dopo la prima pubblicazione.
+
+### 6.2 Variabili
+
+Su expo.dev → progetto → **Environment variables**, ambiente `production` (e `preview` puntato allo staging):
+
+```text
+EXPO_PUBLIC_SUPABASE_URL        https://<PROJECT_REF>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY   anon key
+```
+
+Sono pubbliche per natura (finiscono nel bundle): mai segreti lì. La sicurezza del mobile sta nella RLS.
+
+### 6.3 Build e invio
+
+```bash
+eas build --profile preview --platform all      # build interne per provare sui vostri telefoni
+eas build --profile production --platform all
+eas submit --profile production --platform ios      # TestFlight / App Store Connect
+eas submit --profile production --platform android  # Play Console (traccia interna)
+```
+
+Al primo invio EAS chiede le credenziali Apple e la chiave del service account di Google Play.
+
+### 6.4 Store
+
+- **App Store Connect**: scheda dell'app, screenshot, URL della privacy policy, *App Privacy* (dati raccolti: email, foto, posizione dei luoghi inseriti), **account di test** per la review.
+- **Play Console**: scheda, *Data safety*, classificazione dei contenuti, test interno prima della produzione. Gli account personali nuovi devono fare un test chiuso (12 tester per 14 giorni) prima di pubblicare in produzione.
+- Ordine con le chiavi: se ruoti la anon key, prima pubblichi la build mobile nuova, poi revochi la vecchia (la build vecchia smette di funzionare).
 
 ---
 
-## 6. Collega il tuo dominio
+## 7. Prima di aprire
 
-> Se non hai ancora un dominio, puoi comprarne uno su [Namecheap](https://namecheap.com) (~€10/anno) o [Cloudflare](https://cloudflare.com/registrar) (~€8/anno).
+### 7.1 Checklist di rilascio
 
-### Passaggio 6.1 — Aggiungi il dominio su Vercel
+Passa `docs/security/04-SECURITY-CHECKLIST.md` §B (B1–B17) e annota l'esito nel registro (§D). I punti che si fanno solo sul cloud: Security Advisor senza errori (B7), prova REST con anon key (B8), bucket privati (B9), parità Auth (B10), cron verdi (B11), evento Sentry di prova (B12), header (B13), token Mapbox ristretto (B14).
 
-1. Vercel → il tuo progetto → **Settings** → **Domains**
-2. Inserisci il tuo dominio (es. `motonui.app`) → clicca **Add**
-3. Vercel ti mostrerà dei record DNS da aggiungere
+### 7.2 Smoke test (B17)
 
-### Passaggio 6.2 — Configura i DNS
+Su web e su mobile, con un account di test:
 
-1. Vai sul sito dove hai comprato il dominio (Namecheap, GoDaddy, ecc.)
-2. Trova la sezione **DNS Management** o **DNS Settings**
-3. Aggiungi i record che ti ha dato Vercel:
-   - Di solito un record **A** che punta a `76.76.21.21`
-   - Oppure un record **CNAME** che punta a `cname.vercel-dns.com`
-4. Aspetta 5-60 minuti per la propagazione DNS
+- [ ] login con email e con Google (solo web); logout; reset password con email ricevuta
+- [ ] creazione viaggio, invito al partner, accettazione dell'invito
+- [ ] spesa in valuta estera convertita
+- [ ] upload foto (thumbnail generato) e documento
+- [ ] mappa caricata
+- [ ] generazione AI
+- [ ] post pubblicato e visibile da anonimo su `/blog`
+- [ ] `/admin` accessibile all'admin, negato all'utente normale
+- [ ] il giorno dopo: cron `send-reminders` e `cleanup` con 200 nei log Vercel
 
-### Passaggio 6.3 — Aggiorna le URL nei servizi
+### 7.3 Pagine legali
 
-Ora che hai un dominio reale, aggiorna:
-
-**Supabase:**
-- Authentication → URL Configuration → Site URL = `https://motonui.app`
-- Redirect URLs = `https://motonui.app/auth/callback`
-
-**Vercel:**
-- Settings → Environment Variables → aggiorna `NEXT_PUBLIC_APP_URL` = `https://motonui.app`
-- Poi rideploya: Deployments → clicca i tre puntini sull'ultimo deploy → **Redeploy**
-
-**Mapbox:**
-- Vai sul token → modifica Allowed URLs → aggiungi `https://motonui.app`
+Privacy policy e termini pubblicati su `motonui.app` prima di aprire: li chiedono Google OAuth (consent screen) e entrambi gli store, e il GDPR li richiede comunque.
 
 ---
 
-## 7. Test finali prima di andare live
+## 8. Dopo il lancio
 
-Esegui questi test uno per uno e metti una spunta ✅ quando funzionano:
+| Frequenza | Cosa |
+|---|---|
+| Giornaliera, la prima settimana | Sentry, log Vercel, progetto Supabase *Active* |
+| Settimanale | Dump cifrato del DB (`05-OPS-RUNBOOK.md` §2.2); PR di Dependabot |
+| Mensile | Costi Anthropic, uso di DB e Storage, `admin_audit_log` |
+| Trimestrale | Restore di prova (§2.3 del runbook) |
+| Annuale o dopo un'esposizione | Rotazione di tutti i segreti (§3 del runbook) |
 
-### Autenticazione
-- [ ] Registrazione nuovo utente (`/auth/register`)
-- [ ] Login con email e password (`/auth/login`)
-- [ ] Logout
-- [ ] Reset password via email
+## Problemi frequenti
 
-### Funzionalità core
-- [ ] Crea un nuovo viaggio
-- [ ] Aggiungi una spesa e verifica la conversione valuta
-- [ ] Carica una foto profilo (avatar)
-- [ ] Carica una foto nel diario di viaggio
-- [ ] La mappa si carica correttamente
-- [ ] La funzione AI genera un testo (costa ~$0.01 per test)
-
-### Admin
-- [ ] Accedi con l'account admin
-- [ ] La dashboard `/admin` è visibile
-- [ ] Un utente normale non vede `/admin` (test con un secondo account)
-
-### Email
-- [ ] Registrazione → arriva l'email di conferma
-- [ ] Il cron job dei promemoria è configurato (si vede in Vercel → Cron Jobs)
-
----
-
-## 8. Dopo il lancio: monitoraggio
-
-### Cosa monitorare ogni giorno (5 minuti)
-
-| Cosa | Dove guardare | Cosa fare se va male |
-|---|---|---|
-| Errori del sito | [sentry.io](https://sentry.io) | Leggi il messaggio di errore e cerca su Google |
-| Utilizzo database | Supabase → Dashboard | Se supera i limiti, aggiorna il piano |
-| Costi AI | [console.anthropic.com](https://console.anthropic.com) → Usage | Imposta un budget limit nelle impostazioni |
-| Visitatori | Vercel → Analytics | Nessuna azione urgente |
-
-### Limiti dei piani gratuiti
-
-| Servizio | Limite gratuito | Costo se superi |
-|---|---|---|
-| Supabase Free | 50.000 utenti attivi/mese, 500MB DB | ~$25/mese (Pro plan) |
-| Vercel Free | 100GB bandwidth/mese | ~$20/mese (Pro plan) |
-| Mapbox Free | 50.000 map loads/mese | ~$0.50 per 1.000 extra |
-| Anthropic | Nessun free tier | ~$0.003 per richiesta AI |
-| Resend Free | 3.000 email/mese | ~$20/mese |
-
-### Backup del database
-
-Supabase fa i backup automaticamente ogni giorno (sul piano Pro). Sul piano gratuito, fai un backup manuale ogni settimana:
-
-1. Supabase → **Database** → **Backups**
-2. Clicca **Download** sull'ultimo backup
-
----
-
-## 🆘 Problemi comuni e soluzioni
-
-| Problema | Causa probabile | Soluzione |
-|---|---|---|
-| "Invalid API key" | Variabile d'ambiente mancante o sbagliata | Vercel → Settings → Env Variables → controlla le chiavi |
-| Login non funziona | URL di redirect non configurato in Supabase | Supabase → Auth → URL Configuration |
-| Mappa bianca | Token Mapbox non valido o URL restriction | Controlla il token su account.mapbox.com |
-| Email non arrivano | Dominio Resend non verificato | Resend → Domains → verifica il dominio |
-| Errore "500" su tutto | Build fallita | Vercel → il tuo progetto → Functions → controlla i log |
-| Foto non si caricano | Bucket Supabase Storage non creato | Supabase → Storage → crea i bucket |
-
----
-
-## 📞 Dove chiedere aiuto
-
-- **Supabase:** [discord.supabase.com](https://discord.supabase.com) — comunità molto attiva
-- **Vercel:** [vercel.com/help](https://vercel.com/help) — documentazione eccellente
-- **Next.js:** [nextjs.org/docs](https://nextjs.org/docs)
-- **Stack Overflow:** cerca il messaggio di errore su Google + "Next.js" o "Supabase"
-
----
-
-*Ultima revisione: Maggio 2026 — Motonui v0.1.0*
+| Sintomo | Causa probabile |
+|---|---|
+| Login Google torna con errore | Redirect URI su Google Cloud diverso da `https://<PROJECT_REF>.supabase.co/auth/v1/callback`, o app OAuth ancora in *Testing* |
+| Dopo il login si finisce su un altro dominio | Site URL / Redirect URLs di Supabase |
+| Email di conferma non arrivano | SMTP custom non configurato o dominio Resend non verificato |
+| Mappa vuota | Token Mapbox assente o URL restriction senza il dominio |
+| Deploy fermo a *Apply migrations* | `SUPABASE_DB_URL` mancante o password del DB cambiata |
+| App irraggiungibile, API in errore | Progetto Supabase in pausa: *Restore* dal dashboard |
