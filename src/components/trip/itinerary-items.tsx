@@ -80,12 +80,12 @@ export function LegItem({ leg, expanded, onToggle, onViewBoardingPass, onEdit, o
                 <div className="px-12 pb-4 pt-1 text-sm text-ink-600 bg-ink-50/30 border-t border-ink-100 space-y-2">
                     <div className="grid grid-cols-2 gap-2 mt-2">
                         <div>
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Da</span>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-ink-400">Da</span>
                             <span className="font-medium">{leg.from_name}</span>
                             {leg.departure_at && <span className="block text-xs">{wallClockDayTime(leg.departure_at, ' ')}</span>}
                         </div>
                         <div>
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">A</span>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-ink-400">A</span>
                             <span className="font-medium">{leg.to_name}</span>
                             {leg.arrival_at && <span className="block text-xs">{wallClockDayTime(leg.arrival_at, ' ')}</span>}
                         </div>
@@ -94,20 +94,20 @@ export function LegItem({ leg, expanded, onToggle, onViewBoardingPass, onEdit, o
                     {(leg.carrier || leg.booking_ref || leg.duration_min) && (
                         <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2">
                             {leg.carrier && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400">Operatore:</span> <span className="font-medium">{leg.carrier}</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400">Operatore:</span> <span className="font-medium">{leg.carrier}</span></div>
                             )}
                             {leg.booking_ref && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400">Ref:</span> <span className="font-medium">{leg.booking_ref}</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400">Ref:</span> <span className="font-medium">{leg.booking_ref}</span></div>
                             )}
                             {leg.duration_min && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400">Durata:</span> <span className="font-medium">{Math.floor(leg.duration_min / 60)}h {leg.duration_min % 60}m</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400">Durata:</span> <span className="font-medium">{Math.floor(leg.duration_min / 60)}h {leg.duration_min % 60}m</span></div>
                             )}
                         </div>
                     )}
                     
                     {leg.notes && (
                         <div className="pt-2 border-t border-ink-100 mt-2">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
                             <p className="whitespace-pre-wrap">{leg.notes}</p>
                         </div>
                     )}
@@ -159,11 +159,11 @@ export function AccommodationItem({ accommodation: acc, expanded, onToggle, onEd
                 <div className="px-12 pb-4 pt-1 text-sm text-ink-600 bg-sage-50/20 border-t border-sage-100 space-y-2">
                     <div className="grid grid-cols-2 gap-2 mt-2">
                         <div>
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Check-in</span>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-ink-400">Check-in</span>
                             <span className="font-medium">{acc.check_in ? format(new Date(acc.check_in), 'd MMM yyyy', { locale: it }) : '-'}</span>
                         </div>
                         <div>
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400">Check-out</span>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-ink-400">Check-out</span>
                             <span className="font-medium">{acc.check_out ? format(new Date(acc.check_out), 'd MMM yyyy', { locale: it }) : '-'}</span>
                         </div>
                     </div>
@@ -171,17 +171,17 @@ export function AccommodationItem({ accommodation: acc, expanded, onToggle, onEd
                     {(acc.address || acc.booking_ref) && (
                         <div className="flex flex-col gap-1 pt-2">
                             {acc.address && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Indirizzo:</span><span className="font-medium">{acc.address}</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400 mr-2">Indirizzo:</span><span className="font-medium">{acc.address}</span></div>
                             )}
                             {acc.booking_ref && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Ref Prenotazione:</span><span className="font-medium">{acc.booking_ref}</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400 mr-2">Ref Prenotazione:</span><span className="font-medium">{acc.booking_ref}</span></div>
                             )}
                         </div>
                     )}
                     
                     {acc.notes && (
                         <div className="pt-2 border-t border-sage-100 mt-2">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
                             <p className="whitespace-pre-wrap">{acc.notes}</p>
                         </div>
                     )}
@@ -240,20 +240,20 @@ export function ActivityItem({ activity, expanded, onToggle, onEdit, onDelete }:
                     {(activity.address || activity.booking_ref || activity.duration_min) && (
                         <div className="flex flex-col gap-1 pt-2">
                             {activity.address && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Luogo:</span><span className="font-medium">{activity.address}</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400 mr-2">Luogo:</span><span className="font-medium">{activity.address}</span></div>
                             )}
                             {activity.booking_ref && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Ref Prenotazione:</span><span className="font-medium">{activity.booking_ref}</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400 mr-2">Ref Prenotazione:</span><span className="font-medium">{activity.booking_ref}</span></div>
                             )}
                             {activity.duration_min && (
-                                <div><span className="text-[10px] font-bold uppercase text-ink-400 mr-2">Durata:</span><span className="font-medium">{activity.duration_min} min</span></div>
+                                <div><span className="text-xs font-bold uppercase text-ink-400 mr-2">Durata:</span><span className="font-medium">{activity.duration_min} min</span></div>
                             )}
                         </div>
                     )}
 
                     {activity.notes && (
                         <div className="pt-2 border-t border-violet-100 mt-2">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-1">Note</span>
                             <p className="whitespace-pre-wrap">{activity.notes}</p>
                         </div>
                     )}

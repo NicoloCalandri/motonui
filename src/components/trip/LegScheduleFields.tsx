@@ -14,7 +14,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
         <>
         <div className="space-y-4">
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Partenza</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Partenza</label>
                 <div className="grid grid-cols-2 gap-3">
                     <input
                         {...register('departure_date')}
@@ -33,7 +33,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
                 </div>
             </div>
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Arrivo</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Arrivo</label>
                 <div className="grid grid-cols-2 gap-3">
                     <input
                         {...register('arrival_date')}
@@ -54,7 +54,7 @@ export default function LegScheduleFields({ register, departureDate, tripStartDa
         </div>
 
         <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo stimato</label>
+            <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo stimato</label>
             <div className="flex gap-3">
                 <select
                     {...register('currency')}

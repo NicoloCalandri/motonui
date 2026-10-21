@@ -11,7 +11,7 @@ interface LegTypePickerProps {
 export function LegTypePicker({ value, onChange }: LegTypePickerProps) {
     return (
         <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Mezzo *</label>
+            <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Mezzo *</label>
             <div className="grid grid-cols-4 gap-2">
                 {LEG_TYPES.map(({ id, label, emoji }) => (
                     <button
@@ -24,7 +24,7 @@ export function LegTypePicker({ value, onChange }: LegTypePickerProps) {
                             }`}
                     >
                         <span className="text-2xl mb-1 block">{emoji}</span>
-                        <span className="text-[9px] font-bold uppercase tracking-wider">{label}</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
                     </button>
                 ))}
             </div>
@@ -47,7 +47,7 @@ export function LegLocationFields({ fromInitial, toInitial, fromError, toError, 
     return (
         <div className="grid grid-cols-1 gap-4">
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Da *</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Da *</label>
                 <LocationSearch
                     placeholder="es. Torino"
                     initialValue={fromInitial}
@@ -59,7 +59,7 @@ export function LegLocationFields({ fromInitial, toInitial, fromError, toError, 
                 )}
             </div>
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">A *</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">A *</label>
                 <LocationSearch
                     placeholder="es. San Paolo del Brasile"
                     initialValue={toInitial}
@@ -85,7 +85,7 @@ export function LegBookingFields({ register, type }: LegBookingFieldsProps) {
         <>
         {type !== 'walk' && (
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Numero prenotazione</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Numero prenotazione</label>
                 <input
                     {...register('booking_ref')}
                     aria-label="Numero prenotazione"
@@ -97,7 +97,7 @@ export function LegBookingFields({ register, type }: LegBookingFieldsProps) {
             {type === 'flight' && (
                 <>
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">PNR (codice volo)</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">PNR (codice volo)</label>
                 <input
                     {...register('pnr')}
                             aria-label="PNR (codice volo)"
@@ -106,7 +106,7 @@ export function LegBookingFields({ register, type }: LegBookingFieldsProps) {
                 />
             </div>
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Apertura check-in online</label>
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Apertura check-in online</label>
                 <input
                     {...register('checkin_opens_at')}
                             aria-label="Apertura check-in online"

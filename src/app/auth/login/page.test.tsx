@@ -1,7 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LoginPage from './page';
+
+const mockPush = vi.fn();
+const mockRefresh = vi.fn();
+
+vi.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockPush, refresh: mockRefresh, replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+    usePathname: () => '/auth/login',
+    useSearchParams: () => new URLSearchParams('redirect=/dashboard'),
+}));
 
 // Override global supabase client mock with a configurable version
 const mockSignInWithPassword = vi.fn();
@@ -19,6 +28,31 @@ vi.mock('@/lib/supabase/client', () => ({
 describe('LoginPage', () => {
     beforeEach(() => {
         mockSignInWithPassword.mockResolvedValue({ error: null });
+        mockPush.mockClear();
+        mockRefresh.mockClear();
+    });
+
+    describe('dev login', () => {
+        beforeEach(() => vi.stubEnv('NODE_ENV', 'development'));
+        afterEach(() => vi.unstubAllEnvs());
+
+        it('refreshes server components after signing in, like the form login', async () => {
+            const user = userEvent.setup();
+            render(<LoginPage />);
+            await user.click(await screen.findByRole('button', { name: /Skip Auth/ }));
+            await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
+            expect(mockPush).toHaveBeenCalledWith('/dashboard');
+        });
+
+        it('shows an on-brand message instead of the raw provider error', async () => {
+            mockSignInWithPassword.mockResolvedValueOnce({ error: { message: 'Failed to fetch' } });
+            const user = userEvent.setup();
+            render(<LoginPage />);
+            await user.click(await screen.findByRole('button', { name: /Skip Auth/ }));
+            await waitFor(() => expect(screen.getByText(/Qualcosa è andato storto/)).toBeDefined());
+            expect(screen.queryByText(/Failed to fetch/)).toBeNull();
+            expect(mockPush).not.toHaveBeenCalled();
+        });
     });
 
     it('renders the page heading', () => {

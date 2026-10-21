@@ -131,7 +131,7 @@ export default async function BlogPostPage({ params }: Props) {
                     </h2>
                     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
                         {related.map((rel) => (
-                            <Link key={rel.id} href={`/blog/${rel.slug}`} className="card group overflow-hidden hover:shadow-card-hover transition-shadow">
+                            <Link key={rel.id} href={`/blog/${rel.slug}`} className="card card-interactive group overflow-hidden hover:shadow-card-hover transition-shadow">
                                 {rel.cover_image && (
                                     <img src={rel.cover_image} alt="" className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
                                 )}

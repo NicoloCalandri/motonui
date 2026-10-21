@@ -139,7 +139,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 {/* Type selector */}
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo Attività</label>
+                                    <label className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Tipo Attività</label>
                                     <div className="flex flex-wrap gap-2">
                                         {ACTIVITY_TYPES.map(({ value, label, emoji }) => (
                                             <button
@@ -159,7 +159,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label htmlFor="activity-name" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Attività *</label>
+                                    <label htmlFor="activity-name" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Nome Attività *</label>
                                     <input id="activity-name"
                                         {...register('name')}
                                         placeholder="es. Tour del Colosseo"
@@ -169,7 +169,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label htmlFor="activity-address" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo / Luogo</label>
+                                    <label htmlFor="activity-address" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Indirizzo / Luogo</label>
                                     <input id="activity-address"
                                         {...register('address')}
                                         placeholder="es. Piazza del Colosseo, 1"
@@ -179,7 +179,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="activity-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
+                                        <label htmlFor="activity-date" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Data</label>
                                         <input id="activity-date"
                                             {...register('date')}
                                             type="date"
@@ -189,7 +189,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="activity-time" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
+                                        <label htmlFor="activity-time" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Orario</label>
                                         <input id="activity-time"
                                             {...register('time')}
                                             type="time"
@@ -199,7 +199,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label htmlFor="activity-duration-min" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Durata (minuti)</label>
+                                    <label htmlFor="activity-duration-min" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Durata (minuti)</label>
                                     <input id="activity-duration-min"
                                         {...register('duration_min')}
                                         type="number"
@@ -210,7 +210,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label htmlFor="activity-currency" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo biglietto</label>
+                                    <label htmlFor="activity-currency" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Costo biglietto</label>
                                     <div className="flex gap-3">
                                         <select id="activity-currency"
                                             {...register('currency')}
@@ -238,7 +238,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label htmlFor="activity-booking-ref" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
+                                    <label htmlFor="activity-booking-ref" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Codice prenotazione</label>
                                     <input id="activity-booking-ref"
                                         {...register('booking_ref')}
                                         placeholder="es. TKT-98765"
@@ -247,7 +247,7 @@ export default function ActivityDrawer({ tripId, open, onClose, onSaved, initial
                                 </div>
 
                                 <div>
-                                    <label htmlFor="activity-notes" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
+                                    <label htmlFor="activity-notes" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Note</label>
                                     <textarea id="activity-notes"
                                         {...register('notes')}
                                         rows={2}

@@ -128,13 +128,13 @@ export default function TripCalendar({ trip }: TripCalendarProps) {
                                     {dayEvents.slice(0, 3).map(evt => (
                                         <div
                                             key={evt.id}
-                                            className={`${evt.color} ${evt.textColor} rounded px-1 py-0.5 text-[10px] font-semibold truncate leading-tight`}
+                                            className={`${evt.color} ${evt.textColor} rounded px-1 py-0.5 text-xs font-semibold truncate leading-tight`}
                                         >
                                             {evt.title}
                                         </div>
                                     ))}
                                     {dayEvents.length > 3 && (
-                                        <span className="text-[10px] text-ink-400 font-medium">
+                                        <span className="text-xs text-ink-400 font-medium">
                                             +{dayEvents.length - 3} altri
                                         </span>
                                     )}

@@ -83,12 +83,13 @@ function LoginForm() {
         });
 
         if (authError) {
-            setError('Errore Dev Login: ' + authError.message);
+            setError(authErrorMessage(authError));
             setLoading(false);
             return;
         }
 
         router.push(redirectTo);
+        router.refresh();
     };
 
     return (
@@ -180,13 +181,13 @@ function LoginForm() {
                         {/* Development Bypass footer */}
                         {isDev && (
                             <div className="mt-12 pt-8 border-t border-dashed border-neutral-200">
-                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em] mb-4 text-center">
+                                <p className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em] mb-4 text-center">
                                     Development Mode
                                 </p>
                                 <button
                                     onClick={handleDevLogin}
                                     disabled={loading}
-                                    className="w-full py-3 bg-neutral-50 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all border border-neutral-200 shadow-sm"
+                                    className="w-full py-3 bg-neutral-50 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 rounded-xl text-xs font-bold uppercase tracking-[0.2em] transition-all border border-neutral-200 shadow-sm"
                                 >
                                     Log in as test@example.com (Skip Auth)
                                 </button>

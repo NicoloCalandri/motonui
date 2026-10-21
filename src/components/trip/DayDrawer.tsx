@@ -121,7 +121,7 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                 {/* Date */}
                                 <div>
-                                    <label htmlFor="day-date" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="day-date" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Data *
                                     </label>
                                     <input
@@ -137,7 +137,7 @@ export default function DayDrawer({ tripId, open, onClose, onSaved, tripStartDat
 
                                 {/* Title */}
                                 <div>
-                                    <label htmlFor="day-title" className="block text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
+                                    <label htmlFor="day-title" className="block text-xs font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">
                                         Titolo o Tema (Opzionale)
                                     </label>
                                     <input
