@@ -15,6 +15,13 @@ describe('buildCsp (T-4.4)', () => {
         expect(csp).toContain('upgrade-insecure-requests');
     });
 
+    it('loads fonts only from our origin (next/font self-hosts them)', () => {
+        const csp = buildCsp({ nonce: 'n' });
+        expect(directive(csp, 'font-src')).toEqual(["'self'", 'data:']);
+        expect(csp).not.toContain('fonts.googleapis.com');
+        expect(csp).not.toContain('fonts.gstatic.com');
+    });
+
     it('never lets the browser reach the Anthropic API', () => {
         expect(directive(buildCsp({ nonce: 'n' }), 'connect-src').join(' ')).not.toContain('anthropic');
     });

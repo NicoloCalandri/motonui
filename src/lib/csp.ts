@@ -23,9 +23,10 @@ export function buildCsp({ nonce, dev = false }: { nonce: string; dev?: boolean 
         'default-src': ["'self'"],
         'script-src': ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(dev ? ["'unsafe-eval'"] : [])],
         // Inline style attributes (React style={}, Mapbox, Tiptap) still need 'unsafe-inline'.
-        'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://api.mapbox.com'],
+        // Fonts are self-hosted by next/font: no Google Fonts host (audit A5, B1.35).
+        'style-src': ["'self'", "'unsafe-inline'", 'https://api.mapbox.com'],
         'img-src': ["'self'", 'data:', 'blob:', 'https:', ...(dev ? LOCAL_SUPABASE : [])],
-        'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+        'font-src': ["'self'", 'data:'],
         'connect-src': ["'self'", ...SUPABASE, ...MAPBOX, ...SENTRY, ...(dev ? LOCAL_SUPABASE : [])],
         // Mapbox GL runs its workers from blob: URLs.
         'worker-src': ["'self'", 'blob:'],

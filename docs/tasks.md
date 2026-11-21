@@ -128,7 +128,7 @@ Salti di versione maggiore che non sono semplici aggiornamenti: provati il 2026-
 | D-6 | Next 16 (PR Dependabot #127) | type-check, lint, test e build passano; manca la prova a runtime (cache, middleware, immagini) | deploy di anteprima verificato a mano, poi merge |
 | D-7 | TypeScript 7 | `typescript-eslint` (via `eslint-config-next`) rifiuta TS 7.0 e il lint si ferma; tornati a 5.9 il 2026-10-21 | `typescript-eslint` con supporto a TS 7; type-check e lint verdi |
 | D-8 | Regole React Compiler di `eslint-plugin-react-hooks` 7 | caricando `eslint-config-next` senza `FlatCompat` si accendono `refs`, `set-state-in-effect`, `static-components`, `incompatible-library`: 19 segnalazioni, spente in `eslint.config.mjs` | regole attive e `npm run lint` a zero warning |
-| D-9 | happy-dom 21 | `@tiptap/html` 3.32 dichiara il peer `happy-dom@^20`: con la 21 `npm ci` fallisce (ERESOLVE); tornati a 20 il 2026-10-21 | `@tiptap/html` con peer compatibile; `npm ci`, test e build verdi |
+| D-9 | **Fatto il 2026-11-21** (audit A5). happy-dom 21 | `@tiptap/html` 3.32 dichiara il peer `happy-dom@^20`: con la 21 `npm ci` fallisce (ERESOLVE); tornati a 20 il 2026-10-21 | `@tiptap/html` con peer compatibile; `npm ci`, test e build verdi |
 
 ---
 
