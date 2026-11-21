@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from './database.types';
+import { serverSessionCookieOptions } from './cookie-options';
 
 /**
  * Creates a Supabase server client for use in Server Components, Route Handlers, and Server Actions.
@@ -14,6 +15,7 @@ export async function createClient() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
+            cookieOptions: serverSessionCookieOptions(),
             cookies: {
                 getAll() {
                     return cookieStore.getAll();

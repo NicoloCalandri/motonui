@@ -96,6 +96,7 @@ export const EXCLUDED = {
     'hooks/use-profile.ts': 'React hook: belongs to apps/web',
     'media/upload-client.ts': 'browser only: belongs to apps/web',
     'supabase/client.ts': 'browser client: belongs to apps/web',
+    'supabase/cookie-options.ts': 'session cookie flags of @supabase/ssr: Hono uses its own session cookie (routes/session.ts)',
     'supabase/middleware.ts': 'Next.js middleware session refresh: no counterpart with bearer tokens',
     'supabase/public.ts': 'anon client: Hono has createAnonClient in lib/supabase/server.ts',
     'supabase/server.ts': 'cookie-based clients: Hono has its own lib/supabase/server.ts',
