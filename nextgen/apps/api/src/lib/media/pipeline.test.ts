@@ -7,6 +7,7 @@ import { AppError } from '../errors';
 import {
     createUploadTarget,
     ingestUpload,
+    MAX_MEDIA_PER_TRIP,
     MAX_UPLOAD_BYTES,
     processImage,
     removeStaleIncomingUploads,
@@ -39,7 +40,7 @@ type Bucket = {
     createSignedUploadUrl: ReturnType<typeof vi.fn>;
 };
 
-function adminWith(bucket: Partial<Bucket>) {
+function adminWith(bucket: Partial<Bucket>, mediaCount: { count: number | null; error: { message: string } | null } = { count: 0, error: null }) {
     const full: Bucket = {
         download: vi.fn(async () => ({ data: null, error: { message: 'missing' } })),
         upload: vi.fn(async () => ({ data: {}, error: null })),
@@ -49,7 +50,8 @@ function adminWith(bucket: Partial<Bucket>) {
         createSignedUploadUrl: vi.fn(async (path: string) => ({ data: { token: 't', signedUrl: `https://s/${path}` }, error: null })),
         ...bucket,
     };
-    return { admin: { storage: { from: vi.fn(() => full) } } as unknown as SupabaseClient, bucket: full };
+    const countQuery = { select: vi.fn(() => countQuery), eq: vi.fn(async () => mediaCount) };
+    return { admin: { storage: { from: vi.fn(() => full) }, from: vi.fn(() => countQuery) } as unknown as SupabaseClient, bucket: full };
 }
 
 describe('processImage (SR-PRIV-01)', () => {
@@ -115,6 +117,19 @@ describe('upload targets', () => {
         const { admin, bucket } = adminWith({});
         await expect(createUploadTarget(admin, TRIP, declared)).rejects.toBeInstanceOf(AppError);
         expect(bucket.createSignedUploadUrl).not.toHaveBeenCalled();
+    });
+
+    it('refuses a trip that already holds the maximum number of media (audit A4.20)', async () => {
+        const { admin, bucket } = adminWith({}, { count: MAX_MEDIA_PER_TRIP, error: null });
+        await expect(createUploadTarget(admin, TRIP, { mimeType: 'image/jpeg', size: 1_000 }))
+            .rejects.toMatchObject({ code: 'MEDIA_LIMIT_REACHED', status: 409 });
+        expect(bucket.createSignedUploadUrl).not.toHaveBeenCalled();
+    });
+
+    it('still signs the upload when the media count fails (fail open, logged)', async () => {
+        const { admin, bucket } = adminWith({}, { count: null, error: { message: 'timeout' } });
+        await createUploadTarget(admin, TRIP, { mimeType: 'image/jpeg', size: 1_000 });
+        expect(bucket.createSignedUploadUrl).toHaveBeenCalledTimes(1);
     });
 });
 

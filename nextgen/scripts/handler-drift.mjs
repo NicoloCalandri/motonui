@@ -82,6 +82,8 @@ const INFRA = new Set([
     'createAdminClient', 'createUserClient', 'Errors', 'AppError', 'log', 'NextResponse', 'NextRequest', 'after', 'runInBackground',
     'isAuthorizedCronRequest', 'requireCronSecret', 'env', 'checkRateLimit', 'enforceRateLimit', 'ipSubject', 'captureError',
     'getCookie', 'setCookie', 'deleteCookie', 'writeAuditLog', 'requireDayInTrip',
+    // Next.js admin wrapper (audit A4) and its JSON reader; Hono uses requireAdmin + readJsonObject.
+    'withAdminRoute', 'readJsonBody',
     // Typing helpers, per-framework parameter and limit helpers, and the two cron bodies moved to lib/cron.
     'fromJson', 'toJson', 'idParams', 'userSubject', 'createAnonClient', 'runCleanup', 'runSendReminders',
 ]);

@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { createImpersonationToken, IMPERSONATION_DURATION_SECONDS } from '@/lib/admin/impersonation-token';
 import { log } from '@/lib/log';
-
-type Params = { params: Promise<{ id: string }> };
+import { withAdminRoute } from '@/lib/api/with-admin-route';
 
 /** POST /api/admin/users/[id]/impersonate */
-export async function POST(_req: Request, { params }: Params) {
-    const { id: targetId } = await params;
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
-    const { adminId } = result;
+export const POST = withAdminRoute<{ id: string }>('admin/users/[id]/impersonate POST', async ({ params, adminId }) => {
+    const { id: targetId } = params;
 
     const secret = process.env.ADMIN_IMPERSONATION_SECRET;
     if (!secret || secret.length < 32) {
@@ -75,4 +70,4 @@ export async function POST(_req: Request, { params }: Params) {
     });
 
     return response;
-}
+});

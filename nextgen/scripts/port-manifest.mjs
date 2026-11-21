@@ -86,6 +86,7 @@ export const PENDING = {
 export const EXCLUDED = {
     'api/params.ts': 'Next.js route wrapper: Hono uses middleware/trip-guard.ts and requireParam in lib/http.ts',
     'api/with-route.ts': 'Next.js route wrapper: Hono uses app-level middleware (app.ts) and lib/http.ts',
+    'api/with-admin-route.ts': 'Next.js admin route wrapper: Hono uses requireUser, loadProfile and requireAdmin middleware on the admin routers',
     'auth/auth-error-message.ts': 'browser only: belongs to apps/web',
     'auth/get-user.ts': 'cookie session: Hono authenticates the bearer token in middleware/auth.ts and has its own lib/auth/get-user.ts',
     'auth/require-admin.ts': 'imports next/server: Hono uses middleware/admin.ts',

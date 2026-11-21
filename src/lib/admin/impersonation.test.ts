@@ -26,8 +26,8 @@ vi.mock('@/lib/admin/impersonation-token', () => ({
     createImpersonationToken: mockCreateToken,
 }));
 
-const mockAdminId = 'admin-111';
-const mockTargetId = 'target-222';
+const mockAdminId = '11111111-1111-4111-8111-111111111111';
+const mockTargetId = '22222222-2222-4222-8222-222222222222';
 
 const mockRequireAdmin = vi.fn();
 vi.mock('@/lib/auth/require-admin', () => ({
@@ -110,12 +110,22 @@ describe('POST /api/admin/users/[id]/impersonate', () => {
         mockSelectSingle.mockResolvedValue({ data: null, error: null });
 
         const { POST } = await import('@/app/api/admin/users/[id]/impersonate/route');
-        const req = new Request('http://localhost/api/admin/users/nonexistent/impersonate', {
+        const missing = '99999999-9999-4999-8999-999999999999';
+        const req = new Request(`http://localhost/api/admin/users/${missing}/impersonate`, {
             method: 'POST',
         });
-        const result = await POST(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+        const result = await POST(req, { params: Promise.resolve({ id: missing }) });
 
         expect((result as unknown as MockResponse).status).toBe(404);
+    });
+
+    it('rejects an id that is not a UUID before any query (audit A4)', async () => {
+        const { POST } = await import('@/app/api/admin/users/[id]/impersonate/route');
+        const req = new Request('http://localhost/api/admin/users/nonexistent/impersonate', { method: 'POST' });
+        const result = await POST(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+
+        expect((result as unknown as MockResponse).status).toBe(400);
+        expect(mockFrom).not.toHaveBeenCalled();
     });
 
     it('starts impersonation and sets httpOnly cookies when target user exists', async () => {

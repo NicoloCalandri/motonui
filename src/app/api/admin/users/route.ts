@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/auth/password';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/database.types';
 import { ok } from '@/lib/errors';
 import { log } from '@/lib/log';
 import { ilikeAnyFilter, normalizeSearchTerm } from '@/lib/search-filter';
+import { readJsonBody, withAdminRoute } from '@/lib/api/with-admin-route';
 
 const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
@@ -29,9 +29,7 @@ const CreateUserSchema = z.object({
 });
 
 /** GET /api/admin/users — paginated list of all users with stats */
-export async function GET(request: Request) {
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
+export const GET = withAdminRoute('admin/users GET', async ({ request }) => {
 
     const { searchParams } = new URL(request.url);
     const parsed = QuerySchema.safeParse(Object.fromEntries(searchParams));
@@ -46,7 +44,8 @@ export async function GET(request: Request) {
     const supabase = await createAdminClient();
 
     // Build query on the admin_user_view
-    let query = supabase.from('admin_user_view').select('*', { count: 'exact' });
+    let query = supabase.from('admin_user_view')
+        .select('id, email, display_name, avatar_url, role, plan, premium_until, suspended_at, created_at, last_sign_in_at', { count: 'exact' });
 
     const term = normalizeSearchTerm(search);
     if (term) {
@@ -108,7 +107,7 @@ export async function GET(request: Request) {
     }));
 
     return ok({ users: enriched, total: count ?? 0, page, pageSize });
-}
+});
 
 function buildCountMap(rows: Array<Record<string, string>>, key: string): Record<string, number> {
     const map: Record<string, number> = {};
@@ -120,11 +119,9 @@ function buildCountMap(rows: Array<Record<string, string>>, key: string): Record
 }
 
 /** POST /api/admin/users — create a new user */
-export async function POST(request: Request) {
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
+export const POST = withAdminRoute('admin/users POST', async ({ request, adminId }) => {
 
-    const body: unknown = await request.json();
+    const body: unknown = await readJsonBody(request);
     const parsed = CreateUserSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
@@ -148,7 +145,8 @@ export async function POST(request: Request) {
     if (error) {
         log.error('[admin/users POST]', error.message);
         return NextResponse.json(
-            { error: 'Errore nella creazione utente: ' + error.message, code: 'INTERNAL_ERROR', status: 500 },
+            // Auth messages ("already registered"…) stay in the log (audit A4.23).
+            { error: 'Impossibile creare l\'utente. Controlla che l\'email non sia già registrata.', code: 'INTERNAL_ERROR', status: 500 },
             { status: 500 }
         );
     }
@@ -160,11 +158,12 @@ export async function POST(request: Request) {
         if (parsed.data.plan === 'premium') {
             updates.premium_enabled_at = new Date().toISOString();
             updates.premium_until = parsed.data.premiumUntil ?? null;
-            updates.premium_enabled_by = result.adminId;
+            updates.premium_enabled_by = adminId;
         }
 
         await supabase.from('profiles').update(updates).eq('id', data.user.id);
     }
 
-    return ok({ user: data.user });
-}
+    // Only what the admin UI needs: no tokens, identities or auth metadata.
+    return ok({ user: data.user ? { id: data.user.id, email: data.user.email ?? null } : null });
+});

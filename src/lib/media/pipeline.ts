@@ -20,6 +20,12 @@ import { log } from '@/lib/log';
 
 export const THUMB_SIZE = 400;
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // trip-media file_size_limit (0020)
+/**
+ * Photos and videos per trip (audit A4.20): with 50 MB per file, it bounds the
+ * storage one trip can take. The per-user rate limit (`mediaUpload`) bounds the
+ * speed; this bounds the total.
+ */
+export const MAX_MEDIA_PER_TRIP = 2000;
 
 export const UPLOAD_EXTENSION_BY_MIME: Record<string, string> = {
     'image/jpeg': 'jpg',
@@ -69,6 +75,21 @@ export async function createUploadTarget(
         throw invalid(`File troppo grande. Massimo consentito: ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`);
     }
     const path = incomingPath(tripId, declared.mimeType);
+
+    const { count, error: countError } = await admin
+        .from('media')
+        .select('id', { count: 'exact', head: true })
+        .eq('trip_id', tripId);
+    if (countError) {
+        // Fail open: the per-user rate limit still applies; the error is logged.
+        log.warn('[motonui][media][upload-url] media count failed', { trip_id: tripId, message: countError.message });
+    } else if ((count ?? 0) >= MAX_MEDIA_PER_TRIP) {
+        throw new AppError(
+            `Questo viaggio ha già ${MAX_MEDIA_PER_TRIP} tra foto e video: elimina qualcosa per caricarne altri 🏝️`,
+            'MEDIA_LIMIT_REACHED',
+            409,
+        );
+    }
 
     const { data, error } = await admin.storage.from(Buckets.tripMedia).createSignedUploadUrl(path);
     if (error || !data) throw new Error(`[motonui][media][upload-url] ${error?.message ?? 'no data'}`);

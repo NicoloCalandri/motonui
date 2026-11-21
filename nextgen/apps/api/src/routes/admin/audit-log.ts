@@ -41,7 +41,7 @@ auditLogRouter.get('/', requireUser, loadProfile, requireAdmin, async (c) => {
 
     let query = (supabase as any)
         .from('admin_audit_log')
-        .select('*', { count: 'exact' })
+        .select('id, admin_id, action, target_id, metadata, created_at', { count: 'exact' })
         .order('created_at', { ascending: false });
 
     if (adminId) query = query.eq('admin_id', adminId);

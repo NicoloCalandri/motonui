@@ -1,22 +1,17 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
 import { log } from '@/lib/log';
+import { readJsonBody, withAdminRoute } from '@/lib/api/with-admin-route';
 
 const SuspendSchema = z.object({
     reason: z.string().min(1).max(500),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
 /** POST /api/admin/users/[id]/suspend */
-export async function POST(request: Request, { params }: Params) {
-    const { id } = await params;
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
-    const { adminId } = result;
+export const POST = withAdminRoute<{ id: string }>('admin/users/[id]/suspend POST', async ({ request, params, adminId }) => {
+    const { id } = params;
 
     if (adminId === id) {
         return NextResponse.json(
@@ -25,7 +20,7 @@ export async function POST(request: Request, { params }: Params) {
         );
     }
 
-    const body: unknown = await request.json();
+    const body: unknown = await readJsonBody(request);
     const parsed = SuspendSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
@@ -59,4 +54,4 @@ export async function POST(request: Request, { params }: Params) {
     });
 
     return ok({ suspended: true });
-}
+});
