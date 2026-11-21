@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/database.types';
 import { ok } from '@/lib/errors';
 import { log } from '@/lib/log';
+import { ilikeAnyFilter, normalizeSearchTerm } from '@/lib/search-filter';
 
 const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
@@ -47,8 +48,9 @@ export async function GET(request: Request) {
     // Build query on the admin_user_view
     let query = supabase.from('admin_user_view').select('*', { count: 'exact' });
 
-    if (search) {
-        query = query.or(`email.ilike.%${search}%,display_name.ilike.%${search}%`);
+    const term = normalizeSearchTerm(search);
+    if (term) {
+        query = query.or(ilikeAnyFilter(['email', 'display_name'], term));
     }
     if (role !== 'all') {
         query = query.eq('role', role);

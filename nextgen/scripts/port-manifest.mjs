@@ -50,6 +50,7 @@ export const PORTED = [
     'request-context.ts',
     'safe-fetch.ts',
     'sanitize.ts',
+    'search-filter.ts',
     'sentry.ts',
     'storage-deletion.ts',
     'storage.ts',

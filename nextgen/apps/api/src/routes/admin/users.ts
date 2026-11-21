@@ -4,6 +4,7 @@ import { setCookie } from 'hono/cookie';
 import { createImpersonationToken, IMPERSONATION_DURATION_SECONDS } from '../../lib/admin/impersonation-token';
 import { passwordSchema } from '../../lib/auth/password';
 import { log } from '../../lib/log';
+import { ilikeAnyFilter, normalizeSearchTerm } from '../../lib/search-filter';
 import { drainStorageDeletionQueue } from '../../lib/storage-deletion';
 import { createAdminClient } from '../../lib/supabase/server';
 import { requireParam, readJsonObject } from '../../lib/http';
@@ -109,8 +110,9 @@ usersRouter.get('/', async (c) => {
 
     let query = (supabase as any).from('admin_user_view').select('*', { count: 'exact' });
 
-    if (search) {
-        query = query.or(`email.ilike.%${search}%,display_name.ilike.%${search}%`);
+    const term = normalizeSearchTerm(search);
+    if (term) {
+        query = query.or(ilikeAnyFilter(['email', 'display_name'], term));
     }
     if (role !== 'all') query = query.eq('role', role);
     if (plan !== 'all') query = query.eq('plan', plan);
