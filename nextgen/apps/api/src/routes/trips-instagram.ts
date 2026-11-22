@@ -13,6 +13,7 @@ import { createAdminClient } from '../lib/supabase/server';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/trips/:id/instagram. Membership is checked by tripGuard (app.ts).
 // Port of src/app/api/trips/[id]/instagram/exports/**.
@@ -33,7 +34,7 @@ const TextOverlaySchema = z.object({
 });
 
 const CreateExportSchema = z.object({
-    mediaIds: z.array(z.string().uuid()).min(1).max(INSTAGRAM_FORMATS.carousel.maxSlides),
+    mediaIds: z.array(guid()).min(1).max(INSTAGRAM_FORMATS.carousel.maxSlides),
     format: z.enum(['carousel', 'story']),
     filter: z.enum(['none', 'warm', 'cool', 'vintage', 'bw', 'vivid']).default('none'),
     textOverlay: TextOverlaySchema.optional(),

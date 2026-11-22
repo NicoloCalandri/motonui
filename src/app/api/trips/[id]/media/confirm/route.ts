@@ -8,10 +8,11 @@ import { ingestUpload } from '@/lib/media/pipeline';
 import { removeMediaFiles, withSignedUrls } from '@/lib/trip-storage';
 import { sanitizePlainText } from '@/lib/sanitize';
 import type { Media } from '@/lib/types';
+import { guid } from '@/lib/ids';
 
 const ConfirmSchema = z.object({
     path: z.string().min(1).max(300),
-    day_id: z.string().uuid().nullable().optional(),
+    day_id: guid().nullable().optional(),
     caption: z.string().max(500).nullable().optional(),
 });
 

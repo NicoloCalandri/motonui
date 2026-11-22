@@ -148,6 +148,7 @@ Una riga per ogni verifica: revisione di PR significative, rilascio, verifica pe
 | | | Parità Auth sul cloud (B10) e Security Advisor senza `auth_leaked_password_protection` | | | | T-4.8 |
 | | | Attivazione backup/PITR e prima prova di restore (B15) | | | | T-4.6 |
 | | | Verifica REST su cloud (B8) | | | | T-0.4, T-0.5 |
+| 2026-11-22 | branch `claude/new-session-7z18qn` | Audit pre-lancio sicurezza + velocità | Claude (su richiesta di Nicolò) | Intero repo, `docs/AUDIT.md` | 🟡 type-check, lint (0 warning), Vitest, build e scansione del bundle verdi; SQL suite (Postgres 16 + stub) 10 file / 91 controlli verdi. Corretti: iniezione di filtri nella ricerca admin, `error.message` nelle risposte admin, cookie senza `Secure`, dipendenze vulnerabili. Poi Zod 4 (D-1): `npm audit --omit=dev` a 0. Aperti: rotazione segreti (SR-DEV-01), CAPTCHA, verifiche sul cloud. | `docs/AUDIT.md` |
 
 ### Eccezioni accettate
 

@@ -3,9 +3,10 @@ import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { ok } from '@/lib/errors';
 import { requireLegInTrip } from '@/lib/authz';
+import { guid } from '@/lib/ids';
 
 const UpdateBaggageItemSchema = z.object({
-    leg_id: z.string().uuid().nullable().optional(),
+    leg_id: guid().nullable().optional(),
     category: z.enum(['cabin_bag', 'cabin_trolley', 'checked', 'other']),
     label: z.string().nullable().optional(),
     length_cm: z.number().positive().nullable().optional(),

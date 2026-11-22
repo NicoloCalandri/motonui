@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { hashJti, readJti } from '@/lib/admin/impersonation-token';
+import { withAdminRoute } from '@/lib/api/with-admin-route';
 
 /** POST /api/admin/impersonate/exit — end an impersonation session */
-export async function POST(request: Request) {
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
+export const POST = withAdminRoute('admin/impersonate/exit POST', async ({ request }) => {
 
     const cookieHeader = request.headers.get('cookie') ?? '';
     const tokenMatch = cookieHeader.match(/impersonation_token=([^;]+)/);
@@ -40,4 +38,4 @@ export async function POST(request: Request) {
     });
 
     return response;
-}
+});

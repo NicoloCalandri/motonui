@@ -1,9 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from './client';
 import { z } from 'zod';
 import { AI_MODELS } from './models';
 import { untrustedBlock, withUntrustedRule } from './untrusted';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
+const anthropic = createAnthropicClient();
 
 interface SEOInput {
     title: string;

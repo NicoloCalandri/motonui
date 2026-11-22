@@ -4,6 +4,7 @@ import { setCookie } from 'hono/cookie';
 import { createImpersonationToken, IMPERSONATION_DURATION_SECONDS } from '../../lib/admin/impersonation-token';
 import { passwordSchema } from '../../lib/auth/password';
 import { log } from '../../lib/log';
+import { ilikeAnyFilter, normalizeSearchTerm } from '../../lib/search-filter';
 import { drainStorageDeletionQueue } from '../../lib/storage-deletion';
 import { createAdminClient } from '../../lib/supabase/server';
 import { requireParam, readJsonObject } from '../../lib/http';
@@ -107,10 +108,12 @@ usersRouter.get('/', async (c) => {
     const { page, pageSize, search, role, plan, suspended, sortBy, sortDir } = parsed.data;
     const supabase = createAdminClient();
 
-    let query = (supabase as any).from('admin_user_view').select('*', { count: 'exact' });
+    let query = (supabase as any).from('admin_user_view')
+        .select('id, email, display_name, avatar_url, role, plan, premium_until, suspended_at, created_at, last_sign_in_at', { count: 'exact' });
 
-    if (search) {
-        query = query.or(`email.ilike.%${search}%,display_name.ilike.%${search}%`);
+    const term = normalizeSearchTerm(search);
+    if (term) {
+        query = query.or(ilikeAnyFilter(['email', 'display_name'], term));
     }
     if (role !== 'all') query = query.eq('role', role);
     if (plan !== 'all') query = query.eq('plan', plan);
@@ -197,7 +200,8 @@ usersRouter.post('/', async (c) => {
         await (supabase as any).from('profiles').update(updates).eq('id', data.user.id);
     }
 
-    return c.json({ user: data.user }, 201);
+    // Only what the admin UI needs: no tokens, identities or auth metadata.
+    return c.json({ user: data.user ? { id: data.user.id, email: data.user.email ?? null } : null }, 201);
 });
 
 /** GET /api/admin/users/:id — full profile of a single user */
@@ -208,7 +212,7 @@ usersRouter.get('/:id', async (c) => {
 
     const { data: userRow, error } = await (supabase as any)
         .from('admin_user_view')
-        .select('*')
+        .select('id, email, display_name, avatar_url, role, plan, premium_until, premium_enabled_at, premium_enabled_by, suspended_at, suspended_reason, created_at, last_sign_in_at')
         .eq('id', id)
         .single();
 
@@ -363,7 +367,9 @@ usersRouter.delete('/:id', async (c) => {
         return c.json({ error: 'Email di conferma non corrisponde.', code: 'VALIDATION_ERROR', status: 400 }, 400);
     }
 
-    await writeAuditLog(supabase, adminId, 'delete', id, { email: userRow.email });
+    // No email in the metadata: the purge sets target_id to null and the row
+    // must not keep the deleted user's personal data (audit A2.7).
+    await writeAuditLog(supabase, adminId, 'delete', id);
 
     // Same purge as self-service deletion (migration 0022): shared trips pass
     // to the partner instead of cascading away, files are queued.

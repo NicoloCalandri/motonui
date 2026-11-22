@@ -18,8 +18,8 @@ class MockNextResponse {
 
 vi.mock('next/server', () => ({ NextResponse: MockNextResponse }));
 
-const ADMIN_ID = 'admin-ccc';
-const TARGET_ID = 'target-ddd';
+const ADMIN_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const TARGET_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const TARGET_EMAIL = 'target@example.com';
 
 const mockRequireAdmin = vi.fn();
@@ -27,9 +27,12 @@ vi.mock('@/lib/auth/require-admin', () => ({
     requireAdmin: mockRequireAdmin,
 }));
 
-vi.mock('@/lib/errors', () => ({
+// Partial mock: withAdminRoute needs the real withErrorHandler and Errors.
+vi.mock('@/lib/errors', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/errors')>()),
     ok: vi.fn((data: unknown) => ({ _ok: true, data })),
 }));
+vi.mock('@/lib/monitoring', () => ({ captureError: vi.fn() }));
 
 const mockDeleteUser = vi.fn();
 const mockAdminUserViewSingle = vi.fn();

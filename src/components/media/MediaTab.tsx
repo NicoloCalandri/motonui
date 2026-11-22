@@ -5,10 +5,13 @@ import useSWR from 'swr';
 import { jsonFetcher } from '@/lib/fetcher';
 import { mediaFullSrc, mediaThumbSrc } from '@/lib/trip-files';
 import { MediaUploadError, uploadTripMedia } from '@/lib/media/upload-client';
-import InstagramGenerator from '@/components/instagram/InstagramGenerator';
+import dynamic from 'next/dynamic';
 import type { MediaWithUrls } from '@/lib/types';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, Image as ImageIcon, Loader2, Trash2, Play } from 'lucide-react';
+
+// Loaded only when the user opens the Instagram generator (audit B2.36).
+const InstagramGenerator = dynamic(() => import('@/components/instagram/InstagramGenerator'), { ssr: false });
 
 interface MediaTabProps { tripId: string }
 

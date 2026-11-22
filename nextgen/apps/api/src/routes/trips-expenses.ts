@@ -10,6 +10,7 @@ import type { Expense } from '@motonui/shared-types';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/trips/:id/expenses
 export const tripsExpensesRouter = new Hono<AppEnv>();
@@ -19,19 +20,19 @@ const CreateExpenseSchema = z.object({
     amount: z.number().positive(),
     currency: z.string().length(3).default('EUR'),
     category: z.enum(['food', 'transport', 'accommodation', 'activity', 'shopping', 'other']),
-    paid_by: z.string().uuid().optional(),
+    paid_by: guid().optional(),
     split: z.boolean().default(true),
     date: z.string().optional(),
-    day_id: z.string().uuid().optional(),
+    day_id: guid().optional(),
     notes: z.string().max(1000).optional(),
 });
 
 const FilterSchema = z.object({
     category: z.enum(['food', 'transport', 'accommodation', 'activity', 'shopping', 'other']).optional(),
-    paid_by: z.string().uuid().optional(),
+    paid_by: guid().optional(),
     from_date: z.string().optional(),
     to_date: z.string().optional(),
-    day_id: z.string().uuid().optional(),
+    day_id: guid().optional(),
 });
 
 /** GET /api/trips/:id/expenses — list with filters, totals, and split */

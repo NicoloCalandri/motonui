@@ -2,7 +2,7 @@
 import { readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ZodTypeAny } from 'zod';
+import type { ZodType } from 'zod';
 import { queryChain } from '@/test/supabase-mock';
 import { zodSample } from '@/test/zod-sample';
 import { CreateLinkDocumentSchema } from './[id]/documents/schema';
@@ -45,7 +45,7 @@ vi.mock('next/server', async (importOriginal) => ({
     after: vi.fn(),
 }));
 
-type RouteConfig = { name: string; params?: ZodTypeAny; query?: ZodTypeAny; body?: ZodTypeAny; tripMember?: boolean };
+type RouteConfig = { name: string; params?: ZodType; query?: ZodType; body?: ZodType; tripMember?: boolean };
 
 /**
  * Valid bodies the schemas cannot express: a `refine` on the MIME type, a

@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createPublicClient } from '@/lib/supabase/public';
-import { getPublishedPost, listRelatedPosts } from '@/lib/blog/public-posts';
+import { cachedPublishedPost, cachedRelatedPosts } from '../cached-posts';
 import { getAppBaseUrl } from '@/lib/url';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -10,16 +9,13 @@ import { Clock, MapPin, ArrowLeft } from 'lucide-react';
 import { renderPostHtml } from '@/lib/blog/render';
 import ShareButton from '../_components/ShareButton';
 
-// Revalidate every hour for caching
-export const revalidate = 3600;
-
 interface Props {
     params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const post = await getPublishedPost(createPublicClient(), slug);
+    const post = await cachedPublishedPost(slug);
 
     if (!post) return { title: 'Post non trovato', robots: { index: false } };
 
@@ -49,13 +45,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 export default async function BlogPostPage({ params }: Props) {
     const { slug } = await params;
-    const supabase = createPublicClient();
 
-    const post = await getPublishedPost(supabase, slug);
+    const post = await cachedPublishedPost(slug);
     if (!post) notFound();
 
     // Other published posts from the same trip
-    const related = await listRelatedPosts(supabase, post);
+    const related = await cachedRelatedPosts(post.id, post.trip_id);
 
     // Tiptap JSON → sanitized HTML for server-side rendering
     const htmlContent = renderPostHtml(post.content_json);
@@ -133,7 +128,7 @@ export default async function BlogPostPage({ params }: Props) {
                         {related.map((rel) => (
                             <Link key={rel.id} href={`/blog/${rel.slug}`} className="card card-interactive group overflow-hidden hover:shadow-card-hover transition-shadow">
                                 {rel.cover_image && (
-                                    <img src={rel.cover_image} alt="" className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    <img src={rel.cover_image} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
                                 )}
                                 <div className="p-4">
                                     <h3 className="font-display font-semibold text-ink-900 text-sm leading-tight group-hover:text-terracotta-500 transition-colors">

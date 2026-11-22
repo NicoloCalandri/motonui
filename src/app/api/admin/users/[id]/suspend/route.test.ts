@@ -18,8 +18,8 @@ class MockNextResponse {
 
 vi.mock('next/server', () => ({ NextResponse: MockNextResponse }));
 
-const ADMIN_ID = 'admin-aaa';
-const TARGET_ID = 'target-bbb';
+const ADMIN_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const TARGET_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 const mockRequireAdmin = vi.fn();
 vi.mock('@/lib/auth/require-admin', () => ({
@@ -39,9 +39,12 @@ const mockFrom = vi.fn((table: string) => {
     return { update: mockUpdate, insert: mockInsert, eq: mockEq };
 });
 
-vi.mock('@/lib/errors', () => ({
+// Partial mock: withAdminRoute needs the real withErrorHandler and Errors.
+vi.mock('@/lib/errors', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/errors')>()),
     ok: vi.fn((data: unknown) => ({ _ok: true, data })),
 }));
+vi.mock('@/lib/monitoring', () => ({ captureError: vi.fn() }));
 
 vi.mock('@/lib/supabase/server', () => ({
     createAdminClient: vi.fn(() => ({ from: mockFrom })),

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
 import type { Database } from '@/lib/supabase/database.types';
 import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
 import { toJson } from '@/lib/json';
 import { log } from '@/lib/log';
+import { readJsonBody, withAdminRoute } from '@/lib/api/with-admin-route';
 
 const DeleteSchema = z.object({
     confirmEmail: z.string().email(),
@@ -26,8 +26,6 @@ const UpdateSchema = z.object({
     })).optional(),
 });
 
-type Params = { params: Promise<{ id: string }> };
-
 async function writeAuditLog(
     supabase: Awaited<ReturnType<typeof createAdminClient>>,
     adminId: string,
@@ -44,16 +42,13 @@ async function writeAuditLog(
 }
 
 /** GET /api/admin/users/[id] — full profile of a single user */
-export async function GET(_req: Request, { params }: Params) {
-    const { id } = await params;
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
-    const { adminId } = result;
+export const GET = withAdminRoute<{ id: string }>('admin/users/[id] GET', async ({ params, adminId }) => {
+    const { id } = params;
 
     const supabase = await createAdminClient();
 
     const { data: userRow, error } = await supabase.from('admin_user_view')
-        .select('*')
+        .select('id, email, display_name, avatar_url, role, plan, premium_until, premium_enabled_at, premium_enabled_by, suspended_at, suspended_reason, created_at, last_sign_in_at')
         .eq('id', id)
         .single();
 
@@ -109,14 +104,11 @@ export async function GET(_req: Request, { params }: Params) {
         expensesByCurrency,
         entitlements: await loadEntitlements(supabase, id),
     });
-}
+});
 
 /** PUT /api/admin/users/[id] — update a user */
-export async function PUT(request: Request, { params }: Params) {
-    const { id } = await params;
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
-    const { adminId } = result;
+export const PUT = withAdminRoute<{ id: string }>('admin/users/[id] PUT', async ({ request, params, adminId }) => {
+    const { id } = params;
 
     if (adminId === id) {
         return NextResponse.json(
@@ -125,7 +117,7 @@ export async function PUT(request: Request, { params }: Params) {
         );
     }
 
-    const body: unknown = await request.json();
+    const body: unknown = await readJsonBody(request);
     const parsed = UpdateSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
@@ -190,14 +182,11 @@ export async function PUT(request: Request, { params }: Params) {
     );
 
     return ok({ updated: true });
-}
+});
 
 /** DELETE /api/admin/users/[id] — delete a user (requires email confirmation) */
-export async function DELETE(request: Request, { params }: Params) {
-    const { id } = await params;
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
-    const { adminId } = result;
+export const DELETE = withAdminRoute<{ id: string }>('admin/users/[id] DELETE', async ({ request, params, adminId }) => {
+    const { id } = params;
 
     if (adminId === id) {
         return NextResponse.json(
@@ -206,7 +195,7 @@ export async function DELETE(request: Request, { params }: Params) {
         );
     }
 
-    const body: unknown = await request.json();
+    const body: unknown = await readJsonBody(request);
     const parsed = DeleteSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
@@ -237,8 +226,10 @@ export async function DELETE(request: Request, { params }: Params) {
         );
     }
 
-    // Write audit log before deletion (target_id preserved for history)
-    await writeAuditLog(supabase, adminId, 'delete', id, { email: userRow.email });
+    // Audit row before deletion. No email in the metadata: the purge sets
+    // target_id to null, and the row must not keep the deleted user's
+    // personal data (audit A2.7, SR-PRIV-04).
+    await writeAuditLog(supabase, adminId, 'delete', id);
 
     // Same purge as self-service deletion (migration 0022, T-2.9): shared
     // trips pass to the partner instead of cascading away, files are queued.
@@ -259,7 +250,7 @@ export async function DELETE(request: Request, { params }: Params) {
     }
 
     return ok({ deleted: true });
-}
+});
 
 async function loadEntitlements(
     supabase: Awaited<ReturnType<typeof createAdminClient>>,

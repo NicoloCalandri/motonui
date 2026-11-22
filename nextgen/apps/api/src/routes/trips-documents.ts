@@ -11,6 +11,7 @@ import { removeDocumentFile } from '../lib/trip-storage';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/trips/:id/documents. Membership is checked by tripGuard (app.ts).
 // Port of src/app/api/trips/[id]/documents/**.
@@ -29,7 +30,7 @@ const httpsUrl = z
 
 const documentFields = {
     entity_type: z.enum(['leg', 'accommodation', 'restaurant', 'activity', 'trip']).optional().nullable(),
-    entity_id: z.string().uuid().optional().nullable(),
+    entity_id: guid().optional().nullable(),
     type: z.enum(['boarding_pass', 'hotel_voucher', 'ticket', 'reservation_confirmation', 'insurance', 'visa', 'other']),
     title: z.string().trim().min(1).max(200),
     file_type: z.enum(['pdf', 'image']).default('image'),

@@ -17,6 +17,10 @@ Procedure manuali per le parti di sicurezza che vivono fuori dal repo (progetto 
 | Rotazione refresh token | `enable_refresh_token_rotation = true`, `refresh_token_reuse_interval = 10` | Sessions → *Detect and revoke compromised refresh tokens* attivo, intervallo 10 s | AUTH-06 |
 | Lunghezza minima password 10 | `minimum_password_length = 10` | Authentication → Policies (o Providers → Email) → *Minimum password length* 10 | AUTH-07 |
 | Lettere e numeri obbligatori | `password_requirements = "letters_digits"` | *Password requirements* → "Letters and digits" | AUTH-07 |
+| Limite di accessi e registrazioni per IP | `[auth.rate_limit] sign_in_sign_ups = 30` (ogni 5 min) | Authentication → Rate Limits → *Sign-ups and sign-ins* 30 / 5 min | AUTH-07 |
+| Limite di refresh token per IP | `token_refresh = 150` (ogni 5 min) | Rate Limits → *Token refreshes* 150 / 5 min | AUTH-06 |
+| Limite di email inviate | `email_sent = 1000` solo in locale (Inbucket) | Rate Limits → *Emails sent*: valore del piano (SMTP integrato: poche all'ora); con SMTP proprio ≤ 30/h | AUTH-07 |
+| CAPTCHA su accesso, registrazione e reset | — (non attivo, vedi `docs/AUDIT.md` A3.16) | Authentication → Attack Protection → *Enable CAPTCHA protection* (Turnstile) quando il widget è nell'app | AUTH-07 |
 | Leaked password protection | — (solo cloud) | *Prevent use of leaked passwords* attivo (HaveIBeenPwned; richiede il piano Pro) | AUTH-07 |
 | Magic link disattivato | nessun flusso OTP nell'app (ADR-06) | Providers → Email: nessun template OTP usato dall'app | — |
 | Redirect consentiti | `site_url`, `additional_redirect_urls` locali | Authentication → URL Configuration: solo il dominio di produzione e i preview Vercel del progetto, niente `*` generici | AUTH-04 |

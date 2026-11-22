@@ -1,12 +1,9 @@
-import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import type { PlatformStats } from '@/lib/types';
+import { withAdminRoute } from '@/lib/api/with-admin-route';
 
 /** GET /api/admin/stats — aggregate platform statistics (cached 5 min) */
-export async function GET() {
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
+export const GET = withAdminRoute('admin/stats GET', async () => {
 
     const supabase = await createAdminClient();
 
@@ -50,4 +47,4 @@ export async function GET() {
             'Cache-Control': 'private, max-age=300',
         },
     });
-}
+});

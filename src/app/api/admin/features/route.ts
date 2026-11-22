@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
 import { toJson } from '@/lib/json';
 import type { Database } from '@/lib/supabase/database.types';
+import { readJsonBody, withAdminRoute } from '@/lib/api/with-admin-route';
 
 const FeatureKeySchema = z.enum(['ai_blog', 'ai_generate_post', 'ai_destination', 'instagram_caption', 'advanced_reminders']);
 
@@ -16,9 +16,7 @@ const UpdateSchema = z.object({
 });
 
 /** GET /api/admin/features — list global feature controls */
-export async function GET() {
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
+export const GET = withAdminRoute('admin/features GET', async () => {
 
     const supabase = await createAdminClient();
     const { data, error } = await supabase.from('feature_controls')
@@ -40,15 +38,12 @@ export async function GET() {
             alertedThresholds: item.alerted_thresholds ?? [],
         })),
     });
-}
+});
 
 /** PUT /api/admin/features — update a global feature control (kill switch/caps) */
-export async function PUT(request: Request) {
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
-    const { adminId } = result;
+export const PUT = withAdminRoute('admin/features PUT', async ({ request, adminId }) => {
 
-    const body: unknown = await request.json();
+    const body: unknown = await readJsonBody(request);
     const parsed = UpdateSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json({ error: 'Payload non valido.' }, { status: 400 });
@@ -85,4 +80,4 @@ export async function PUT(request: Request) {
     });
 
     return ok({ updated: true });
-}
+});

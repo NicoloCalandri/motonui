@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from './client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@motonui/shared-types';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
+const anthropic = createAnthropicClient();
 
 import { DestinationBriefing } from '@motonui/shared-types';
 import { AI_MODELS } from './models';

@@ -35,8 +35,15 @@ enable_confirmations = true
 secure_password_change = true
 
 [auth.rate_limit]
+# Local only: emails land in Inbucket, so sending is not limited here. The
+# cloud project keeps its own email limit (built-in SMTP: a few per hour).
 email_sent = 1000
 token_verifications = 1000
+# Per IP, every 5 minutes: password sign-ins and sign-ups (brute force,
+# audit A3.15) and token refreshes. Same values on the cloud project
+# (docs/security/05-OPS-RUNBOOK.md §1).
+sign_in_sign_ups = 30
+token_refresh = 150
 
 [auth.external.google]
 enabled = false  # Set to true and add client_id/secret for local Google OAuth testing

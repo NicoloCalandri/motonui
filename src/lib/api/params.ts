@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { guid } from '@/lib/ids';
 
-const uuid = z.string().uuid();
+const uuid = guid();
 
 /**
  * Zod schema for trip route params: `id` plus any nested ids, all UUIDs.

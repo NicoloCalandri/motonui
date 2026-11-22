@@ -4,16 +4,17 @@ import { withRoute } from '@/lib/api/with-route';
 import { idParams } from '@/lib/api/params';
 import { requireDayInTrip, requireTripMember, requireTripPayer } from '@/lib/authz';
 import { sanitizePlainText } from '@/lib/sanitize';
+import { guid } from '@/lib/ids';
 
 const UpdateExpenseSchema = z.object({
     description: z.string().min(1).max(500).optional(),
     amount: z.number().positive().optional(),
     currency: z.string().length(3).optional(),
     category: z.enum(['food', 'transport', 'accommodation', 'activity', 'shopping', 'other']).optional(),
-    paid_by: z.string().uuid().optional(),
+    paid_by: guid().optional(),
     split: z.boolean().optional(),
     date: z.string().optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
     notes: z.string().max(1000).optional().nullable(),
 });
 

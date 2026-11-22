@@ -1,25 +1,24 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
 import { log } from '@/lib/log';
+import { withAdminRoute } from '@/lib/api/with-admin-route';
+import { guid } from '@/lib/ids';
 
 const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
     pageSize:  z.coerce.number().min(1).max(100).default(25),
-    adminId:   z.string().uuid().optional(),
+    adminId:   guid().optional(),
     action:    z.enum(['impersonate', 'suspend', 'unsuspend', 'delete', 'view_profile', 'update_user', 'premium_update', 'all']).default('all'),
-    targetId:  z.string().uuid().optional(),
+    targetId:  guid().optional(),
     dateFrom:  z.string().optional(),
     dateTo:    z.string().optional(),
     export:    z.enum(['csv']).optional(),
 });
 
 /** GET /api/admin/audit-log — paginated, filterable audit log */
-export async function GET(request: Request) {
-    const result = await requireAdmin();
-    if (result instanceof NextResponse) return result;
+export const GET = withAdminRoute('admin/audit-log GET', async ({ request }) => {
 
     const { searchParams } = new URL(request.url);
     const parsed = QuerySchema.safeParse(Object.fromEntries(searchParams));
@@ -34,7 +33,7 @@ export async function GET(request: Request) {
     const supabase = await createAdminClient();
 
     let query = supabase.from('admin_audit_log')
-        .select('*', { count: 'exact' })
+        .select('id, admin_id, action, target_id, metadata, created_at', { count: 'exact' })
         .order('created_at', { ascending: false });
 
     if (adminId)  query = query.eq('admin_id', adminId);
@@ -80,7 +79,7 @@ export async function GET(request: Request) {
     }));
 
     return ok({ data: entries, total: count ?? 0, page, pageSize });
-}
+});
 
 function toCsv(rows: Record<string, unknown>[]): string {
     if (rows.length === 0) return '';

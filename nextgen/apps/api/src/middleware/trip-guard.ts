@@ -1,11 +1,11 @@
 import { createMiddleware } from 'hono/factory';
-import { z } from 'zod';
 import { Errors } from '../lib/errors';
 import { requireTripMember } from '../lib/authz';
 import { requireUser } from './auth';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
-const tripId = z.string().uuid();
+const tripId = guid();
 
 const validTripId = createMiddleware<AppEnv>(async (c, next) => {
     if (!tripId.safeParse(c.req.param('id')).success) {

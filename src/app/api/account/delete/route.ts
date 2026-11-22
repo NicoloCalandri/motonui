@@ -6,7 +6,7 @@ import { drainStorageDeletionQueue } from '@/lib/storage-deletion';
 import { log } from '@/lib/log';
 
 const DeleteAccountSchema = z.object({
-    confirm: z.literal('ELIMINA', { errorMap: () => ({ message: 'scrivi ELIMINA per confermare' }) }),
+    confirm: z.literal('ELIMINA', { message: 'scrivi ELIMINA per confermare' }),
 });
 
 /**

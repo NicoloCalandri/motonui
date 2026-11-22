@@ -9,6 +9,7 @@ import { upsertActivityReminder } from '../lib/reminders';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/trips/:id/activities
 export const tripsActivitiesRouter = new Hono<AppEnv>();
@@ -25,7 +26,7 @@ const CreateActivitySchema = z.object({
     booking_ref: z.string().max(100).optional().nullable(),
     ticket_url: z.string().url().optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 const UpdateActivitySchema = z.object({
@@ -40,7 +41,7 @@ const UpdateActivitySchema = z.object({
     booking_ref: z.string().max(100).optional().nullable(),
     ticket_url: z.string().url().optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 /** GET /api/trips/:id/activities — list all activities for a trip */

@@ -3,6 +3,7 @@ import { Errors, ok } from '@/lib/errors';
 import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { postContentSchema } from '@/lib/blog/content-schema';
+import { revalidateBlog } from '@/app/(public)/blog/cached-posts';
 
 const UpdatePostSchema = z.object({
     title: z.string().min(1).optional(),
@@ -55,6 +56,8 @@ export const PUT = withRoute(
     if (error) throw new Error(`[motonui][posts][PUT] ${error.message}`);
     if (!post) throw Errors.notFound('Post');
 
+    // Published, unpublished or edited: the public blog drops its cached copy (audit B1.33).
+    revalidateBlog();
     return ok(post);
 });
 
@@ -73,5 +76,6 @@ export const DELETE = withRoute(
 
     if (error) throw Errors.notFound('Post');
 
+    revalidateBlog();
     return ok({ success: true });
 });

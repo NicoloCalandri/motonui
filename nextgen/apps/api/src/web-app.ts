@@ -57,9 +57,9 @@ export function contentSecurityPolicy(
     const directives: Record<string, string[]> = {
         'default-src': ["'self'"],
         'script-src': ["'self'"],
-        'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://api.mapbox.com'],
+        'style-src': ["'self'", "'unsafe-inline'", 'https://api.mapbox.com'],
         'img-src': ["'self'", 'data:', 'blob:', 'https:', ...own.filter((origin) => origin.startsWith('http'))],
-        'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+        'font-src': ["'self'", 'data:'],
         'connect-src': ["'self'", ...SUPABASE, ...MAPBOX, ...SENTRY, ...own],
         'worker-src': ["'self'", 'blob:'],
         'child-src': ["'self'", 'blob:'],

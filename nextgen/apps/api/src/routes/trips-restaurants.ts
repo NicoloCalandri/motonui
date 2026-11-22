@@ -9,6 +9,7 @@ import { upsertRestaurantReminder } from '../lib/reminders';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/trips/:id/restaurants
 export const tripsRestaurantsRouter = new Hono<AppEnv>();
@@ -26,7 +27,7 @@ const CreateRestaurantSchema = z.object({
     confirmation_url: z.string().url().optional().nullable(),
     phone: z.string().max(30).optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 const UpdateRestaurantSchema = z.object({
@@ -42,7 +43,7 @@ const UpdateRestaurantSchema = z.object({
     confirmation_url: z.string().url().optional().nullable(),
     phone: z.string().max(30).optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 /** GET /api/trips/:id/restaurants — list all restaurants for a trip */

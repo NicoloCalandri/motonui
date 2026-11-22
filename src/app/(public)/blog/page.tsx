@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { createPublicClient } from '@/lib/supabase/public';
-import { listPublishedPosts } from '@/lib/blog/public-posts';
+import { cachedPublishedPosts } from './cached-posts';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Clock, MapPin } from 'lucide-react';
@@ -11,16 +10,13 @@ export const metadata: Metadata = {
     description: 'Storie di viaggio di Nicolò e Giorgia. Destinazioni, consigli e avventure di coppia.',
 };
 
-// Revalidate every hour for public caching
-export const revalidate = 3600;
-
 /**
  * Public blog index — accessible without authentication (T-5.1): server
  * component, anonymous client, no auth call in the browser.
  * Lists all published posts ordered by newest first.
  */
 export default async function BlogIndexPage() {
-    const allPosts = await listPublishedPosts(createPublicClient());
+    const allPosts = await cachedPublishedPosts();
 
     return (
         <div className="max-w-5xl mx-auto pb-20 animate-fade-in">

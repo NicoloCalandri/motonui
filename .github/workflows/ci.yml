@@ -176,6 +176,10 @@ jobs:
       - name: Next.js build
         run: npm run build
 
+      # Audit A1: no server-only variable or key shape in .next/static.
+      - name: Client bundle secret scan
+        run: npm run check:bundle
+
       - name: Upload Build Artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

@@ -21,6 +21,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+    // No `X-Powered-By: Next.js`: it only tells a scanner what to try (audit A5).
+    poweredByHeader: false,
     images: {
         remotePatterns: [
             {

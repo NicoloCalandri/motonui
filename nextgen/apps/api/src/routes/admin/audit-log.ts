@@ -5,15 +5,16 @@ import { requireUser } from '../../middleware/auth';
 import { loadProfile } from '../../middleware/profile';
 import { requireAdmin } from '../../middleware/admin';
 import type { AppEnv } from '../../types';
+import { guid } from '../../lib/ids';
 
 export const auditLogRouter = new Hono<AppEnv>();
 
 const QuerySchema = z.object({
     page: z.coerce.number().min(1).default(1),
     pageSize: z.coerce.number().min(1).max(100).default(25),
-    adminId: z.string().uuid().optional(),
+    adminId: guid().optional(),
     action: z.enum(['impersonate', 'suspend', 'unsuspend', 'delete', 'view_profile', 'update_user', 'premium_update', 'all']).default('all'),
-    targetId: z.string().uuid().optional(),
+    targetId: guid().optional(),
     dateFrom: z.string().optional(),
     dateTo: z.string().optional(),
     export: z.enum(['csv']).optional(),
@@ -41,7 +42,7 @@ auditLogRouter.get('/', requireUser, loadProfile, requireAdmin, async (c) => {
 
     let query = (supabase as any)
         .from('admin_audit_log')
-        .select('*', { count: 'exact' })
+        .select('id, admin_id, action, target_id, metadata, created_at', { count: 'exact' })
         .order('created_at', { ascending: false });
 
     if (adminId) query = query.eq('admin_id', adminId);

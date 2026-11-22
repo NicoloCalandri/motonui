@@ -30,6 +30,8 @@ export default function LocationSearch({
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // The previous geocoding request, cancelled when a newer query starts (audit B2.41).
+    const requestRef = useRef<AbortController | null>(null);
 
     // Reset internal value when parent signals a new initial value (drawer re-open)
     useEffect(() => {
@@ -43,6 +45,7 @@ export default function LocationSearch({
         onTextChange?.(value);
 
         if (debounceRef.current) clearTimeout(debounceRef.current);
+        requestRef.current?.abort();
         if (value.length < 2) {
             setResults([]);
             setOpen(false);
@@ -50,6 +53,8 @@ export default function LocationSearch({
         }
 
         debounceRef.current = setTimeout(async () => {
+            const controller = new AbortController();
+            requestRef.current = controller;
             try {
                 setLoading(true);
                 const token = mapboxToken();
@@ -57,7 +62,8 @@ export default function LocationSearch({
 
                 const res = await fetch(
                     `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json` +
-                        `?access_token=${token}&language=it&limit=5`
+                        `?access_token=${token}&language=it&limit=5`,
+                    { signal: controller.signal },
                 );
                 if (!res.ok) return;
 
@@ -78,9 +84,9 @@ export default function LocationSearch({
             } catch {
                 // ignore network errors silently
             } finally {
-                setLoading(false);
+                if (requestRef.current === controller) setLoading(false);
             }
-        }, 350);
+        }, 300);
     };
 
     const handleSelect = (r: LocationResult) => {

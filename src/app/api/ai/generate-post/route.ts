@@ -7,9 +7,10 @@ import { ok, Errors } from '@/lib/errors';
 import { fromCents } from '@/lib/currency';
 import { eurCents } from '@/lib/expenses';
 import { toJson } from '@/lib/json';
+import { guid } from '@/lib/ids';
 
 const Schema = z.object({
-    tripId: z.string().uuid(),
+    tripId: guid(),
     language: z.enum(['it', 'en']).default('it'),
     save: z.boolean().default(false),
     title: z.string().min(1).max(300).optional(),

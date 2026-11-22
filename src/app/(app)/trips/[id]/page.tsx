@@ -9,6 +9,7 @@ import { it } from 'date-fns/locale';
 import { ArrowLeft, MapPin, Calendar, Users, Map, DollarSign, Images, BookOpen, ClipboardList, Wallet, CalendarDays, Backpack } from 'lucide-react';
 import { jsonFetcher } from '@/lib/fetcher';
 import type { TripWithDetails } from '@/lib/types';
+import { TripDetailSkeleton } from '@/components/ui/skeleton';
 
 // Tab imports are lazy-loaded to reduce initial bundle
 import dynamic from 'next/dynamic';
@@ -57,16 +58,7 @@ export default function TripPage() {
     const handleDaysChange = (days: TripWithDetails['days']) => patchTrip({ days });
     const fetchTrip = () => { void mutate(); };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3 text-ink-400">
-                    <div className="w-8 h-8 border-2 border-terracotta-400 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm">Caricamento viaggio...</span>
-                </div>
-            </div>
-        );
-    }
+    if (isLoading) return <TripDetailSkeleton />;
 
     if (!trip) {
         return (
@@ -82,7 +74,7 @@ export default function TripPage() {
         <div className="flex flex-col min-h-screen">
             {/* Hero */}
             <div className="relative h-48 md:h-72 overflow-hidden flex-shrink-0">
-                <img src={trip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'} alt={trip.title} className="w-full h-full object-cover" />
+                <img src={trip.cover_image ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1'} alt={trip.title} className="w-full h-full object-cover" fetchPriority="high" decoding="async" />
                 <div className="absolute inset-0 hero-gradient" />
 
                 {/* Back button */}

@@ -7,12 +7,13 @@ import { requireTripMember, requireLegInTrip } from '../lib/authz';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/trips/:id/baggage
 export const tripsBaggageRouter = new Hono<AppEnv>();
 
 const CreateBaggageItemSchema = z.object({
-    leg_id: z.string().uuid().nullable().optional(),
+    leg_id: guid().nullable().optional(),
     category: z.enum(['cabin_bag', 'cabin_trolley', 'checked', 'other']),
     label: z.string().nullable().optional(),
     length_cm: z.number().positive().nullable().optional(),
