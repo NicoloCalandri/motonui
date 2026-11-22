@@ -7,10 +7,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Globe, FileText, Loader2, Eye } from 'lucide-react';
-import PostEditor from '@/components/blog/PostEditor';
+import dynamic from 'next/dynamic';
 import { jsonFetcher } from '@/lib/fetcher';
 import { safeTiptapDocument } from '@/lib/sanitize';
 import type { Post, TiptapDoc } from '@/lib/types';
+
+// Tiptap and ProseMirror (~300 KB) load in their own chunk, after the form (audit B2.36).
+const PostEditor = dynamic(() => import('@/components/blog/PostEditor'), {
+    ssr: false,
+    loading: () => <div className="h-64 rounded-xl bg-sand-200 animate-pulse" aria-hidden="true" />,
+});
 
 const MetaSchema = z.object({
     title: z.string().min(1, 'Titolo richiesto'),
