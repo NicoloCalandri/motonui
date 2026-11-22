@@ -14,19 +14,19 @@ Stati: **Fatto** (implementato e verificabile) · **Parziale** (presente ma con 
 
 | Totale | Fatto | Parziale | Da fare |
 |---|---|---|---|
-| **66** | 57 | 6 | 3 |
+| **66** | 59 | 4 | 3 |
 
 | Area | Requisiti | Fatto | Parziale | Da fare | di cui P0 aperti |
 |---|---|---|---|---|---|
 | SR-AUTH · Autenticazione | 7 | 5 | 2 | 0 | 0 |
 | SR-AUTHZ · Autorizzazione e isolamento dei dati | 10 | 10 | 0 | 0 | 0 |
-| SR-INPUT · Validazione dell'input | 7 | 6 | 1 | 0 | 0 |
+| SR-INPUT · Validazione dell'input | 7 | 7 | 0 | 0 | 0 |
 | SR-DEV · Ambiente di sviluppo e segreti nel repo | 5 | 3 | 1 | 1 | 1 |
 | SR-CRYPTO · Crittografia e token | 5 | 5 | 0 | 0 | 0 |
 | SR-INT · Integrazioni esterne | 7 | 6 | 0 | 1 | 0 |
 | SR-PRIV · Privacy e dati personali | 7 | 7 | 0 | 0 | 0 |
 | SR-OPS · Operatività | 5 | 3 | 1 | 1 | 0 |
-| SR-WEB · Sicurezza web | 6 | 5 | 1 | 0 | 0 |
+| SR-WEB · Sicurezza web | 6 | 6 | 0 | 0 | 0 |
 | SR-SDLC · Ciclo di sviluppo | 7 | 7 | 0 | 0 | 0 |
 
 **Nota sui numeri.** La richiesta iniziale indicava una ripartizione 37 fatti / 7 parziali / 22 da fare. Verificando requisito per requisito sul codice attuale la ripartizione reale è quella sopra: diversi controlli che la documentazione esistente (`docs/SECURITY.md`) segna come fatti risultano parziali o aggirabili, per esempio la RLS sui profili, i bucket pubblici e il cron. Il registro riporta lo stato verificato, non quello dichiarato.
@@ -68,7 +68,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 
 | Codice | Requisito | Priorità | Stato | Verifica | Note |
 |---|---|---|---|---|---|
-| SR-INPUT-01 | Tutti gli input delle API sono validati con Zod, compresi query string e `multipart` | P1 | 🟡 Parziale | `withRoute` valida params (UUID), query e body; `src/lib/validation.ts` | T-1.3; T-3.8: tutte le route `/api/trips/**` sono su `withRoute` (id UUID validati prima della membership, filtri spese come schema `query`) e `route-contract.test.ts` genera dagli schemi, per ogni handler, una richiesta valida, una non valida (400) e una da non membro (403). Restano le route admin; `multipart` ancora letto con cast in `media/route.ts`. |
+| SR-INPUT-01 | Tutti gli input delle API sono validati con Zod, compresi query string e `multipart` | P1 | ✅ Fatto | `withRoute` valida params (UUID), query e body; `src/lib/validation.ts` | T-1.3; T-3.8: tutte le route `/api/trips/**` sono su `withRoute` (id UUID validati prima della membership, filtri spese come schema `query`) e `route-contract.test.ts` genera dagli schemi, per ogni handler, una richiesta valida, una non valida (400) e una da non membro (403). Audit 2026-11: le route `/api/admin/*` passano da `withAdminRoute` (id UUID, JSON malformato → 400) con schemi Zod su query e body; `admin-routes.test.ts`. I `multipart` rimasti (documenti, carte d'imbarco, avatar) controllano `instanceof File` e poi `validateFile`; le foto non passano più dalle route. |
 | SR-INPUT-02 | Upload: whitelist MIME, controllo magic bytes, limite 50 MB lato server | P1 | ✅ Fatto | `src/lib/storage.ts`; test `src/lib/storage.test.ts` | — |
 | SR-INPUT-03 | Gli errori di validazione restituiscono 400 con messaggio leggibile | P3 | ✅ Fatto | `formatZodError` in `src/lib/validation.ts` (test `validation.test.ts`), usato da `withRoute` e da tutte le route con `Errors.validation`; `validateFile` lancia un `AppError` 400 | T-1.4. Messaggi `campo: motivo` in italiano, senza valori in ingresso. |
 | SR-INPUT-04 | Il contenuto Tiptap è sanificato in scrittura (whitelist di nodi, marks, protocolli URL, limiti di profondità) | P1 | ✅ Fatto | `src/lib/sanitize.ts`; test `src/lib/sanitize.test.ts` | — |
@@ -136,9 +136,9 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 |---|---|---|---|---|---|
 | SR-WEB-01 | Header di sicurezza: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy | P1 | ✅ Fatto | `next.config.ts` (unico posto per gli header statici, più `Cross-Origin-Opener-Policy`) | T-4.4. Rimossi gli header di `vercel.json` (Permissions-Policy diversa, `X-XSS-Protection` deprecato). |
 | SR-WEB-02 | CSP senza `unsafe-eval` e con script a nonce | P2 | ✅ Fatto | `src/lib/csp.ts`, `src/proxy.ts` (nonce per richiesta su richiesta e risposta), `src/app/layout.tsx` (rendering dinamico); test `csp.test.ts`, `src/proxy.test.ts` | T-4.4. Verificato su build di produzione con Playwright: script con `nonce`, zero violazioni CSP, pagine idratate. `connect-src` senza `api.anthropic.com`. Dipende dal middleware in `src/` (#109). Da verificare dopo il deploy: securityheaders.com grado A. |
-| SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` | — |
+| SR-WEB-03 | Cookie sensibili `HttpOnly`, `Secure`, `SameSite` | P1 | ✅ Fatto | `impersonate/route.ts:76-89`; cookie Supabase via `@supabase/ssr` con `src/lib/supabase/cookie-options.ts`; test `cookie-options.test.ts` | Audit 2026-11: `@supabase/ssr` non metteva `Secure`, ora sì in HTTPS (`SameSite=Lax`). Il cookie di sessione Supabase non è `HttpOnly` per scelta: lo legge il client browser. |
 | SR-WEB-04 | Protezione CSRF sulle route che modificano stato (controllo `Origin`) | P2 | ✅ Fatto | `src/proxy.ts` (`Origin` / `Sec-Fetch-Site` sui metodi di scrittura di `/api/*`); test `src/proxy.test.ts` | T-1.9. Oltre a `SameSite=Lax`. Le route cron sono escluse (server-to-server, segreto proprio). **Attivo in produzione solo da quando il middleware sta in `src/`:** in radice Next.js lo ignorava (con `src/app` carica solo `src/proxy.ts`), quindi questo controllo, il 401 JSON, il blocco dei sospesi e la sola lettura dell'impersonazione non giravano. Guardia: `src/proxy-location.test.ts`. |
-| SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | 🟡 Parziale | `src/lib/errors.ts`, `withRoute`; test `errors.test.ts`, `with-route.test.ts` | Le route `/api/ai/*` ora passano da `withRoute`; restano le route `/api/admin/*` senza `withErrorHandler`. |
+| SR-WEB-05 | Nessun dettaglio interno negli errori restituiti al client | P1 | ✅ Fatto | `src/lib/errors.ts`, `withRoute`; test `errors.test.ts`, `with-route.test.ts` | Le route `/api/ai/*` passano da `withRoute`, le `/api/admin/*` da `withAdminRoute` (audit 2026-11: tolti due `error.message` restituiti al client); `admin-routes.test.ts` vieta `error.message` nelle risposte. |
 | SR-WEB-06 | Rate limiting sulle route pubbliche e su quelle costose (upload, export, AI) | P2 | ✅ Fatto | Migration `0024_rate_limits.sql` (`check_rate_limit` atomica a finestra fissa, solo service role; `prune_rate_limits` nel cron di cleanup), `src/lib/rate-limit.ts`, opzione `rateLimit` di `withRoute`; test `rate-limit.test.ts`, `rate-limit.route.test.ts`, `0024_rate_limits.test.sql` | T-4.5. Per IP (hash SHA-256, mai in chiaro) su `/api/posts/[slug]` 60/min; per utente: upload foto 300/h, documenti/carte d'imbarco/avatar 60/h, export Instagram 10/h, AI 10/min oltre alla quota giornaliera. Oltre soglia 429 con `Retry-After`. Fail open se il contatore non risponde (errore loggato). |
 
 ## SR-SDLC — Ciclo di sviluppo
@@ -150,7 +150,7 @@ Chiusi in codice con la migration `0016` (da verificare sul cloud dopo il deploy
 | SR-SDLC-03 | Coverage ≥ 70% su `src/lib/`, imposta in CI | P2 | ✅ Fatto | `vitest.config.ts` (soglie righe/istruzioni/funzioni 70%, branch 60%; esclusi solo `src/lib/supabase/**`), job CI Unit Tests con `npm run test:coverage` e report caricato | T-3.1. Al 29/09/2026: 81% righe, 79% istruzioni, 66% branch. La CI fallisce sotto soglia. |
 | SR-SDLC-04 | Test automatici delle policy RLS con utente anonimo, estraneo, partner | P1 | ✅ Fatto | `supabase/tests/rls_matrix.test.sql` (matrice SELECT/INSERT/UPDATE/DELETE × anonimo/estraneo/partner/owner su ogni tabella con `trip_id`), `supabase/tests/0016_phase0_rls.test.sql` (regressioni S-02/S-03/S-04); job CI `rls-tests` (Postgres 15 + `supabase/tests/support/supabase-stub.sql`) | T-1.1, T-1.2. Una nuova tabella di viaggio senza fixture fa fallire il test. |
 | SR-SDLC-05 | Secret scanning in CI e pre-commit | P1 | ✅ Fatto | job `secrets-scan` in `.github/workflows/ci.yml` (bloccante), `.gitleaks.toml`, `.pre-commit-config.yaml` | T-0.3. Scansiona l'albero, non la storia (già esposta: vedi SR-DEV-01). |
-| SR-SDLC-06 | Aggiornamenti e audit delle dipendenze | P2 | ✅ Fatto | `.github/dependabot.yml` (npm root, npm `mobile/`, GitHub Actions; settimanale, minor/patch raggruppati), job CI `dependency-audit` (`npm audit --omit=dev --audit-level=high`, bloccante) | T-4.7. Le dipendenze di sviluppo (eslint-config-next, catena tailwind) e `mobile/` restano in report non bloccante, coperte da Dependabot. `sharp` portato a 0.35.5, `postcss`/`source-map-js` forzati con `overrides`. |
+| SR-SDLC-06 | Aggiornamenti e audit delle dipendenze | P2 | ✅ Fatto | `.github/dependabot.yml` (npm root, npm `mobile/`, GitHub Actions; settimanale, minor/patch raggruppati), job CI `dependency-audit` (`npm audit --omit=dev --audit-level=high`, bloccante) | T-4.7. Le dipendenze di sviluppo (eslint-config-next, catena tailwind) e `mobile/` restano in report non bloccante, coperte da Dependabot. `sharp` portato a 0.35.5, `postcss`/`source-map-js` forzati con `overrides`. Audit 2026-11: next 16.4.6, Tiptap 3.35, happy-dom 21.0.4, Sentry 11.16; resta `zod` 3 (advisory high, migrazione D-1): il job è rosso finché non si chiude. |
 | SR-SDLC-07 | GitHub Actions con permessi minimi e azioni fissate per SHA | P2 | ✅ Fatto | `.github/workflows/*.yml`: `permissions: contents: read` a livello di workflow (preview: `pull-requests: write` solo nel job che commenta), ogni `uses:` fissato per SHA con la versione in commento, `persist-credentials: false` nei job con segreti | T-4.1. `amondnet/vercel-action` sostituita dalla CLI ufficiale `vercel@62.4.0`: il token non passa più da codice di terze parti. |
 
 ## Manutenzione del registro
