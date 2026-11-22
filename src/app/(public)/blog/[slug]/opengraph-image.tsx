@@ -1,6 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { createPublicClient } from '@/lib/supabase/public';
-import { getPublishedPost } from '@/lib/blog/public-posts';
+import { cachedPublishedPost } from '../cached-posts';
 import { OG_SIZE, PostOgCard } from '@/components/blog/post-og-card';
 
 /**
@@ -18,7 +17,7 @@ interface Props {
 
 export default async function Image({ params }: Props) {
     const { slug } = await params;
-    const post = await getPublishedPost(createPublicClient(), slug);
+    const post = await cachedPublishedPost(slug);
 
     return new ImageResponse(
         (

@@ -3,6 +3,7 @@ import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { ok, created } from '@/lib/errors';
 import { postContentSchema } from '@/lib/blog/content-schema';
+import { revalidateBlog } from '@/app/(public)/blog/cached-posts';
 
 const CreatePostSchema = z.object({
     title: z.string().min(1).max(300),
@@ -48,5 +49,6 @@ export const POST = withRoute(
 
     if (error) throw new Error(`[motonui][posts][POST] ${error.message}`);
 
+    if (post.status === 'published') revalidateBlog();
     return created(post);
 });

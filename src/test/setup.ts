@@ -45,3 +45,11 @@ vi.mock('lucide-react', async () => {
     },
   });
 });
+
+// next/cache outside a Next.js server: unstable_cache runs the function, revalidation is a no-op.
+vi.mock('next/cache', () => ({
+  unstable_cache: <T extends (...args: never[]) => unknown>(fn: T) => fn,
+  revalidateTag: vi.fn(),
+  revalidatePath: vi.fn(),
+  updateTag: vi.fn(),
+}));

@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { createPublicClient } from '@/lib/supabase/public';
-import { listSitemapPosts } from '@/lib/blog/public-posts';
+import { cachedSitemapPosts } from './(public)/blog/cached-posts';
 import { getAppBaseUrl } from '@/lib/url';
 
 // Rendered per request: a post published a minute ago is listed at once, and
@@ -10,7 +9,7 @@ export const dynamic = 'force-dynamic';
 /** /sitemap.xml (T-5.2): home, blog index and every published post. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const base = getAppBaseUrl();
-    const posts = await listSitemapPosts(createPublicClient());
+    const posts = await cachedSitemapPosts();
     const url = (path: string) => new URL(path, base).toString();
 
     return [

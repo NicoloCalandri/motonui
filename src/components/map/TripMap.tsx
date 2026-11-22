@@ -153,13 +153,32 @@ export default function TripMap({ legs, height = 350 }: TripMapProps) {
             });
         };
 
-        initMap().catch((err) => {
-            console.error('[motonui][TripMap]', err);
-            setError(MAP_UNAVAILABLE);
-        });
+        const start = () => {
+            initMap().catch((err) => {
+                console.error('[motonui][TripMap]', err);
+                setError(MAP_UNAVAILABLE);
+            });
+        };
+
+        // Mapbox GL (~1 MB of JS plus tiles) loads only once the map is about
+        // to scroll into view (audit B1.32); browsers without the observer
+        // load it right away.
+        let observer: IntersectionObserver | undefined;
+        if (typeof IntersectionObserver === 'undefined') {
+            start();
+        } else {
+            observer = new IntersectionObserver((entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) {
+                    observer?.disconnect();
+                    start();
+                }
+            }, { rootMargin: '200px' });
+            observer.observe(containerRef.current);
+        }
 
         return () => {
             cancelled = true;
+            observer?.disconnect();
             map?.remove();
         };
     }, [legs]);

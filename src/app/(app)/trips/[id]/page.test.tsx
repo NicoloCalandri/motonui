@@ -51,7 +51,7 @@ describe('TripPage', () => {
         // Don't resolve the fetch immediately
         global.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
         render(<TripPage />, { wrapper: SWRTestProvider });
-        expect(screen.getByText(/Caricamento viaggio/i)).toBeDefined();
+        expect(screen.getByRole("status").textContent).toMatch(/Caricamento del viaggio/i);
     });
 
     it('renders trip title and destination after loading', async () => {
