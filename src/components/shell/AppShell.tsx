@@ -10,6 +10,7 @@ import ImpersonationBanner from '@/components/admin/impersonation-banner';
 import { SWRConfig } from 'swr';
 import { useProfile, type ProfileResponse } from '@/lib/hooks/use-profile';
 import UserMenu from './UserMenu';
+import OfflineBanner from './OfflineBanner';
 
 interface AppShellProps {
     children: React.ReactNode;
@@ -61,6 +62,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex flex-col min-h-screen bg-canvas text-ink">
             <ImpersonationBanner />
+            <OfflineBanner />
             <div className="flex flex-1">
                 <aside className="hidden md:flex flex-col items-center w-[92px] shrink-0 bg-sidebar py-7 px-3 gap-7 sticky top-0 h-screen">
                     <div aria-hidden="true" className="w-11 h-11 rounded-[14px] bg-white/10 flex items-center justify-center text-white font-display font-bold text-xl">

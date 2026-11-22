@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { Figtree, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { getAppBaseUrl } from '@/lib/url';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const figtree = Figtree({
     subsets: ['latin'],
@@ -29,7 +30,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     await headers();
     return (
         <html lang="it" className={`${figtree.variable} ${playfair.variable}`}>
-            <body className="font-sans antialiased">{children}</body>
+            <body className="font-sans antialiased">
+                {children}
+                {/* Real-user Web Vitals (LCP, INP, CLS) on Vercel, audit B5.58: the
+                    script comes from our own origin (/_vercel/…), after hydration. */}
+                <SpeedInsights />
+            </body>
         </html>
     );
 }
