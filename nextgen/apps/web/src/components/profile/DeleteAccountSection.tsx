@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Loader2, Trash2 } from 'lucide-react';
 
 const ConfirmSchema = z.object({
-    confirm: z.literal('ELIMINA', { errorMap: () => ({ message: 'Scrivi ELIMINA per confermare' }) }),
+    confirm: z.literal('ELIMINA', { message: 'Scrivi ELIMINA per confermare' }),
 });
 
 type ConfirmValues = z.infer<typeof ConfirmSchema>;

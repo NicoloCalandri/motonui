@@ -3,6 +3,7 @@ import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { Errors, ok } from '@/lib/errors';
 import { upsertActivityReminder } from '@/lib/reminders';
+import { guid } from '@/lib/ids';
 
 const UpdateActivitySchema = z.object({
     name: z.string().min(1).max(200).optional(),
@@ -16,7 +17,7 @@ const UpdateActivitySchema = z.object({
     booking_ref: z.string().max(100).optional().nullable(),
     ticket_url: z.string().url().optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 /** PUT /api/trips/[id]/activities/[activityId] */

@@ -3,6 +3,7 @@ import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { Errors, ok } from '@/lib/errors';
 import { upsertRestaurantReminder } from '@/lib/reminders';
+import { guid } from '@/lib/ids';
 
 const UpdateRestaurantSchema = z.object({
     name: z.string().min(1).max(200).optional(),
@@ -17,7 +18,7 @@ const UpdateRestaurantSchema = z.object({
     confirmation_url: z.string().url().optional().nullable(),
     phone: z.string().max(30).optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 /** PUT /api/trips/[id]/restaurants/[restaurantId] */

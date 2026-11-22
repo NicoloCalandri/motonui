@@ -18,8 +18,6 @@ updates:
     # today (see docs/tasks.md, "Migrazioni di dipendenze"). Minor and patch
     # releases of these packages still arrive through the group above.
     ignore:
-      - dependency-name: zod
-        update-types: [version-update:semver-major]
       - dependency-name: tailwindcss
         update-types: [version-update:semver-major]
       - dependency-name: '@tiptap/*'

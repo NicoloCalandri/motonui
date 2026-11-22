@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
+import { guid } from '@/lib/ids';
 
 const mockGetUser = vi.fn();
 const supabaseClient = { auth: { getUser: mockGetUser }, from: vi.fn() };
@@ -17,7 +18,7 @@ const TRIP = '11111111-1111-1111-1111-111111111111';
 const DAY = '22222222-2222-2222-2222-222222222222';
 const USER = { id: '33333333-3333-3333-3333-333333333333' };
 
-const ParamsSchema = z.object({ id: z.string().uuid(), dayId: z.string().uuid() });
+const ParamsSchema = z.object({ id: guid(), dayId: guid() });
 
 function ctx(params: Record<string, string>) {
     return { params: Promise.resolve(params) } as { params: Promise<{ id: string; dayId: string }> };

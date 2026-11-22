@@ -33,6 +33,7 @@ export const PORTED = [
     'expenses.ts',
     'html.ts',
     'instagram-cleanup.ts',
+    'ids.ts',
     'invites.ts',
     'json.ts',
     'log.ts',

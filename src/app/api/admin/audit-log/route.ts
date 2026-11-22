@@ -4,13 +4,14 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { ok } from '@/lib/errors';
 import { log } from '@/lib/log';
 import { withAdminRoute } from '@/lib/api/with-admin-route';
+import { guid } from '@/lib/ids';
 
 const QuerySchema = z.object({
     page:      z.coerce.number().min(1).default(1),
     pageSize:  z.coerce.number().min(1).max(100).default(25),
-    adminId:   z.string().uuid().optional(),
+    adminId:   guid().optional(),
     action:    z.enum(['impersonate', 'suspend', 'unsuspend', 'delete', 'view_profile', 'update_user', 'premium_update', 'all']).default('all'),
-    targetId:  z.string().uuid().optional(),
+    targetId:  guid().optional(),
     dateFrom:  z.string().optional(),
     dateTo:    z.string().optional(),
     export:    z.enum(['csv']).optional(),

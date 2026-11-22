@@ -4,6 +4,7 @@ import { tripParams } from '@/lib/api/params';
 import { ok, created } from '@/lib/errors';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertRestaurantReminder } from '@/lib/reminders';
+import { guid } from '@/lib/ids';
 
 const CreateRestaurantSchema = z.object({
     name: z.string().min(1).max(200),
@@ -18,7 +19,7 @@ const CreateRestaurantSchema = z.object({
     confirmation_url: z.string().url().optional().nullable(),
     phone: z.string().max(30).optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 /** GET /api/trips/[id]/restaurants — list all restaurants for a trip */

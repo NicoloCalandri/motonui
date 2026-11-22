@@ -14,6 +14,7 @@ import { Errors } from '../lib/errors';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/ai. Ports of src/app/api/ai/*/route.ts: the burst limit
 // ('ai' bucket) is declared in app.ts, the daily quota is consumed by
@@ -81,7 +82,7 @@ aiRouter.post(
 );
 
 const GeneratePostSchema = z.object({
-    tripId: z.string().uuid(),
+    tripId: guid(),
     language: z.enum(['it', 'en']).default('it'),
     save: z.boolean().default(false),
     title: z.string().min(1).max(300).optional(),

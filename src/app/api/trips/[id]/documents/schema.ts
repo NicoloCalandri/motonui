@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { guid } from '@/lib/ids';
 
 /** External document links must be https (no javascript:, data:, http:). */
 export const httpsUrl = z
@@ -10,7 +11,7 @@ export const httpsUrl = z
 
 const documentFields = {
     entity_type: z.enum(['leg', 'accommodation', 'restaurant', 'activity', 'trip']).optional().nullable(),
-    entity_id: z.string().uuid().optional().nullable(),
+    entity_id: guid().optional().nullable(),
     type: z.enum(['boarding_pass', 'hotel_voucher', 'ticket', 'reservation_confirmation', 'insurance', 'visa', 'other']),
     title: z.string().trim().min(1).max(200),
     file_type: z.enum(['pdf', 'image']).default('image'),

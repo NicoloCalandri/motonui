@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { Errors, withErrorHandler } from '@/lib/errors';
+import { guid } from '@/lib/ids';
 
 /** Raw route params as Next.js passes them. */
 type AdminParams = Record<string, string>;
@@ -19,7 +19,7 @@ export type AdminRouteHandler<P extends AdminParams> = ((request: Request, conte
     adminRoute: { name: string };
 };
 
-const uuid = z.string().uuid();
+const uuid = guid();
 
 /** Params named `id` or ending in `Id` are row ids: anything but a UUID is a 400, before any query. */
 function assertIdParams(params: AdminParams): void {

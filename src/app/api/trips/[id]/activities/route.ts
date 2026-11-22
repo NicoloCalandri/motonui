@@ -4,6 +4,7 @@ import { tripParams } from '@/lib/api/params';
 import { ok, created } from '@/lib/errors';
 import { convertCurrency } from '@/lib/expenses';
 import { upsertActivityReminder } from '@/lib/reminders';
+import { guid } from '@/lib/ids';
 
 const CreateActivitySchema = z.object({
     name: z.string().min(1).max(200),
@@ -17,7 +18,7 @@ const CreateActivitySchema = z.object({
     booking_ref: z.string().max(100).optional().nullable(),
     ticket_url: z.string().url().optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
 });
 
 /** GET /api/trips/[id]/activities — list all activities for a trip */

@@ -9,6 +9,7 @@ import { generateExport } from '@/lib/media/instagram-export';
 import { INSTAGRAM_FORMATS } from '@/lib/media/instagram-slides';
 import { HEX_COLOR } from '@/lib/media/process';
 import { log } from '@/lib/log';
+import { guid } from '@/lib/ids';
 
 /** Photo processing runs after the 202 response, within this budget. */
 export const maxDuration = 60;
@@ -25,7 +26,7 @@ const TextOverlaySchema = z.object({
 });
 
 const CreateExportSchema = z.object({
-    mediaIds: z.array(z.string().uuid()).min(1).max(INSTAGRAM_FORMATS.carousel.maxSlides),
+    mediaIds: z.array(guid()).min(1).max(INSTAGRAM_FORMATS.carousel.maxSlides),
     format: z.enum(['carousel', 'story']),
     filter: z.enum(['none', 'warm', 'cool', 'vintage', 'bw', 'vivid']).default('none'),
     textOverlay: TextOverlaySchema.optional(),

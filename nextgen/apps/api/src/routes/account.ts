@@ -13,7 +13,7 @@ import type { AppEnv } from '../types';
 export const accountRouter = new Hono<AppEnv>();
 
 const DeleteAccountSchema = z.object({
-    confirm: z.literal('ELIMINA', { errorMap: () => ({ message: 'scrivi ELIMINA per confermare' }) }),
+    confirm: z.literal('ELIMINA', { message: 'scrivi ELIMINA per confermare' }),
 });
 
 /**

@@ -4,9 +4,10 @@ import { withRoute } from '@/lib/api/with-route';
 import { tripParams } from '@/lib/api/params';
 import { withSignedUrls } from '@/lib/trip-storage';
 import type { Media } from '@/lib/types';
+import { guid } from '@/lib/ids';
 
 const FilterSchema = z.object({
-    day_id: z.string().uuid().optional(),
+    day_id: guid().optional(),
 });
 
 /**

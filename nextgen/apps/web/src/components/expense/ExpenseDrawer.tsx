@@ -29,7 +29,9 @@ const Schema = z.object({
     notes: z.string().max(1000).optional(),
 });
 
-type FormValues = z.infer<typeof Schema>;
+/** Parsed values (amount is a number). The inputs differ: `z.coerce` accepts any input. */
+type FormValues = z.output<typeof Schema>;
+type FormInput = z.input<typeof Schema>;
 
 interface ExpenseDrawerProps {
     tripId: string;
@@ -57,7 +59,7 @@ export default function ExpenseDrawer({ tripId, open, onClose, onSaved, initialD
         setValue,
         reset,
         formState: { errors },
-    } = useForm<FormValues>({
+    } = useForm<FormInput, unknown, FormValues>({
         resolver: zodResolver(Schema),
         defaultValues: {
             currency: 'EUR',

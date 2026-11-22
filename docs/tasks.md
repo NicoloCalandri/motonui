@@ -120,7 +120,7 @@ Salti di versione maggiore che non sono semplici aggiornamenti: provati il 2026-
 
 | ID | Task | Perché non è un bump | Criterio di accettazione |
 |---|---|---|---|
-| D-1 | Zod 4 | `errorMap` rimosso, `src/test/zod-sample.ts` usa interni di Zod 3, 39 test e la build falliscono | type-check, lint, test e build verdi; `route-contract.test.ts` invariato |
+| D-1 | **Fatto il 2026-11-22** per l'app (`nextgen/` resta su Zod 3: le copie di `src/lib` sono scritte per entrambe). Zod 4 | `errorMap` rimosso, `src/test/zod-sample.ts` usa interni di Zod 3, 39 test e la build falliscono | type-check, lint, test e build verdi; `route-contract.test.ts` invariato |
 | D-2 | **Fatto il 2026-10-09.** Tiptap 3 (tutti i pacchetti `@tiptap/*` insieme) | aggiornare due pacchetti su cinque rompe `npm ci`; l'editor e `lib/blog/render.ts` usano le estensioni | editor e rendering dei post invariati; test di `render.ts` verdi |
 | D-3 | Tailwind 4 | configurazione spostata in CSS: la build fallisce su `globals.css`. Vale anche per `nextgen/apps/web`: un aggiornamento di sicurezza (#175) l'aveva portato a 4 e la build si è rotta; tornato a 3.4 il 2026-10-21 | build verde e controllo visivo delle pagine principali |
 | D-4 | ESLint 10 | `eslint-config-next` 15 supporta solo ESLint ≤ 9: dopo Next 16 | `npm run lint` a zero warning |

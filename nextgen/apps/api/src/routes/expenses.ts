@@ -9,6 +9,7 @@ import { sanitizePlainText } from '../lib/sanitize';
 import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/expenses (top-level, NOT nested under /trips/:id): the
 // central trip guard does not see these two endpoints, so each one loads the
@@ -20,10 +21,10 @@ const UpdateExpenseSchema = z.object({
     amount: z.number().positive().optional(),
     currency: z.string().length(3).optional(),
     category: z.enum(['food', 'transport', 'accommodation', 'activity', 'shopping', 'other']).optional(),
-    paid_by: z.string().uuid().optional(),
+    paid_by: guid().optional(),
     split: z.boolean().optional(),
     date: z.string().optional().nullable(),
-    day_id: z.string().uuid().optional().nullable(),
+    day_id: guid().optional().nullable(),
     notes: z.string().max(1000).optional().nullable(),
 });
 

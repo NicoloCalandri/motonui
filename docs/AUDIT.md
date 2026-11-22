@@ -8,7 +8,7 @@
 Nessun segreto esposto **nuovo**, nessuna tabella senza RLS, nessun XSS trovato. Restano due punti seri, entrambi fuori dal codice:
 
 1. **Segreti nella storia git (SR-DEV-01, P0, già noto).** `git log -G` conferma chiave Anthropic e token Mapbox nei commit `8d3e1f0`, `188ff19`, `38e5131`. Vanno **ruotati** (runbook `security/05-OPS-RUNBOOK.md` §3): rimuoverli dal repo non basta.
-2. **`zod` 3 con advisory high** (GHSA-mrhx-c7xc-m3w5, memoria su collezioni enormi). Unico high rimasto in `npm audit --omit=dev`: il job CI `dependency-audit` resta rosso finché non si fa la migrazione a Zod 4 (D-1 in `tasks.md`). Mitigazione attuale: il corpo delle richieste su Vercel è limitato a ~4,5 MB.
+2. ~~**`zod` 3 con advisory high**~~ (GHSA-mrhx-c7xc-m3w5). **Chiuso:** l'app è passata a Zod 4.6.7 (D-1, vedi A5.29); `npm audit --omit=dev` non riporta più vulnerabilità.
 
 Corretti in questa PR i problemi reali trovati: iniezione di filtri PostgREST nella ricerca utenti admin, messaggi del database restituiti al client da due route admin, route admin senza gestione errori standard, cookie di sessione senza `Secure`, dipendenze con advisory (next, happy-dom, Tiptap, Sentry).
 
@@ -53,7 +53,7 @@ Il prompt parte da alcune ipotesi superate; si è seguito `CLAUDE.md`:
 | A5.26 | CORS e CSRF | ✅ | — | Nessun header CORS: le API sono same-origin. Il proxy rifiuta le scritture con `Origin`/`Sec-Fetch-Site` esterni, oltre a `SameSite=Lax` (test). |
 | A5.27 | Rate limiting e AI | ✅ ⚠️ | — | Quota atomica 20 chiamate/giorno per utente (`consume_feature_quota`, testata con 50 richieste parallele), 10/min per utente, cap giornaliero globale per funzionalità (`feature_controls`). Tetto di **spesa** mensile: ⚠️ impostarlo nella console Anthropic (limite di spesa dell'organizzazione). |
 | A5.28 | Prompt injection | ✅ | — | Dati utente in `untrustedBlock()`, regola nel system prompt, output strutturati validati, `prompt-injection.test.ts`; la chiave non entra mai nel prompt. |
-| A5.29 | Dipendenze | 🔧 ⚠️ | `package.json`, `package-lock.json`, `dependabot.yml` | Aggiornati next 16.4.6, Tiptap 3.35.0 (tutti insieme), happy-dom 21.0.4 (chiude D-9), @sentry/nextjs 11.16.0. Rimosse 12 dipendenze mai importate (B2.37). Lockfile committato, Dependabot attivo. Resta `zod` 3 (high) → D-1. Le dev-dependency hanno advisory moderate (non bloccanti). |
+| A5.29 | Dipendenze | 🔧 ⚠️ | `package.json`, `package-lock.json`, `dependabot.yml` | Aggiornati next 16.4.6, Tiptap 3.35.0 (tutti insieme), happy-dom 21.0.4 (chiude D-9), @sentry/nextjs 11.16.0. Rimosse 12 dipendenze mai importate (B2.37). Lockfile committato, Dependabot attivo. **Zod 4.6.7** (D-1): `errorMap` → `message`, `formatZodError` legge i nomi delle issue di Zod 3 e 4 (la copia in `nextgen/` resta su Zod 3), `zod-sample.ts` usa `z.toJSONSchema` invece degli interni, id validati con `guid()` (`src/lib/ids.ts`: Zod 4 `uuid()` segue RFC 9562 e rifiuterebbe gli id del seed). `npm audit --omit=dev`: 0 vulnerabilità. Le dev-dependency hanno advisory moderate (non bloccanti). |
 
 ## Parte B — Velocità
 
@@ -93,7 +93,7 @@ Il prompt parte da alcune ipotesi superate; si è seguito `CLAUDE.md`:
 ## Rischi residui, per gravità
 
 1. **Alta — segreti nella storia git non ruotati** (chiave Anthropic, token Mapbox, `ADMIN_IMPERSONATION_SECRET`). Azione: rotazione secondo il runbook, poi riga nel registro verifiche.
-2. **Alta — `zod` 3 con advisory high**, CI `dependency-audit` rossa. Azione: migrazione a Zod 4 (D-1).
+2. ~~Alta — `zod` 3 con advisory high~~: chiuso con la migrazione a Zod 4 (D-1). Resta `nextgen/` su Zod 3, non in produzione e senza audit bloccante: da allineare al cutover.
 3. **Media — nessun CAPTCHA** su login, registrazione e reset; restano i limiti per IP di Supabase. Azione: Turnstile.
 4. **Media — configurazioni cloud non verificate da qui**: backup/PITR e prova di restore, parità Auth (rate limit, leaked password), restrizione del token Mapbox, regione Supabase, esecuzione dei cron, limite di spesa Anthropic.
 5. **Bassa — risposte delle route di viaggio con righe intere** (ai soli membri, sotto RLS). Azione: DTO espliciti.
@@ -106,8 +106,8 @@ Il prompt parte da alcune ipotesi superate; si è seguito `CLAUDE.md`:
 |---|---|
 | `npm run type-check` | ✅ 0 errori |
 | `npm run lint` | ✅ 0 warning |
-| `npm run test` | ✅ 102 file, 995 test (baseline: 958) |
+| `npm run test` | ✅ 103 file, 1004 test (baseline: 958) |
 | `npm run build` + `npm run check:bundle` | ✅ build completa; 55 file in `.next/static`, nessun segreto server |
 | `sh scripts/run-sql-tests.sh` (Postgres 16 + stub, come il job `rls-tests`) | ✅ 10 file, 91 controlli |
-| `npm audit --omit=dev` | 🟡 solo `zod` (high) |
+| `npm audit --omit=dev` | ✅ 0 vulnerabilità (dopo Zod 4) |
 | nextgen: `npm test`, `npm run type-check`, `npm run port:check`, `node scripts/handler-drift.mjs` | ✅ (il lint di `apps/web` fallisce già sulla base, non eseguito in CI) |

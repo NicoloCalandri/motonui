@@ -12,6 +12,7 @@ import { requireUser } from '../middleware/auth';
 import { loadProfile } from '../middleware/profile';
 import type { Media } from '@motonui/shared-types';
 import type { AppEnv } from '../types';
+import { guid } from '../lib/ids';
 
 // Mounted at /api/trips/:id/media. Membership is checked by tripGuard (app.ts).
 // Port of src/app/api/trips/[id]/media/**: files live in the private bucket,
@@ -19,7 +20,7 @@ import type { AppEnv } from '../types';
 export const tripsMediaRouter = new Hono<AppEnv>();
 
 const FilterSchema = z.object({
-    day_id: z.string().uuid().optional(),
+    day_id: guid().optional(),
 });
 
 const UploadRequestSchema = z.object({
@@ -29,7 +30,7 @@ const UploadRequestSchema = z.object({
 
 const ConfirmSchema = z.object({
     path: z.string().min(1).max(300),
-    day_id: z.string().uuid().nullable().optional(),
+    day_id: guid().nullable().optional(),
     caption: z.string().max(500).nullable().optional(),
 });
 
