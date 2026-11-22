@@ -1,10 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from './client';
 import { createHash } from 'node:crypto';
 import type { BaggageItem, DailyWeather, PackingCategoryGroup } from '@motonui/shared-types';
 import { AI_MODELS } from './models';
 import { untrustedBlock, withUntrustedRule } from './untrusted';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
+const anthropic = createAnthropicClient();
 
 const BAGGAGE_LABELS: Record<string, string> = {
     cabin_bag: 'zaino/borsa da cabina',

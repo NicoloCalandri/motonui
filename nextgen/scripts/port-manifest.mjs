@@ -9,6 +9,7 @@
 export const PORTED = [
     'admin/impersonation-token.ts',
     'ai/blog-assistant.ts',
+    'ai/client.ts',
     'ai/destination.ts',
     'ai/models.ts',
     'ai/packing.ts',

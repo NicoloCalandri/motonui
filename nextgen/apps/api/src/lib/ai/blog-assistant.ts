@@ -1,9 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from './client';
 import { AI_MODELS } from './models';
 import { log } from '../log';
 import { untrustedText, withUntrustedRule } from './untrusted';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
+const anthropic = createAnthropicClient();
 
 // ─── System Prompts ───────────────────────────────────────────────────────────
 

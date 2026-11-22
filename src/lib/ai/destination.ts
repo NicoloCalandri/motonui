@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from '@/lib/ai/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../supabase/database.types';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
+const anthropic = createAnthropicClient();
 
 import { DestinationBriefing } from '@/lib/types';
 import { AI_MODELS } from '@/lib/ai/models';

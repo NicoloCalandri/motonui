@@ -1,11 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from '../ai/client';
 import type { InstagramType } from '@motonui/shared-types';
 import { AI_MODELS } from '../ai/models';
 import { untrustedBlock, withUntrustedRule } from '../ai/untrusted';
 
-const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY ?? '',
-});
+const anthropic = createAnthropicClient();
 
 interface GenerateCaptionInput {
     captions: string[];
